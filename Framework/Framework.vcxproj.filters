@@ -207,9 +207,6 @@
     <None Include="Shaders\GatherRadiance.frag">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="Shaders\NormalizeRadiance.frag">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="Shaders\PostProcessing.frag">
       <Filter>Resource Files</Filter>
     </None>
@@ -235,6 +232,9 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="Shaders\DrawAreaLight.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Shaders\Normalize.frag">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

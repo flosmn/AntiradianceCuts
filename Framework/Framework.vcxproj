@@ -164,7 +164,7 @@
     <None Include="Shaders\Gather.vert" />
     <None Include="Shaders\GatherAntiradiance.frag" />
     <None Include="Shaders\GatherRadiance.frag" />
-    <None Include="Shaders\NormalizeRadiance.frag" />
+    <None Include="Shaders\Normalize.frag" />
     <None Include="Shaders\PostProcessing.frag" />
     <None Include="Shaders\PostProcessing.vert" />
     <None Include="Shaders\Render.frag" />

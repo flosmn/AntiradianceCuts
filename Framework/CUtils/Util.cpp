@@ -77,32 +77,6 @@ float map(float x, float x0, float x1, float y0, float y1) {
 	return y1 - (x1 - x) * (y1 - y0) / (x1 - x0);
 }
 
-void FillWithTriangles(std::vector<Triangle*> &triangles, glm::vec4 *pVertexPositions,
-	ushort* pIndexData, uint numVertices, uint numTriangles)
-{
-	std::vector<Triangle*>::iterator it;
-	for ( it=triangles.begin() ; it < triangles.end(); it++ )
-	{
-		SAFE_DELETE(*it);
-	}
-	triangles.clear();
-		
-	for(uint i = 0; i < numTriangles; i++)
-	{
-		uint i1 = pIndexData[i * 3 + 0];
-		uint i2 = pIndexData[i * 3 + 1];
-		uint i3 = pIndexData[i * 3 + 2];
-		glm::vec3 p1 = glm::vec3(pVertexPositions[i1]);
-		glm::vec3 p2 = glm::vec3(pVertexPositions[i2]);
-		glm::vec3 p3 = glm::vec3(pVertexPositions[i3]);
-
-		glm::vec3 normal = glm::normalize(glm::cross(p3-p1, p2-p1));
-
-		Triangle* triangle = new Triangle(p1, p2, p3, normal);
-		triangles.push_back(triangle);																	 
-	}
-} 
-
 bool IntersectWithBB(Triangle triangle, Ray ray)
 {
 	glm::vec3 p1 = triangle.GetPoints()[0];

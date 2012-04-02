@@ -20,16 +20,15 @@ struct MATERIAL
 
 struct LIGHT
 {
-	glm::vec4 m_Position;
-	glm::vec4 m_Orientation;
-	glm::vec4 m_SurfaceAlbedo;
-	glm::vec4 m_Flux;
-	glm::vec4 m_Antiflux;
-	glm::vec4 m_AntiPosition;
-	glm::vec4 m_IncLightDir;
-	glm::vec4 m_DebugColor;
-	glm::mat4 m_ViewMatrix;
-	glm::mat4 m_ProjectionMatrix;
+	glm::vec4 Position;
+	glm::vec4 Orientation;
+	glm::vec4 Flux;
+	glm::vec4 SrcPosition;
+	glm::vec4 SrcOrientation;
+	glm::vec4 SrcFlux;
+	glm::vec4 DebugColor;
+	glm::mat4 ViewMatrix;
+	glm::mat4 ProjectionMatrix;
 };
 
 struct CONFIG

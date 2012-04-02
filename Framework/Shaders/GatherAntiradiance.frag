@@ -24,16 +24,15 @@ uniform config
 
 uniform light
 {
-	vec4 vPositionWS;
-	vec4 vOrientationWS;
-	vec4 SurfaceAlbedo;
+	vec4 Position;
+	vec4 Orientation;
 	vec4 Flux;
-	vec4 Antiflux;
-	vec4 vAntiPosWS;
-	vec4 vIncLightDirWS;
+	vec4 SrcPosition;
+	vec4 SrcOrientation;
+	vec4 SrcFlux;
 	vec4 DebugColor;
-	mat4 mView;
-	mat4 mProj;
+	mat4 ViewMatrix;
+	mat4 ProjectionMatrix;
 } uLight;
 
 out vec4 outputColor;
@@ -53,22 +52,19 @@ void main()
 	vec3 vPositionWS = texture2D(samplerPositionWS, coord).xyz;
 	vec3 vNormalWS = normalize(texture2D(samplerNormalWS, coord).xyz);
 	
-	vec3 vLightDir = normalize(uLight.vAntiPosWS.xyz - vPositionWS);
-	vec3 vSrcLightDir = normalize(uLight.vPositionWS.xyz - vPositionWS);
-	vec3 vAntiRadDir = normalize(uLight.vIncLightDirWS.xyz);
+	vec3 vLightDir = normalize(vPositionWS - uLight.Position.xyz);				// direction from light to point
+	vec3 vAntiRadDir = normalize(uLight.Position.xyz - uLight.SrcPosition.xyz); // direction of antiradiance
 	
-	float theta = acos(clamp(dot(vAntiRadDir, - vLightDir), 0, 1));
+	float theta = acos(clamp(dot(vAntiRadDir, vLightDir), 0, 1));
 	const float sigma = uConfig.BlurSigma;
 	float blur = uConfig.BlurK / (sqrt(2*PI)*sigma) * exp(-(theta*theta)/(2*sigma*sigma));
 	
-	const float dist = length(vPositionWS - uLight.vAntiPosWS.xyz);
-	float G = 1 / (dist * dist) * clamp(dot(vSrcLightDir, vNormalWS), 0, 1);
-	vec4 A_in = uLight.Antiflux;
+	vec4 A_in = blur * uLight.SrcFlux;	// blurred antiradiance
 
-	vec4 AntiIrradiance = 1 / (32 * PI) * A_in * blur * G;
+	float G = G_CLAMP(vPositionWS, vNormalWS, uLight.SrcPosition.xyz, uLight.SrcOrientation.xyz);
 
-	//AntiIrradiance = max(vec4(0.f, 0.f, 0.f, 0.f), AntiIrradiance);
-
+	vec4 AntiIrradiance = A_in * G;
+	
 	outputColor = AntiIrradiance;
 	outputColor.w = 1.0f;
 }

@@ -37,18 +37,19 @@ public:
 	void SetMaterial(MATERIAL& mat);	
 	MATERIAL& GetMaterial();
 		
-	std::vector<Triangle*> GetTriangles();
+	std::vector<CSubModel*> GetSubModels() { return m_vecSubModels; }
 
 private:	
 	CMesh* m_Mesh;
+	
+	uint m_nTriangles;
+
 	std::vector<CMeshGeometry*> m_MeshGeometries;
 	std::vector<CMeshMaterial*> m_MeshMaterials;
 
 	std::vector<CSubModel*> m_vecSubModels;
-
-	glm::mat4 worldTransform;
-
-	uint m_nTriangles;
+		
+	glm::mat4 worldTransform;		
 };
 
 #endif

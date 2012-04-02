@@ -148,8 +148,3 @@ MATERIAL& CModel::GetMaterial()
 	return *mat;
 }
 
-std::vector<Triangle*> CModel::GetTriangles() 
-{
-	std::vector<Triangle*> temp;
-	return temp;
-}

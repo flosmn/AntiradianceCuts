@@ -29,8 +29,31 @@ public:
 	const glm::vec3* GetVertexTexCoords() { return m_pVertexTexCoords; }
 	const ushort* GetIndexData() { return m_pIndexData; }
 
-	std::vector<Triangle*> GetTriangles() { return triangles; }
+	void CreateTriangleData(std::vector<Triangle*>& triangles)
+	{
+		std::vector<Triangle*>::iterator it;
+		for ( it=triangles.begin() ; it < triangles.end(); it++ )
+		{
+			SAFE_DELETE(*it);
+		}
+		triangles.clear();
+		
+		for(uint i = 0; i < numberOfTriangles; i++)
+		{
+			uint i1 = m_pIndexData[i * 3 + 0];
+			uint i2 = m_pIndexData[i * 3 + 1];
+			uint i3 = m_pIndexData[i * 3 + 2];
+			glm::vec3 p1 = glm::vec3(m_pVertexPositions[i1]);
+			glm::vec3 p2 = glm::vec3(m_pVertexPositions[i2]);
+			glm::vec3 p3 = glm::vec3(m_pVertexPositions[i3]);
 
+			glm::vec3 normal = glm::normalize(glm::cross(p3-p1, p2-p1));
+
+			Triangle* triangle = new Triangle(p1, p2, p3, normal);
+			triangles.push_back(triangle);																	 
+		}
+	}
+	
 protected:
 	glm::vec4* m_pVertexPositions;
 	glm::vec3* m_pVertexNormals;
@@ -69,11 +92,6 @@ public:
 		m_pIndexData = new ushort[3 * numberOfTriangles];
 		m_pIndexData[0] = 0; m_pIndexData[1] = 1; m_pIndexData[2] = 2;
 		m_pIndexData[3] = 0; m_pIndexData[4] = 2; m_pIndexData[5] = 3;
-
-		FillWithTriangles(triangles, m_pVertexPositions, m_pIndexData, 
-			numberOfVertices, numberOfTriangles); 
-
-		int i = triangles.size();
 	}
 
 	~CFullScreenQuadMesh() 
@@ -118,11 +136,6 @@ public:
 		m_pIndexData = new ushort[3 * numberOfTriangles];
 		m_pIndexData[0] = 0; m_pIndexData[1] = 1; m_pIndexData[2] = 2;
 		m_pIndexData[3] = 0; m_pIndexData[4] = 2; m_pIndexData[5] = 3;
-
-		FillWithTriangles(triangles, m_pVertexPositions, m_pIndexData, 
-			numberOfVertices, numberOfTriangles); 
-
-		int i = triangles.size();
 	}
 
 	~CQuadMesh() 
@@ -233,9 +246,6 @@ public:
 		// triangles face 6
 		m_pIndexData[30] = 20; m_pIndexData[31] = 21; m_pIndexData[32] = 22;
 		m_pIndexData[33] = 20; m_pIndexData[34] = 22; m_pIndexData[35] = 23;
-
-		FillWithTriangles(triangles, m_pVertexPositions, m_pIndexData, 
-			numberOfVertices, numberOfTriangles);
 	}
 	~CCubeMesh() 
 	{

@@ -48,7 +48,7 @@ void CLightViewer::Release()
 void CLightViewer::DrawLight(Light* light, Camera* camera, CGLUniformBuffer* pUBTransform) 
 {
 	
-	glm::mat4 scale = glm::scale(0.05f, 0.05f, 0.05f);
+	glm::mat4 scale = glm::scale(0.01f, 0.01f, 0.01f);
 	glm::mat4 translate = glm::translate(light->GetPosition());
 
 	m_pLightModel->SetWorldTransform(translate * scale);

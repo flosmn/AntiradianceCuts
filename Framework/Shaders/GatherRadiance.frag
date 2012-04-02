@@ -24,16 +24,15 @@ uniform camera
 
 uniform light
 {
-	vec4 vPositionWS;
-	vec4 vOrientationWS;
-	vec4 SurfaceAlbedo;
+	vec4 Position;
+	vec4 Orientation;
 	vec4 Flux;
-	vec4 Antiflux;
-	vec4 vAntiPosWS;
-	vec4 vIncLightDirWS;
+	vec4 SrcPosition;
+	vec4 SrcOrientation;
+	vec4 SrcFlux;
 	vec4 DebugColor;
-	mat4 mView;
-	mat4 mProj;
+	mat4 ViewMatrix;
+	mat4 ProjectionMatrix;
 } uLight;
 
 out vec4 outputColor;
@@ -66,7 +65,7 @@ void main()
 
 	// calc radiance
 	vec4 L_in = uLight.Flux * 0.25f * ONE_OVER_PI;
-	float G = G_CLAMP(vPositionWS, vNormalWS, uLight.vPositionWS.xyz, uLight.vOrientationWS.xyz);
+	float G = G_CLAMP(vPositionWS, vNormalWS, uLight.Position.xyz, uLight.Orientation.xyz);
 	vec4 Irradiance = L_in * V * G;	
 		
 	outputColor = Irradiance;
@@ -100,7 +99,7 @@ float IsLit(in vec3 position)
 	float zFar = 100.0f;
 	float zBias = 0.0f;
 	
-	vec4 positionLS = uLight.mView * vec4(position, 1.f);
+	vec4 positionLS = uLight.ViewMatrix * vec4(position, 1.f);
 	positionLS = positionLS / positionLS.w;
 	
 	float depthLS = positionLS.z;

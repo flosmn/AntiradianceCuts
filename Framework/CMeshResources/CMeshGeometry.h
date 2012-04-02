@@ -9,6 +9,7 @@ typedef unsigned short ushort;
 #include <vector>
 
 class CMeshMaterial;
+class Triangle;
 
 class CMeshVertex
 {
@@ -103,11 +104,13 @@ public:
 	CMeshMaterial* GetMeshMaterial() { return m_pMeshMaterial; }
 	void SetMeshMaterial(CMeshMaterial* pMeshMaterial) { m_pMeshMaterial = pMeshMaterial; }
 
+	void CreateTriangleData(std::vector<Triangle*>& triangles);
+
 	void PrintGeometryData();
 	
 private:
 	CMeshMaterial* m_pMeshMaterial;
-
+		
 	uint m_nVertices;
 	uint m_nFaces;
 	glm::vec4* m_pPositionData;

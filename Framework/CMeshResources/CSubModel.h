@@ -9,6 +9,8 @@ typedef unsigned int uint;
 
 #include <vector>
 
+#include "CModel.h"
+
 class Triangle;
 
 class CGLVertexArray;
@@ -18,7 +20,7 @@ class CMeshGeometry;
 class CMeshMaterial;
 class CMesh;
 
-class CSubModel 
+class CSubModel : public CModel
 {
 public:
 	CSubModel();
@@ -39,7 +41,8 @@ public:
 private:	
 	CGLVertexArray* m_pGLVARenderData;
 	CMeshMaterial* m_pMaterial;
-		
+	
+	std::vector<Triangle*> m_Triangles;
 	uint m_nTriangles;
 };
 

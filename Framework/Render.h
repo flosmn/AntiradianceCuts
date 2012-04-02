@@ -75,7 +75,7 @@ private:
 	void PostProcess();
 	void DebugRender();
 	void DrawAreaLight();
-	void NormalizeRadiance();
+	void Normalize();
 	void FinalGather();
 
 	void GatherRadianceFromLight(Light* light);
@@ -95,6 +95,7 @@ private:
 	CAccumulationBuffer* m_pAccumulationRadiance;
 	CAccumulationBuffer* m_pNormalizedRadiance;
 	CAccumulationBuffer* m_pAccumulationAntiradiance;
+	CAccumulationBuffer* m_pNormalizedAntiradiance;
 	CTimer* m_Timer;
 	CLightViewer* m_pLightViewer;
 	CTextureViewer* m_pTextureViewer;

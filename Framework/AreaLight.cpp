@@ -88,8 +88,9 @@ Light* AreaLight::GetNewPrimaryLight()
 		glm::vec4 positionTemp = transform * glm::vec4(samplePos.x, samplePos.y, 0.0f, 1.0f);		
 		glm::vec3 position	= glm::vec3(positionTemp /= positionTemp.w);		
 		
-		Light* newLight = new Light(glm::vec3(position), orientation, glm::vec3(0), 
-			intensity, glm::vec3(0), glm::vec3(0), glm::vec3(0));
+		Light* newLight = new Light(
+			glm::vec3(position), orientation, glm::vec3(intensity), 
+			glm::vec3(0), glm::vec3(0), glm::vec3(0));
 		
 		return newLight;
 }

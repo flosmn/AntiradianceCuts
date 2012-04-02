@@ -2,9 +2,11 @@
 
 #include "..\Macros.h"
 
+#include "CMeshMaterial.h"
+
 #include "..\CUtils\Util.h"
 
-#include "CMeshMaterial.h"
+#include "..\Triangle.h"
 
 #include <iostream>
 #include <set>
@@ -27,6 +29,31 @@ CMeshGeometry::~CMeshGeometry()
 	SAFE_DELETE_ARRAY(m_pNormalData);
 	SAFE_DELETE_ARRAY(m_pTexCoordData);
 }
+
+void CMeshGeometry::CreateTriangleData(std::vector<Triangle*>& triangles)
+{
+	std::vector<Triangle*>::iterator it;
+	for (it = triangles.begin() ; it < triangles.end(); it++ )
+	{
+		SAFE_DELETE(*it);
+	}
+	triangles.clear();
+		
+	for(uint i = 0; i < m_nFaces; i++)
+	{
+		uint i1 = m_pIndexData[i * 3 + 0];
+		uint i2 = m_pIndexData[i * 3 + 1];
+		uint i3 = m_pIndexData[i * 3 + 2];
+		glm::vec3 p1 = glm::vec3(m_pPositionData[i1]);
+		glm::vec3 p2 = glm::vec3(m_pPositionData[i2]);
+		glm::vec3 p3 = glm::vec3(m_pPositionData[i3]);
+
+		glm::vec3 normal = glm::normalize(glm::cross(p3-p1, p2-p1));
+
+		Triangle* triangle = new Triangle(p1, p2, p3, normal);
+		triangles.push_back(triangle);														 
+	}
+} 
 
 void CMeshGeometry::PrintGeometryData()
 {

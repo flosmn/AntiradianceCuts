@@ -24,9 +24,6 @@ glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, uint order);
 
 float map(float x, float x0, float x1, float y0, float y1);
 
-void FillWithTriangles(std::vector<Triangle*> &triangles,
-	glm::vec4 *vertexPositions, ushort* indexData, uint numVertices, uint numTriangles);
-
 bool IntersectRayBox(glm::vec3 rayPos, glm::vec3 rayDir, glm::vec3 boxMin, 
 										 glm::vec3 boxMax);
 

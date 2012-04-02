@@ -5,6 +5,16 @@ layout(std140) uniform;
 #define ONE_OVER_PI 0.3183
 #define PI 3.14159
 
+uniform config
+{
+	float GeoTermLimit;
+	float BlurSigma;
+	float BlurK;
+	int UseAntiradiance;
+	int DrawAntiradiance;
+	int nPaths;
+} uConfig;
+
 uniform camera
 {
 	vec3 vPositionWS;
@@ -32,7 +42,7 @@ void main()
 	temp.r = max(temp.r, 0.f);
 	temp.g = max(temp.g, 0.f);
 	temp.b = max(temp.b, 0.f);
-
+	
 	outputColor = cAlbedo * temp;
 	outputColor.w = 1.0f;
 }

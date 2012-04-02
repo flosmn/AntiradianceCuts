@@ -8,8 +8,8 @@
 class Light
 {
 public:
-	Light(glm::vec3 position, glm::vec3 orientation, glm::vec3 surfAlbedo, glm::vec3 flux, 
-		glm::vec3 antiflux, glm::vec3 antiPos, glm::vec3 incLightDir);
+	Light(glm::vec3 position, glm::vec3 orientation, glm::vec3 flux, 
+		  glm::vec3 src_position, glm::vec3 src_orientation, glm::vec3 src_flux);
 	~Light();
 
 	glm::mat4 GetViewMatrix() { return m_ViewMatrix; }
@@ -17,11 +17,10 @@ public:
 
 	glm::vec3 GetPosition() { return m_Position; }
 	glm::vec3 GetOrientation() { return m_Orientation; }
-	glm::vec3 GetSurfaceAlbedo() { return m_SurfaceAlbedo; }
 	glm::vec3 GetFlux() { return m_Flux; }
-	glm::vec3 GetAntiflux() { return m_Antiflux; }
-	glm::vec3 GetAntiPosition() { return m_AntiPosition; }
-	glm::vec3 GetIncLightDirection() { return m_IncLightDir; }	
+	glm::vec3 GetSrcPosition() { return m_SrcPosition; }
+	glm::vec3 GetSrcOrientation() { return m_SrcOrientation; }
+	glm::vec3 GetSrcFlux() { return m_SrcFlux; }	
 
 	void SetDebugColor(glm::vec3 color) { m_DebugColor = color; }
 	void SetFlux(glm::vec3 flux) { m_Flux = flux; }
@@ -32,11 +31,10 @@ public:
 private:
 	glm::vec3 m_Position;
 	glm::vec3 m_Orientation;
-	glm::vec3 m_SurfaceAlbedo;
 	glm::vec3 m_Flux;
-	glm::vec3 m_Antiflux;
-	glm::vec3 m_AntiPosition;
-	glm::vec3 m_IncLightDir;
+	glm::vec3 m_SrcPosition;
+	glm::vec3 m_SrcOrientation;
+	glm::vec3 m_SrcFlux;
 	glm::vec3 m_DebugColor;
 	glm::mat4 m_ViewMatrix;
 	glm::mat4 m_ProjectionMatrix;

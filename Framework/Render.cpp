@@ -44,6 +44,7 @@ Renderer::Renderer(Camera* _camera) {
 	m_pAccumulationRadiance = new CAccumulationBuffer();
 	m_pAccumulationAntiradiance = new CAccumulationBuffer();
 	m_pNormalizedRadiance = new CAccumulationBuffer();
+	m_pNormalizedAntiradiance = new CAccumulationBuffer();
 
 	m_pLightViewer = new CLightViewer();
 	m_pTextureViewer = new CTextureViewer();
@@ -65,17 +66,17 @@ Renderer::Renderer(Camera* _camera) {
 	m_pGatherRadianceProgram = new CProgram("Renderer.m_pGatherRadianceProgram", "Shaders\\Gather.vert", "Shaders\\GatherRadiance.frag");
 	m_pGatherAntiradianceProgram = new CProgram("Renderer.m_pGatherAntiradianceProgram", "Shaders\\Gather.vert", "Shaders\\GatherAntiradiance.frag");
 	m_pFinalGatherProgram = new CProgram("Renderer.m_pFinalGatherProgram", "Shaders\\Gather.vert", "Shaders\\FinalGather.frag");
-	m_pNormalizeRadianceProgram = new CProgram("Renderer.m_pNormalizeRadianceProgram", "Shaders\\Gather.vert", "Shaders\\NormalizeRadiance.frag");
+	m_pNormalizeRadianceProgram = new CProgram("Renderer.m_pNormalizeRadianceProgram", "Shaders\\Gather.vert", "Shaders\\Normalize.frag");
 
 	m_pFullScreenQuad = new CFullScreenQuad();
 
-	m_BlurSigma = .1f;
+	m_BlurSigma = .3f;
 	
 	m_Frame = 0;
 	m_PathRadiance = 0;
 	m_PathAntiradiance = 0;
-	m_MaxPaths = 1;
-	m_NumPaths = 1;
+	m_MaxPaths = 5000;
+	m_NumPaths = 5000;
 
 	m_Finished = false;
 }
@@ -88,6 +89,7 @@ Renderer::~Renderer() {
 	SAFE_DELETE(m_pAccumulationRadiance);
 	SAFE_DELETE(m_pAccumulationAntiradiance);
 	SAFE_DELETE(m_pNormalizedRadiance);
+	SAFE_DELETE(m_pNormalizedAntiradiance);
 	SAFE_DELETE(m_pLightViewer);
 	SAFE_DELETE(m_pTextureViewer);
 	SAFE_DELETE(m_pFullScreenQuad);
@@ -140,6 +142,7 @@ bool Renderer::Init()
 	m_pGatherAntiradianceProgram->BindUniformBuffer(m_pUBCamera, "camera");
 
 	m_pFinalGatherProgram->BindUniformBuffer(m_pUBCamera, "camera");
+	m_pFinalGatherProgram->BindUniformBuffer(m_pUBConfig, "config");
 
 	m_pNormalizeRadianceProgram->BindUniformBuffer(m_pUBConfig, "config");
 	m_pNormalizeRadianceProgram->BindUniformBuffer(m_pUBCamera, "camera");
@@ -171,6 +174,7 @@ bool Renderer::Init()
 	V_RET_FOF(m_pAccumulationRadiance->Init(camera->GetWidth(), camera->GetHeight()));
 	V_RET_FOF(m_pAccumulationAntiradiance->Init(camera->GetWidth(), camera->GetHeight()));
 	V_RET_FOF(m_pNormalizedRadiance->Init(camera->GetWidth(), camera->GetHeight()));
+	V_RET_FOF(m_pNormalizedAntiradiance->Init(camera->GetWidth(), camera->GetHeight()));
 
 	ClearAccumulationBuffer();
 
@@ -221,6 +225,7 @@ void Renderer::Release()
 	m_pAccumulationRadiance->Release();
 	m_pAccumulationAntiradiance->Release();
 	m_pNormalizedRadiance->Release();
+	m_pNormalizedAntiradiance->Release();
 	m_pLightViewer->Release();
 	m_pTextureViewer->Release();
 	m_pFullScreenQuad->Release();
@@ -255,10 +260,10 @@ void Renderer::Render()
 	CreateGBuffer();
 	
 	GatherRadiance();
-
-	NormalizeRadiance();
-
+	
 	GatherAntiradiance();
+
+	Normalize();
 
 	FinalGather();
 		
@@ -336,18 +341,41 @@ void Renderer::GatherRadiance()
 	m_PathRadiance++;
 }
 
-void Renderer::NormalizeRadiance()
+void Renderer::Normalize()
 {
+	CONFIG conf;
+	conf.uGeoTermLimit = m_GeoTermLimit;
+	conf.BlurSigma = m_BlurSigma;
+	conf.BlurK = CalcBlurNormalizationFactor(m_BlurSigma);
+	conf.uDrawAntiradiance =  m_DrawAntiradiance ? 1 : 0;
+	conf.uUseAntiradiance = m_UseAntiradiance ? 1 : 0;
+	conf.nPaths = std::min(m_PathRadiance, m_NumPaths);
+	m_pUBConfig->UpdateData(&conf);
+	
 	GLenum buffers[1] = { GL_COLOR_ATTACHMENT0 };
-	CGLRenderTargetLock lock(m_pNormalizedRadiance->GetRenderTarget(), 1, buffers);
+	{
+		CGLRenderTargetLock lock(m_pNormalizedRadiance->GetRenderTarget(), 1, buffers);
 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	CGLBindLock lockProgram(m_pNormalizeRadianceProgram->GetGLProgram(), CGL_PROGRAM_SLOT);
+		CGLBindLock lockProgram(m_pNormalizeRadianceProgram->GetGLProgram(), CGL_PROGRAM_SLOT);
 
-	CGLBindLock lock0(m_pAccumulationRadiance->GetTexture(), CGL_TEXTURE0_SLOT);
+		CGLBindLock lock0(m_pAccumulationRadiance->GetTexture(), CGL_TEXTURE0_SLOT);
 
-	m_pFullScreenQuad->Draw();
+		m_pFullScreenQuad->Draw();
+	}	
+
+	{
+		CGLRenderTargetLock lock(m_pNormalizedAntiradiance->GetRenderTarget(), 1, buffers);
+
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		CGLBindLock lockProgram(m_pNormalizeRadianceProgram->GetGLProgram(), CGL_PROGRAM_SLOT);
+
+		CGLBindLock lock0(m_pAccumulationAntiradiance->GetTexture(), CGL_TEXTURE0_SLOT);
+
+		m_pFullScreenQuad->Draw();
+	}
 }
 
 void Renderer::GatherAntiradiance()
@@ -381,7 +409,10 @@ void Renderer::GatherRadianceFromLight(Light* light)
 	if(!m_UseAntiradiance) {
 		FillShadowMap(light);
 	}
-		
+	
+	if(light->GetFlux().r == 0.f && light->GetFlux().g == 0.f && light->GetFlux().b == 0.f)
+		return;
+
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);	
 	glBlendFunc(GL_ONE, GL_ONE);
@@ -409,6 +440,9 @@ void Renderer::GatherRadianceFromLight(Light* light)
 
 void Renderer::GatherAntiradianceFromLight(Light* light)
 {
+	if(light->GetSrcFlux().r == 0.f && light->GetSrcFlux().g == 0.f && light->GetSrcFlux().b == 0.f)
+		return;
+
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);	
 	glBlendFunc(GL_ONE, GL_ONE);
@@ -460,7 +494,7 @@ void Renderer::FinalGather()
 	CGLBindLock lockProgram(m_pFinalGatherProgram->GetGLProgram(), CGL_PROGRAM_SLOT);
 
 	CGLBindLock lock0(m_pNormalizedRadiance->GetTexture(), CGL_TEXTURE0_SLOT);
-	CGLBindLock lock1(m_pAccumulationAntiradiance->GetTexture(), CGL_TEXTURE1_SLOT);
+	CGLBindLock lock1(m_pNormalizedAntiradiance->GetTexture(), CGL_TEXTURE1_SLOT);
 	CGLBindLock lock2(m_pGBuffer->GetMaterialTexture(), CGL_TEXTURE2_SLOT);
 
 	m_pFullScreenQuad->Draw();
@@ -539,7 +573,7 @@ void Renderer::DebugRender()
 		m_pTextureViewer->DrawTexture(m_pShadowMap->GetShadowMapTexture(), 10, 360, 620, 340);
 		m_pTextureViewer->DrawTexture(m_pGBuffer->GetMaterialTexture(),  640, 360, 620, 340);
 		m_pTextureViewer->DrawTexture(m_pNormalizedRadiance->GetTexture(),  10, 10, 620, 340);
-		m_pTextureViewer->DrawTexture(m_pAccumulationAntiradiance->GetTexture(), 640, 10, 630, 340);
+		m_pTextureViewer->DrawTexture(m_pNormalizedAntiradiance->GetTexture(), 640, 10, 630, 340);
 	}
 	
 	err = glGetError();
@@ -550,7 +584,7 @@ void Renderer::DebugRender()
 
 	if(m_Finished)
 	{
-		//std::cout << "Finished." << std::endl;
+		std::cout << "Finished." << std::endl;
 		m_Finished = false;
 	}
 }
@@ -622,10 +656,10 @@ void Renderer::ConfigureLighting()
 	conf.nPaths = m_NumPaths;
 	m_pUBConfig->UpdateData(&conf);
 
-	std::cout << "Blur Factor: " << m_BlurSigma << std::endl;
-	std::cout << "Blur Norm: " << conf.BlurK << std::endl;
-	std::cout << "Use Antiradiance: " << conf.uUseAntiradiance << std::endl;
-	std::cout << "Draw Antiradiance: " << conf.uDrawAntiradiance << std::endl;
+	//std::cout << "Blur Factor: " << m_BlurSigma << std::endl;
+	//std::cout << "Blur Norm: " << conf.BlurK << std::endl;
+	//std::cout << "Use Antiradiance: " << conf.uUseAntiradiance << std::endl;
+	//std::cout << "Draw Antiradiance: " << conf.uDrawAntiradiance << std::endl;
 }
 
 void Renderer::PrintCameraConfig()

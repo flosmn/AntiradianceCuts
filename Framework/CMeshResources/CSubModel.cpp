@@ -47,6 +47,8 @@ bool CSubModel::Init(CMeshGeometry* pMeshGeometry)
 	
 	m_pGLVARenderData->Finish();
 
+	pMeshGeometry->CreateTriangleData(m_Triangles);
+
 	return true;
 }
 
@@ -69,6 +71,8 @@ bool CSubModel::Init(CMesh* pMesh)
 	V_RET_FOF(m_pGLVARenderData->AddIndexData(indexDataSize, (void*)pMesh->GetIndexData()));
 	
 	m_pGLVARenderData->Finish();
+
+	pMesh->CreateTriangleData(m_Triangles);
 
 	return true;
 }
@@ -93,8 +97,7 @@ void CSubModel::Draw()
 
 std::vector<Triangle*> CSubModel::GetTriangles() 
 {
-	std::vector<Triangle*> temp;
-	return temp;
+	return m_Triangles;
 }
 
 void CSubModel::SetMaterial(MATERIAL& mat)

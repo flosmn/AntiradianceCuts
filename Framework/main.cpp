@@ -56,7 +56,7 @@ bool leftMouseButton = false;
 bool rightMouseButton = false;
 
 bool config_use_antiradiance = true;
-float config_blur_factor = 0.1f;
+float config_blur_factor = 0.3f;
 
 int main()
 {
