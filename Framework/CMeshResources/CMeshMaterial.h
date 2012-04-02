@@ -3,7 +3,7 @@
 
 #include "glm/glm.hpp"
 
-#include "Structs.h"
+#include "..\Structs.h"
 
 #include <string>
 

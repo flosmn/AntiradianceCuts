@@ -1,19 +1,20 @@
 #include "CLightViewer.h"
 
-#include "Macros.h"
 #include "ShaderUtil.h"
 
-#include "Light.h"
-#include "Camera.h"
+#include "..\Macros.h"
 
-#include "CMesh.h"
-#include "CModel.h"
+#include "..\Light.h"
+#include "..\Camera.h"
 
-#include "CGLProgram.h"
-#include "CGLUniformBuffer.h"
+#include "..\CMeshResources\CMesh.h"
+#include "..\CMeshResources\CModel.h"
+
+#include "..\CGLResources\CGLProgram.h"
+#include "..\CGLResources\CGLUniformBuffer.h"
 
 CLightViewer::CLightViewer()
-	: CProgram("CLightViewer", "DrawLight.vert", "DrawLight.frag")
+	: CProgram("CLightViewer", "Shaders\\DrawLight.vert", "Shaders\\DrawLight.frag")
 {
 	m_pLightModel = new CModel();
 }

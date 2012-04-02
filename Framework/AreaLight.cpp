@@ -1,14 +1,16 @@
 #include "AreaLight.h"
 
 #include "Macros.h"
-#include "ShaderUtil.h"
 
 #include "Camera.h"
 #include "Light.h"
 
-#include "CMesh.h"
-#include "CModel.h"
-#include "CGLUniformBuffer.h"
+#include "CUtils\ShaderUtil.h"
+
+#include "CMeshResources\CMesh.h"
+#include "CMeshResources\CModel.h"
+
+#include "CGLResources\CGLUniformBuffer.h"
 
 AreaLight::AreaLight(float _width, float _height, glm::vec3 _centerPosition, 
 										 glm::vec3 _frontDirection, glm::vec3 _upDirection,
@@ -31,7 +33,7 @@ AreaLight::~AreaLight()
 
 bool AreaLight::Init()
 {
-	drawAreaLightProgram = CreateProgram("DrawAreaLight.vert", "DrawAreaLight.frag");
+	drawAreaLightProgram = CreateProgram("Shaders\\DrawAreaLight.vert", "Shaders\\DrawAreaLight.frag");
 	
 	uniformModelMatrix = glGetUniformLocation(drawAreaLightProgram, "M");
 	uniformViewMatrix = glGetUniformLocation(drawAreaLightProgram, "V");

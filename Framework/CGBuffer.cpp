@@ -3,22 +3,23 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "Macros.h"
-#include "ShaderUtil.h"
 
 #include "Scene.h"
 #include "Light.h"
 #include "Camera.h"
-
-#include "CGLFrameBuffer.h"
-#include "CGLTexture2D.h"
-#include "CGLRenderBuffer.h"
-#include "CGLBindLock.h"
-#include "CGLProgram.h"
-#include "CGLSampler.h"
-
 #include "CProgram.h"
-#include "CFullScreenQuad.h"
 #include "CShadowMap.h"
+
+#include "CGLResources\CGLFrameBuffer.h"
+#include "CGLResources\CGLTexture2D.h"
+#include "CGLResources\CGLRenderBuffer.h"
+#include "CGLResources\CGLBindLock.h"
+#include "CGLResources\CGLProgram.h"
+#include "CGLResources\CGLSampler.h"
+
+#include "CUtils\ShaderUtil.h"
+
+#include "CMeshResources\CFullScreenQuad.h"
 
 
 CGBuffer::CGBuffer()
@@ -33,7 +34,7 @@ CGBuffer::CGBuffer()
 	m_pGLPointSampler = new CGLSampler("CGBuffer.m_pGLPointSampler");
 
 	m_pCreateGBufferProgram = new CProgram("GBuffer.m_pCreateGBufferProgram", 
-		"CreateGBuffer.vert", "CreateGBuffer.frag");
+		"Shaders\\CreateGBuffer.vert", "Shaders\\CreateGBuffer.frag");
 }
 
 CGBuffer::~CGBuffer()

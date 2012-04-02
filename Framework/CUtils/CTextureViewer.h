@@ -3,7 +3,7 @@
 
 #include "GL/glew.h"
 
-#include "CProgram.h"
+#include "..\CProgram.h"
 
 class CGLTexture2D;
 class CFullScreenQuad;

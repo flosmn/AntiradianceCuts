@@ -1,7 +1,8 @@
 #include "CGLTexture2D.h"
 
-#include "Macros.h"
-#include "GLErrorUtil.h"
+#include "..\Macros.h"
+
+#include "..\CUtils\GLErrorUtil.h"
 
 
 CGLTexture2D::CGLTexture2D(std::string debugName)

@@ -1,16 +1,17 @@
 #include "CTextureViewer.h"
 
-#include "Macros.h"
-#include "ShaderUtil.h"
+#include "..\Macros.h"
 
-#include "CGLProgram.h"
-#include "CGLTexture2D.h"
-#include "CGLBindLock.h"
+#include "..\CUtils\ShaderUtil.h"
 
-#include "CFullScreenQuad.h"
+#include "..\CGLResources\CGLProgram.h"
+#include "..\CGLResources\CGLTexture2D.h"
+#include "..\CGLResources\CGLBindLock.h"
+
+#include "..\CMeshResources\CFullScreenQuad.h"
 
 CTextureViewer::CTextureViewer()
-	: CProgram("TextureViewer.m_pGLProgram", "DrawTexture.vert", "DrawTexture.frag")
+	: CProgram("TextureViewer.m_pGLProgram", "Shaders\\DrawTexture.vert", "Shaders\\DrawTexture.frag")
 {
 	m_pFullScreenQuad = new CFullScreenQuad();
 }

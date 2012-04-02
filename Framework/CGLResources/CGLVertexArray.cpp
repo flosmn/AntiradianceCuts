@@ -1,13 +1,15 @@
 #include "CGLVertexArray.h"
 
+#include "CGLVertexBuffer.h"
+#include "CGLBindLock.h"
+
+#include "..\Macros.h"
+
+#include "..\CUtils\GLErrorUtil.h"
+
 #include <assert.h>
 #include <iostream>
 
-#include "Macros.h"
-#include "GLErrorUtil.h"
-
-#include "CGLVertexBuffer.h"
-#include "CGLBindLock.h"
 
 CGLVertexArray::CGLVertexArray(std::string debugName)
 	: CGLResource(CGL_VERTEXARRAY, debugName), m_pGLVBPositionData(nullptr), 

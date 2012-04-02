@@ -8,74 +8,48 @@
     <Filter Include="CGLResources">
       <UniqueIdentifier>{bbf5ef29-6fa9-43d6-afa7-6254333ef663}</UniqueIdentifier>
     </Filter>
-    <Filter Include="CMeshClasses">
-      <UniqueIdentifier>{77518a91-3f07-4a3b-ae0f-f294ae560153}</UniqueIdentifier>
-    </Filter>
     <Filter Include="CUtils">
       <UniqueIdentifier>{6f01f52a-125e-40ea-997a-e19e795fd562}</UniqueIdentifier>
     </Filter>
+    <Filter Include="CMeshResources">
+      <UniqueIdentifier>{77518a91-3f07-4a3b-ae0f-f294ae560153}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CGLBindLock.cpp">
-      <Filter>CGLResources</Filter>
+    <ClCompile Include="CMeshResources\CFullScreenQuad.cpp">
+      <Filter>CMeshResources</Filter>
     </ClCompile>
-    <ClCompile Include="CGLResource.cpp">
-      <Filter>CGLResources</Filter>
+    <ClCompile Include="CMeshResources\CMeshGeometry.cpp">
+      <Filter>CMeshResources</Filter>
     </ClCompile>
-    <ClCompile Include="CGLTexture2D.cpp">
-      <Filter>CGLResources</Filter>
+    <ClCompile Include="CMeshResources\CMeshMaterial.cpp">
+      <Filter>CMeshResources</Filter>
     </ClCompile>
-    <ClCompile Include="CGLRenderBuffer.cpp">
-      <Filter>CGLResources</Filter>
+    <ClCompile Include="CMeshResources\CModel.cpp">
+      <Filter>CMeshResources</Filter>
     </ClCompile>
-    <ClCompile Include="CGLFrameBuffer.cpp">
-      <Filter>CGLResources</Filter>
+    <ClCompile Include="CMeshResources\CObjFileLoader.cpp">
+      <Filter>CMeshResources</Filter>
     </ClCompile>
-    <ClCompile Include="CGLVertexBuffer.cpp">
-      <Filter>CGLResources</Filter>
+    <ClCompile Include="CMeshResources\CSubModel.cpp">
+      <Filter>CMeshResources</Filter>
     </ClCompile>
-    <ClCompile Include="CGLVertexArray.cpp">
-      <Filter>CGLResources</Filter>
-    </ClCompile>
-    <ClCompile Include="CGLUniformBuffer.cpp">
-      <Filter>CGLResources</Filter>
-    </ClCompile>
-    <ClCompile Include="CGLProgram.cpp">
-      <Filter>CGLResources</Filter>
-    </ClCompile>
-    <ClCompile Include="CGLSampler.cpp">
-      <Filter>CGLResources</Filter>
-    </ClCompile>
-    <ClCompile Include="CObjFileLoader.cpp">
-      <Filter>CMeshClasses</Filter>
-    </ClCompile>
-    <ClCompile Include="CMeshGeometry.cpp">
-      <Filter>CMeshClasses</Filter>
-    </ClCompile>
-    <ClCompile Include="CMeshMaterial.cpp">
-      <Filter>CMeshClasses</Filter>
-    </ClCompile>
-    <ClCompile Include="CModel.cpp">
-      <Filter>CMeshClasses</Filter>
-    </ClCompile>
-    <ClCompile Include="CSubModel.cpp">
-      <Filter>CMeshClasses</Filter>
-    </ClCompile>
-    <ClCompile Include="CFullScreenQuad.cpp">
-      <Filter>CMeshClasses</Filter>
-    </ClCompile>
-    <ClCompile Include="CTextureViewer.cpp">
+    <ClCompile Include="CUtils\CLightViewer.cpp">
       <Filter>CUtils</Filter>
     </ClCompile>
-    <ClCompile Include="CLightViewer.cpp">
+    <ClCompile Include="CUtils\CTextureViewer.cpp">
       <Filter>CUtils</Filter>
     </ClCompile>
-    <ClCompile Include="GLErrorUtil.cpp">
+    <ClCompile Include="CUtils\GLErrorUtil.cpp">
       <Filter>CUtils</Filter>
     </ClCompile>
-    <ClCompile Include="Util.cpp">
+    <ClCompile Include="CUtils\Util.cpp">
       <Filter>CUtils</Filter>
     </ClCompile>
+    <ClCompile Include="Light.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Render.cpp" />
+    <ClCompile Include="Scene.cpp" />
     <ClCompile Include="AreaLight.cpp" />
     <ClCompile Include="CAccumulationBuffer.cpp" />
     <ClCompile Include="Camera.cpp" />
@@ -83,94 +57,86 @@
     <ClCompile Include="CProgram.cpp" />
     <ClCompile Include="CShadowMap.cpp" />
     <ClCompile Include="CTimer.cpp" />
-    <ClCompile Include="Light.cpp" />
-    <ClCompile Include="main.cpp" />
     <ClCompile Include="Postprocessing.cpp" />
-    <ClCompile Include="Render.cpp" />
-    <ClCompile Include="Scene.cpp" />
+    <ClCompile Include="CGLResources\CGLBindLock.cpp">
+      <Filter>CGLResources</Filter>
+    </ClCompile>
+    <ClCompile Include="CGLResources\CGLFrameBuffer.cpp">
+      <Filter>CGLResources</Filter>
+    </ClCompile>
+    <ClCompile Include="CGLResources\CGLProgram.cpp">
+      <Filter>CGLResources</Filter>
+    </ClCompile>
+    <ClCompile Include="CGLResources\CGLRenderBuffer.cpp">
+      <Filter>CGLResources</Filter>
+    </ClCompile>
+    <ClCompile Include="CGLResources\CGLResource.cpp">
+      <Filter>CGLResources</Filter>
+    </ClCompile>
+    <ClCompile Include="CGLResources\CGLSampler.cpp">
+      <Filter>CGLResources</Filter>
+    </ClCompile>
+    <ClCompile Include="CGLResources\CGLTexture2D.cpp">
+      <Filter>CGLResources</Filter>
+    </ClCompile>
+    <ClCompile Include="CGLResources\CGLUniformBuffer.cpp">
+      <Filter>CGLResources</Filter>
+    </ClCompile>
+    <ClCompile Include="CGLResources\CGLVertexArray.cpp">
+      <Filter>CGLResources</Filter>
+    </ClCompile>
+    <ClCompile Include="CGLResources\CGLVertexBuffer.cpp">
+      <Filter>CGLResources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CGLBindLock.h">
-      <Filter>CGLResources</Filter>
+    <ClInclude Include="CMeshResources\CFullScreenQuad.h">
+      <Filter>CMeshResources</Filter>
     </ClInclude>
-    <ClInclude Include="CGLResource.h">
-      <Filter>CGLResources</Filter>
+    <ClInclude Include="CMeshResources\CMesh.h">
+      <Filter>CMeshResources</Filter>
     </ClInclude>
-    <ClInclude Include="CGLTexture2D.h">
-      <Filter>CGLResources</Filter>
+    <ClInclude Include="CMeshResources\CMeshGeometry.h">
+      <Filter>CMeshResources</Filter>
     </ClInclude>
-    <ClInclude Include="CGLRenderBuffer.h">
-      <Filter>CGLResources</Filter>
+    <ClInclude Include="CMeshResources\CMeshMaterial.h">
+      <Filter>CMeshResources</Filter>
     </ClInclude>
-    <ClInclude Include="CGLFrameBuffer.h">
-      <Filter>CGLResources</Filter>
+    <ClInclude Include="CMeshResources\CModel.h">
+      <Filter>CMeshResources</Filter>
     </ClInclude>
-    <ClInclude Include="CGLVertexBuffer.h">
-      <Filter>CGLResources</Filter>
+    <ClInclude Include="CMeshResources\CObjFileLoader.h">
+      <Filter>CMeshResources</Filter>
     </ClInclude>
-    <ClInclude Include="CGLVertexArray.h">
-      <Filter>CGLResources</Filter>
+    <ClInclude Include="CMeshResources\CSubModel.h">
+      <Filter>CMeshResources</Filter>
     </ClInclude>
-    <ClInclude Include="CGLUniformBuffer.h">
-      <Filter>CGLResources</Filter>
-    </ClInclude>
-    <ClInclude Include="CGLProgram.h">
-      <Filter>CGLResources</Filter>
-    </ClInclude>
-    <ClInclude Include="CGLBindSlot.h">
-      <Filter>CGLResources</Filter>
-    </ClInclude>
-    <ClInclude Include="CGLSampler.h">
-      <Filter>CGLResources</Filter>
-    </ClInclude>
-    <ClInclude Include="uniforms.h">
-      <Filter>Resource Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CObjFileLoader.h">
-      <Filter>CMeshClasses</Filter>
-    </ClInclude>
-    <ClInclude Include="CMeshGeometry.h">
-      <Filter>CMeshClasses</Filter>
-    </ClInclude>
-    <ClInclude Include="CMeshMaterial.h">
-      <Filter>CMeshClasses</Filter>
-    </ClInclude>
-    <ClInclude Include="CMesh.h">
-      <Filter>CMeshClasses</Filter>
-    </ClInclude>
-    <ClInclude Include="CModel.h">
-      <Filter>CMeshClasses</Filter>
-    </ClInclude>
-    <ClInclude Include="CSubModel.h">
-      <Filter>CMeshClasses</Filter>
-    </ClInclude>
-    <ClInclude Include="CFullScreenQuad.h">
-      <Filter>CMeshClasses</Filter>
-    </ClInclude>
-    <ClInclude Include="CLightViewer.h">
+    <ClInclude Include="CUtils\CLightViewer.h">
       <Filter>CUtils</Filter>
     </ClInclude>
-    <ClInclude Include="CTextureViewer.h">
+    <ClInclude Include="CUtils\CTextureViewer.h">
       <Filter>CUtils</Filter>
     </ClInclude>
-    <ClInclude Include="Defines.h">
+    <ClInclude Include="CUtils\GLErrorUtil.h">
       <Filter>CUtils</Filter>
     </ClInclude>
-    <ClInclude Include="GLErrorUtil.h">
+    <ClInclude Include="CUtils\ShaderUtil.h">
       <Filter>CUtils</Filter>
     </ClInclude>
-    <ClInclude Include="Macros.h">
+    <ClInclude Include="CUtils\Util.h">
       <Filter>CUtils</Filter>
     </ClInclude>
-    <ClInclude Include="Util.h">
-      <Filter>CUtils</Filter>
-    </ClInclude>
-    <ClInclude Include="Structs.h">
-      <Filter>CUtils</Filter>
-    </ClInclude>
-    <ClInclude Include="ShaderUtil.h">
-      <Filter>CUtils</Filter>
-    </ClInclude>
+    <ClInclude Include="CTimer.h" />
+    <ClInclude Include="Defines.h" />
+    <ClInclude Include="Intersection.h" />
+    <ClInclude Include="Light.h" />
+    <ClInclude Include="Macros.h" />
+    <ClInclude Include="Ray.h" />
+    <ClInclude Include="Render.h" />
+    <ClInclude Include="Scene.h" />
+    <ClInclude Include="Structs.h" />
+    <ClInclude Include="Triangle.h" />
+    <ClInclude Include="uniforms.h" />
     <ClInclude Include="AreaLight.h" />
     <ClInclude Include="CAccumulationBuffer.h" />
     <ClInclude Include="Camera.h" />
@@ -178,71 +144,97 @@
     <ClInclude Include="CGBuffer.h" />
     <ClInclude Include="CProgram.h" />
     <ClInclude Include="CShadowMap.h" />
-    <ClInclude Include="CTimer.h" />
-    <ClInclude Include="Intersection.h" />
-    <ClInclude Include="Light.h" />
     <ClInclude Include="Postprocessing.h" />
-    <ClInclude Include="Ray.h" />
-    <ClInclude Include="Render.h" />
-    <ClInclude Include="Scene.h" />
-    <ClInclude Include="Triangle.h" />
+    <ClInclude Include="CGLResources\CGLBindLock.h">
+      <Filter>CGLResources</Filter>
+    </ClInclude>
+    <ClInclude Include="CGLResources\CGLBindSlot.h">
+      <Filter>CGLResources</Filter>
+    </ClInclude>
+    <ClInclude Include="CGLResources\CGLFrameBuffer.h">
+      <Filter>CGLResources</Filter>
+    </ClInclude>
+    <ClInclude Include="CGLResources\CGLProgram.h">
+      <Filter>CGLResources</Filter>
+    </ClInclude>
+    <ClInclude Include="CGLResources\CGLRenderBuffer.h">
+      <Filter>CGLResources</Filter>
+    </ClInclude>
+    <ClInclude Include="CGLResources\CGLResource.h">
+      <Filter>CGLResources</Filter>
+    </ClInclude>
+    <ClInclude Include="CGLResources\CGLSampler.h">
+      <Filter>CGLResources</Filter>
+    </ClInclude>
+    <ClInclude Include="CGLResources\CGLTexture2D.h">
+      <Filter>CGLResources</Filter>
+    </ClInclude>
+    <ClInclude Include="CGLResources\CGLUniformBuffer.h">
+      <Filter>CGLResources</Filter>
+    </ClInclude>
+    <ClInclude Include="CGLResources\CGLVertexArray.h">
+      <Filter>CGLResources</Filter>
+    </ClInclude>
+    <ClInclude Include="CGLResources\CGLVertexBuffer.h">
+      <Filter>CGLResources</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="CreateSM.vert">
+    <None Include="Shaders\DrawAreaLight.vert">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="CreateSM.frag">
+    <None Include="Shaders\DrawLight.frag">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="DrawTexture.vert">
+    <None Include="Shaders\DrawLight.vert">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="DrawTexture.frag">
+    <None Include="Shaders\DrawTexture.frag">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="DrawLight.vert">
+    <None Include="Shaders\DrawTexture.vert">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="DrawLight.frag">
+    <None Include="Shaders\FinalGather.frag">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="DrawAreaLight.vert">
+    <None Include="Shaders\Gather.vert">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="DrawAreaLight.frag">
+    <None Include="Shaders\GatherAntiradiance.frag">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="CreateGBuffer.vert">
+    <None Include="Shaders\GatherRadiance.frag">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="CreateGBuffer.frag">
+    <None Include="Shaders\NormalizeRadiance.frag">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="PostProcessing.vert">
+    <None Include="Shaders\PostProcessing.frag">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="PostProcessing.frag">
+    <None Include="Shaders\PostProcessing.vert">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="Render.frag">
+    <None Include="Shaders\Render.frag">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="Render.vert">
+    <None Include="Shaders\Render.vert">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="Gather.vert">
+    <None Include="Shaders\CreateGBuffer.frag">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="GatherRadiance.frag">
+    <None Include="Shaders\CreateGBuffer.vert">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="GatherAntiradiance.frag">
+    <None Include="Shaders\CreateSM.frag">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="FinalGather.frag">
+    <None Include="Shaders\CreateSM.vert">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="NormalizeRadiance.frag">
+    <None Include="Shaders\DrawAreaLight.frag">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

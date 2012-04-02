@@ -1,15 +1,16 @@
 #include "Scene.h"
 
+#include "Defines.h"
 #include "Structs.h"
 
 #include "AreaLight.h"
 #include "Light.h"
 #include "Camera.h"
 
-#include "CGLUniformBuffer.h"
+#include "CGLResources\CGLUniformBuffer.h"
 
-#include "CMesh.h"
-#include "CModel.h"
+#include "CMeshResources\CMesh.h"
+#include "CMeshResources\CModel.h"
 
 #include <iostream>
 #include <algorithm>

@@ -1,11 +1,12 @@
 #include "CGLProgram.h"
 
-#include "Macros.h"
-#include "Defines.h"
-#include "GLErrorUtil.h"
+#include "..\Macros.h"
+#include "..\Defines.h"
 
-#include "CGLUniformBuffer.h"
-#include "CGLSampler.h"
+#include "..\CUtils\GLErrorUtil.h"
+
+#include "..\CGLResources\CGLUniformBuffer.h"
+#include "..\CGLResources\CGLSampler.h"
 
 #include <istream>
 #include <fstream>

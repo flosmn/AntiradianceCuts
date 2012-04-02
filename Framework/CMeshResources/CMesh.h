@@ -9,8 +9,9 @@ typedef unsigned short ushort;
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/random.hpp>
 
-#include "Util.h"
-#include "Triangle.h"
+#include "..\CUtils\Util.h"
+
+#include "..\Triangle.h"
 
 #include <vector>
 

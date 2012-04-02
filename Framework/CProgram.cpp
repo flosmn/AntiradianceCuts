@@ -2,9 +2,9 @@
 
 #include "Macros.h"
 
-#include "CGLProgram.h"
-#include "CGLUniformBuffer.h"
-#include "CGLSampler.h"
+#include "CGLResources\CGLProgram.h"
+#include "CGLResources\CGLUniformBuffer.h"
+#include "CGLResources\CGLSampler.h"
 
 
 CProgram::CProgram(const std::string debugName, const std::string VS, const std::string FS)

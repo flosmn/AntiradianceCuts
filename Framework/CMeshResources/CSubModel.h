@@ -5,7 +5,7 @@ typedef unsigned int uint;
 
 #include "glm/glm.hpp"
 
-#include "Structs.h"
+#include "..\Structs.h"
 
 #include <vector>
 

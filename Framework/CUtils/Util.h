@@ -6,9 +6,9 @@ typedef unsigned int uint;
 
 #include "glm/glm.hpp"
 
-#include "Defines.h"
-#include "Triangle.h"
-#include "Ray.h"
+#include "..\Defines.h"
+#include "..\Triangle.h"
+#include "..\Ray.h"
 
 #include <vector>
 #include <string>

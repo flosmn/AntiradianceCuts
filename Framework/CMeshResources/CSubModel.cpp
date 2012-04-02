@@ -1,18 +1,20 @@
 #include "CSubModel.h"
 
-#include "Macros.h"
-#include "GLErrorUtil.h"
-#include "Structs.h"
-
 #include "CMesh.h"
 #include "CMeshGeometry.h"
 #include "CMeshMaterial.h"
-#include "CGLVertexBuffer.h"
-#include "CGLVertexArray.h"
-#include "CGLBindLock.h"
-#include "CGLUniformBuffer.h"
 
-#include "Camera.h"
+#include "..\Macros.h"
+#include "..\Structs.h"
+#include "..\Camera.h"
+
+#include "..\CUtils\GLErrorUtil.h"
+
+#include "..\CGLResources\CGLVertexBuffer.h"
+#include "..\CGLResources\CGLVertexArray.h"
+#include "..\CGLResources\CGLBindLock.h"
+#include "..\CGLResources\CGLUniformBuffer.h"
+
 
 CSubModel::CSubModel()
 	: m_pGLVARenderData(nullptr)

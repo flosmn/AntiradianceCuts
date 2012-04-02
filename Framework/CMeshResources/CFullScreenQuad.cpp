@@ -1,9 +1,11 @@
 #include "CFullScreenQuad.h"
 
-#include "Macros.h"
+#include "..\Macros.h"
 
 #include "CMesh.h"
-#include "CGLVertexArray.h"
+
+#include "..\CGLResources\CGLVertexArray.h"
+
 
 CFullScreenQuad::CFullScreenQuad()
 {

@@ -1,5 +1,6 @@
 #include "CGLResource.h"
-#include "GLErrorUtil.h"
+
+#include "..\CUtils\GLErrorUtil.h"
 
 #include <iostream>
 #include <string>

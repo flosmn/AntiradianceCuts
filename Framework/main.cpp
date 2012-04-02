@@ -6,18 +6,18 @@
 
 #include "Defines.h"
 #include "Macros.h"
-#include "GLErrorUtil.h"
+#include "CUtils\GLErrorUtil.h"
 
 #include "Render.h"
 #include "Camera.h"
 
-#include "CGLResource.h"
-#include "CGLBindLock.h"
-#include "CGLTexture2D.h"
+#include "CGLResources\CGLResource.h"
+#include "CGLResources\CGLBindLock.h"
+#include "CGLResources\CGLTexture2D.h"
 
-#include "CObjFileLoader.h"
-#include "CMeshGeometry.h"
-#include "CMeshMaterial.h"
+#include "CMeshResources\CObjFileLoader.h"
+#include "CMeshResources\CMeshGeometry.h"
+#include "CMeshResources\CMeshMaterial.h"
 
 #include <iostream>
 #include <vector>

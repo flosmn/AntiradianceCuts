@@ -1,7 +1,8 @@
 #include "CMeshGeometry.h"
 
-#include "Macros.h"
-#include "Util.h"
+#include "..\Macros.h"
+
+#include "..\CUtils\Util.h"
 
 #include "CMeshMaterial.h"
 

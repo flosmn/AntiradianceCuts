@@ -2,9 +2,9 @@
 
 #include "Macros.h"
 
-#include "CGLTexture2D.h"
-#include "CGLRenderBuffer.h"
-#include "CGLFrameBuffer.h"
+#include "CGLResources\CGLTexture2D.h"
+#include "CGLResources\CGLRenderBuffer.h"
+#include "CGLResources\CGLFrameBuffer.h"
 
 CAccumulationBuffer::CAccumulationBuffer()
 	: m_pGLFBRenderTarget(0), m_pGLTAccumTexture(0), m_pGLRBDepthRenderBuffer(0),

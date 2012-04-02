@@ -4,8 +4,8 @@
 
 #include "Macros.h"
 
-#include "CGLTexture2D.h"
-#include "CGLFrameBuffer.h"
+#include "CGLResources\CGLTexture2D.h"
+#include "CGLResources\CGLFrameBuffer.h"
 
 #include <iostream>
 

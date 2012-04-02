@@ -1,6 +1,6 @@
 #include "CGLSampler.h"
 
-#include "Macros.h"
+#include "..\Macros.h"
 
 CGLSampler::CGLSampler(std::string debugName)
 	:CGLResource(CGL_SAMPLER, debugName)

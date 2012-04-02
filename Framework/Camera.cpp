@@ -39,22 +39,16 @@ glm::mat4 Camera::GetProjectionMatrix()
 
 glm::mat4 Camera::GetViewMatrix() 
 {
-	glm::vec3 position = glm::vec3(coord.r * sin(coord.theta) * sin(coord.phi),
-																 coord.r * cos(coord.theta),													 
-																 coord.r * sin(coord.theta) * cos(coord.phi));
+	glm::vec3 position = glm::vec3(coord.r * sin(coord.theta) * sin(coord.phi), coord.r * cos(coord.theta),	coord.r * sin(coord.theta) * cos(coord.phi));
 	
-	viewMatrix = glm::lookAt(position + center, 
-																				 center, 
-																				 glm::vec3(0.0f, 1.0f, 0.0f));
+	viewMatrix = glm::lookAt(position + center, center, glm::vec3(0.0f, 1.0f, 0.0f));
 	
 	return viewMatrix;
 }
 
 glm::vec3 Camera::GetPosition() 
 {
-	return glm::vec3(coord.r * sin(coord.theta) * sin(coord.phi),
-									 coord.r * cos(coord.theta),													 
-									 coord.r * sin(coord.theta) * cos(coord.phi));
+	return glm::vec3(coord.r * sin(coord.theta) * sin(coord.phi), coord.r * cos(coord.theta), coord.r * sin(coord.theta) * cos(coord.phi));
 }
 
 void Camera::ZoomOut(float t) 

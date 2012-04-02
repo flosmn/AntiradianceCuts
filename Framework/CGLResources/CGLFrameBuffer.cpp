@@ -1,9 +1,11 @@
 #include "CGLFrameBuffer.h"
+
 #include "CGLRenderBuffer.h"
 #include "CGLTexture2D.h"
 
-#include "Macros.h"
-#include "GLErrorUtil.h"
+#include "..\Macros.h"
+
+#include "..\CUtils\GLErrorUtil.h"
 
 #include <assert.h>
 #include <iostream>

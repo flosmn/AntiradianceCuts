@@ -3,7 +3,7 @@
 
 #include "GL/glew.h"
 
-#include "Defines.h"
+#include "..\Defines.h"
 
 #include <iostream>
 #include <istream>

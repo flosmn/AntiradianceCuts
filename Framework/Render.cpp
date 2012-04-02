@@ -3,30 +3,32 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "Macros.h"
-#include "GLErrorUtil.h"
-#include "ShaderUtil.h"
 #include "Structs.h"
-#include "Util.h"
 
 #include "CAccumulationBuffer.h"
 #include "CGBuffer.h"
 #include "CTimer.h"
 #include "CProgram.h"
-#include "CFullScreenQuad.h"
-
-#include "CGLUniformBuffer.h"
-#include "CGLTexture2D.h"
-#include "CGLFrameBuffer.h"
-#include "CGLProgram.h"
-#include "CGLSampler.h"
-#include "CLightViewer.h"
-#include "CTextureViewer.h"
 
 #include "Scene.h"
 #include "Camera.h"
 #include "Light.h"
 #include "CShadowMap.h"
 #include "Postprocessing.h"
+
+#include "CUtils\Util.h"
+#include "CUtils\GLErrorUtil.h"
+#include "CUtils\ShaderUtil.h"
+#include "CUtils\CLightViewer.h"
+#include "CUtils\CTextureViewer.h"
+
+#include "CMeshResources\CFullScreenQuad.h"
+
+#include "CGLResources\CGLUniformBuffer.h"
+#include "CGLResources\CGLTexture2D.h"
+#include "CGLResources\CGLFrameBuffer.h"
+#include "CGLResources\CGLProgram.h"
+#include "CGLResources\CGLSampler.h"
 
 #include <memory>
 
@@ -55,15 +57,15 @@ Renderer::Renderer(Camera* _camera) {
 	m_pGLPointSampler = new CGLSampler("Renderer.m_pGLPointSampler");
 
 	m_pCreateGBufferProgram = new CProgram("Renderer.m_pCreateGBufferProgram", 
-		"CreateGBuffer.vert", "CreateGBuffer.frag");
+		"Shaders\\CreateGBuffer.vert", "Shaders\\CreateGBuffer.frag");
 
 	m_pCreateSMProgram = new CProgram("Renderer.m_pCreateSMProgram", 
-		"CreateSM.vert", "CreateSM.frag");
+		"Shaders\\CreateSM.vert", "Shaders\\CreateSM.frag");
 
-	m_pGatherRadianceProgram = new CProgram("Renderer.m_pGatherRadianceProgram", "Gather.vert", "GatherRadiance.frag");
-	m_pGatherAntiradianceProgram = new CProgram("Renderer.m_pGatherAntiradianceProgram", "Gather.vert", "GatherAntiradiance.frag");
-	m_pFinalGatherProgram = new CProgram("Renderer.m_pFinalGatherProgram", "Gather.vert", "FinalGather.frag");
-	m_pNormalizeRadianceProgram = new CProgram("Renderer.m_pNormalizeRadianceProgram", "Gather.vert", "NormalizeRadiance.frag");
+	m_pGatherRadianceProgram = new CProgram("Renderer.m_pGatherRadianceProgram", "Shaders\\Gather.vert", "Shaders\\GatherRadiance.frag");
+	m_pGatherAntiradianceProgram = new CProgram("Renderer.m_pGatherAntiradianceProgram", "Shaders\\Gather.vert", "Shaders\\GatherAntiradiance.frag");
+	m_pFinalGatherProgram = new CProgram("Renderer.m_pFinalGatherProgram", "Shaders\\Gather.vert", "Shaders\\FinalGather.frag");
+	m_pNormalizeRadianceProgram = new CProgram("Renderer.m_pNormalizeRadianceProgram", "Shaders\\Gather.vert", "Shaders\\NormalizeRadiance.frag");
 
 	m_pFullScreenQuad = new CFullScreenQuad();
 

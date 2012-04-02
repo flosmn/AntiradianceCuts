@@ -6,7 +6,7 @@ typedef unsigned int uint;
 #include "GL/glew.h"
 #include "glm/glm.hpp"
 
-#include "Structs.h"
+#include "..\Structs.h"
 
 #include <vector>
 

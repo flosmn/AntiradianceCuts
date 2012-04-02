@@ -2,7 +2,7 @@
 
 #include <glm/gtx/transform.hpp>
 
-#include "Util.h"
+#include "CUtils\Util.h"
 
 Light::Light(glm::vec3 position, glm::vec3 orientation, glm::vec3 surfAlbedo,
 	glm::vec3 flux, glm::vec3 antiflux, glm::vec3 antiPosition, glm::vec3 incLightDir)
