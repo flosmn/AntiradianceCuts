@@ -56,7 +56,8 @@ bool leftMouseButton = false;
 bool rightMouseButton = false;
 
 bool config_use_antiradiance = true;
-float config_blur_factor = 0.3f;
+float config_blur_factor = 0.1f;
+int config_num_paths = 1;
 
 int main()
 {
@@ -103,6 +104,7 @@ int main()
 		
 	TwAddVarRW(myBar, "Use Antiradiance", TW_TYPE_BOOL32, &config_use_antiradiance, "");
 	TwAddVarRW(myBar, "Blur factor", TW_TYPE_FLOAT, &config_blur_factor, " min=0.01 max=2.0 step=0.01 ");
+	TwAddVarRW(myBar, "#Paths", TW_TYPE_INT32, &config_num_paths, " min=1 max=10000 step=1 ");
 
 	camera = new Camera(windowWidth, windowHeight, 0.1f, 100.0f); 
 	
@@ -292,11 +294,11 @@ void GLFWCALL MousePositionCallback(int x, int y)
 	if(leftMouseButton) {
 		camera->RotLeft((float)deltaX/windowWidth);
 		camera->RotUp((float)deltaY/windowHeight);
-		renderer->ClearAccumulationBuffer();
+		renderer->ClearLighting();
 	}
 	else if(rightMouseButton) {
 		camera->ZoomIn((float)deltaY/windowHeight);
-		renderer->ClearAccumulationBuffer();
+		renderer->ClearLighting();
 	}
 	
 }
@@ -310,6 +312,7 @@ void UpdateConfig()
 {
 	renderer->UseAntiradiance(config_use_antiradiance);
 	renderer->SetBlurFactor(config_blur_factor);
+	renderer->SetNumPaths(config_num_paths);
 
 	updateConfig = false;
 }

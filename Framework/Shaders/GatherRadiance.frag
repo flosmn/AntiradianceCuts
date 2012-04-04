@@ -64,10 +64,10 @@ void main()
 	}
 
 	// calc radiance
-	vec4 L_in = uLight.Flux * 0.25f * ONE_OVER_PI;
+	vec4 L_in = uLight.Flux / PI;
 	float G = G_CLAMP(vPositionWS, vNormalWS, uLight.Position.xyz, uLight.Orientation.xyz);
-	vec4 Irradiance = L_in * V * G;	
-		
+	vec4 Irradiance = V * L_in * G;	
+	
 	outputColor = Irradiance;
 	outputColor.w = 1.0f;
 }

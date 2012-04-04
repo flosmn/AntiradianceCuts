@@ -70,13 +70,12 @@ Renderer::Renderer(Camera* _camera) {
 
 	m_pFullScreenQuad = new CFullScreenQuad();
 
-	m_BlurSigma = .3f;
+	m_BlurSigma = .1f;
 	
 	m_Frame = 0;
-	m_PathRadiance = 0;
-	m_PathAntiradiance = 0;
-	m_MaxPaths = 5000;
-	m_NumPaths = 5000;
+	m_CurrentPath = 0;
+
+	m_NumPaths = 1;
 
 	m_Finished = false;
 }
@@ -196,12 +195,7 @@ bool Renderer::Init()
 	scene = new Scene(camera);
 	scene->Init();
 	scene->LoadSimpleScene();
-
-	for(int i = 0; i < m_MaxPaths; ++i)
-	{
-		scene->CreatePath();
-	}
-		
+			
 	drawLight = false;
 	drawTexture = false;
 	m_PrintTimes = false;
@@ -254,21 +248,32 @@ void Renderer::Release()
 void Renderer::Render() 
 {
 	m_Timer->StartEvent("Frame GPU");
-				
+		
 	SetUpRender();
 	
 	CreateGBuffer();
 	
-	GatherRadiance();
+	if(m_CurrentPath < m_NumPaths)
+	{
+		std::vector<Light*> path = scene->CreatePath();
+
+		GatherRadiance();
 	
-	GatherAntiradiance();
+		GatherAntiradiance();
+
+		m_CurrentPath++;
+	}
+	else{
+		if(!m_Finished)
+			std::cout << "Finished." << std::endl;
+
+		m_Finished = true;
+	}
 
 	Normalize();
-
+	
 	FinalGather();
 		
-	//PostProcess();
-	
 	DrawAreaLight();
 
 	DebugRender();
@@ -327,18 +332,13 @@ void Renderer::CreateGBuffer()
 
 void Renderer::GatherRadiance()
 {
-	if(m_PathRadiance >= m_NumPaths)
-		return;
-
-	std::vector<Light*> path = scene->GetPath(m_PathRadiance);
+	std::vector<Light*> path = scene->GetCurrentPath();
 	std::vector<Light*>::iterator it;
 	for(it = path.begin(); it < path.end(); ++it)
 	{
 		Light* light = *it;
 		GatherRadianceFromLight(light);
 	}
-
-	m_PathRadiance++;
 }
 
 void Renderer::Normalize()
@@ -349,7 +349,7 @@ void Renderer::Normalize()
 	conf.BlurK = CalcBlurNormalizationFactor(m_BlurSigma);
 	conf.uDrawAntiradiance =  m_DrawAntiradiance ? 1 : 0;
 	conf.uUseAntiradiance = m_UseAntiradiance ? 1 : 0;
-	conf.nPaths = std::min(m_PathRadiance, m_NumPaths);
+	conf.nPaths = std::min(m_CurrentPath, m_NumPaths);
 	m_pUBConfig->UpdateData(&conf);
 	
 	GLenum buffers[1] = { GL_COLOR_ATTACHMENT0 };
@@ -381,27 +381,16 @@ void Renderer::Normalize()
 void Renderer::GatherAntiradiance()
 {
 	if(!m_UseAntiradiance){
-		if(m_PathRadiance >= m_NumPaths) 
-		{
-			m_Finished = true;	
-		}
 		return;
 	}
 
-	if(m_PathAntiradiance >= m_NumPaths){
-		m_Finished = true;	
-		return;
-	}
-
-	std::vector<Light*> path = scene->GetPath(m_PathAntiradiance);
+	std::vector<Light*> path = scene->GetCurrentPath();
 	std::vector<Light*>::iterator it;
 	for(it = path.begin(); it < path.end(); ++it)
 	{
 		Light* light = *it;
 		GatherAntiradianceFromLight(light);
 	}
-
-	m_PathAntiradiance++;
 }
 
 void Renderer::GatherRadianceFromLight(Light* light)
@@ -506,8 +495,7 @@ void Renderer::PostProcess()
 	m_Timer->StartEvent("Post-Process");
 	postProcessing->Postprocess(
 		m_pAccumulationRadiance->GetTexture()->GetResourceIdentifier(), 
-		camera->GetWidth(), camera->GetHeight(), 
-		m_PathRadiance);
+		camera->GetWidth(), camera->GetHeight(), m_CurrentPath);
 	m_Timer->StopEvent("Post-Process");
 }
 
@@ -533,9 +521,8 @@ void Renderer::DrawAreaLight()
 
 	// avoid z-fighting
 	glPolygonOffset(-1.0f, 1.0f);
-	glDepthFunc(GL_LESS);
+	glDepthFunc(GL_LEQUAL);
 
-	glDisable(GL_DEPTH_TEST);
 	scene->DrawAreaLight(m_pUBTransform);
 	
 	err = glGetError();
@@ -554,8 +541,7 @@ void Renderer::DebugRender()
 	// draw lights for debuging
 	if(GetDrawLight())
 	{
-		glDisable(GL_DEPTH_TEST);
-		for(int i = 0; i < m_NumPaths; ++i)
+		for(int i = 0; i < m_CurrentPath; ++i)
 		{
 			std::vector<Light*> vPath = scene->GetPath(i);
 			std::vector<Light*>::iterator it;
@@ -580,12 +566,6 @@ void Renderer::DebugRender()
 	if(err != GL_NO_ERROR)
 	{
 		std::cout << "OpenGL error: " << gluErrorString(err) << std::endl;
-	}
-
-	if(m_Finished)
-	{
-		std::cout << "Finished." << std::endl;
-		m_Finished = false;
 	}
 }
 
@@ -620,23 +600,20 @@ void Renderer::ClearAccumulationBuffer()
 		CGLRenderTargetLock lock(m_pNormalizedRadiance->GetRenderTarget(), 1, buffers);
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 	}
-	m_PathRadiance = 0;
-	m_PathAntiradiance = 0;
+	{
+		CGLRenderTargetLock lock(m_pNormalizedAntiradiance->GetRenderTarget(), 1, buffers);
+		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+	}
+	m_CurrentPath = 0;
 	m_Finished = false;
 }
 
 void Renderer::ClearLighting()
 {
 	scene->ClearLighting();
-	m_PathRadiance = 0;
-	m_PathAntiradiance = 0;
+	m_CurrentPath = 0;
 	m_Finished = false;
-
-	for(int i = 0; i < m_MaxPaths; ++i)
-	{
-		scene->CreatePath();
-	}
-
+		
 	ClearAccumulationBuffer();
 }
 

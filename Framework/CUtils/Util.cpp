@@ -41,7 +41,7 @@ glm::vec2 GetUniformRandomSample2D(glm::vec2 range_u, glm::vec2 range_v) {
 	return glm::vec2(u, v);
 }
 
-glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, uint order)
+glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, float&pdf, uint order)
 {
 	float xi_1 = glm::linearRand(0.f, 1.f);
 	float xi_2 = glm::linearRand(0.f, 1.f);
@@ -69,6 +69,9 @@ glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, uint order)
 	directionTemp = transformDir * directionTemp;
 	
 	glm::vec3 direction = glm::normalize(glm::vec3(directionTemp));
+
+	const float cos_theta = glm::dot(glm::normalize(direction), glm::normalize(orientation));
+	pdf = (order + 1) / (2 * PI) * std::powf(cos_theta, order);
 
 	return direction;
 }

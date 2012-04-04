@@ -20,7 +20,7 @@ float map(float x, float x0, float x1, float y0, float y1);
 float Rad2Deg (float Angle);
 
 glm::vec2 GetUniformRandomSample2D(glm::vec2 range_u, glm::vec2 range_v);
-glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, uint order);
+glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, float&pdf, uint order);
 
 float map(float x, float x0, float x1, float y0, float y1);
 

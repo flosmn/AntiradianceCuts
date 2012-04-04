@@ -54,14 +54,15 @@ public:
 	bool GetDrawOnlyDirectLight() { return m_DrawOnlyDirectLight; }
 	bool GetDrawOnlyIndirectLight() { return m_DrawOnlyIndirectLight; }
 
-	void UseAntiradiance(bool b) { if(m_UseAntiradiance == b) return; m_UseAntiradiance = b; ConfigureLighting(); ClearAccumulationBuffer(); }
+	void UseAntiradiance(bool b) { if(m_UseAntiradiance == b) return; m_UseAntiradiance = b; ConfigureLighting(); ClearLighting(); }
 	bool GetUseAntiradiance() { return m_UseAntiradiance; }
-	void DrawAntiradiance(bool b) { if(m_DrawAntiradiance == b) return; m_DrawAntiradiance = b; ConfigureLighting(); ClearAccumulationBuffer();}
+	void DrawAntiradiance(bool b) { if(m_DrawAntiradiance == b) return; m_DrawAntiradiance = b; ConfigureLighting(); ClearLighting();}
 	bool GetDrawAntiradiance() { return m_DrawAntiradiance; }
 
-	void SetGeoTermLimit(float f) { if(m_GeoTermLimit == f) return; m_GeoTermLimit = f; ConfigureLighting(); ClearAccumulationBuffer();}
-	void SetBlurFactor(float f) { if(m_BlurSigma == f) return; m_BlurSigma = f; ConfigureLighting(); ClearAccumulationBuffer();}
-	
+	void SetGeoTermLimit(float f) { if(m_GeoTermLimit == f) return; m_GeoTermLimit = f; ConfigureLighting(); ClearLighting();}
+	void SetBlurFactor(float f) { if(m_BlurSigma == f) return; m_BlurSigma = f; ConfigureLighting(); ClearLighting();}
+	void SetNumPaths(int i) {if(m_NumPaths == i) return; m_NumPaths = i; ConfigureLighting(); ClearLighting(); }
+
 	float GetBlurFactor() { return m_BlurSigma; }
 
 	void Stats();
@@ -128,10 +129,8 @@ private:
 	float m_CosBlurFactor;
 
 	int m_Frame;
-	int m_PathRadiance;
-	int m_PathAntiradiance;
-	int m_MaxPaths;
 	int m_NumPaths;
+	int m_CurrentPath;
 
 	bool m_Finished;
 

@@ -162,7 +162,8 @@ Light* Scene::CreateLight(Light* tail)
 		// create new path segment starting from tail with cos-sampled direction 
 		// (importance sample diffuse surface)
 		glm::vec3 origin = tail->GetPosition();
-		glm::vec3 direction = GetRandomSampleDirectionCosCone(tail->GetOrientation(), 1);
+		float pdf;
+		glm::vec3 direction = GetRandomSampleDirectionCosCone(tail->GetOrientation(), pdf, 1.f);
 		
 		Ray ray(origin, direction);
 		Intersection intersection;
@@ -177,7 +178,11 @@ Light* Scene::CreateLight(Light* tail)
 			
 			glm::vec3 src_pos = tail->GetPosition();
 			glm::vec3 src_orientation = tail->GetOrientation();
-			glm::vec3 src_flux = 4.f * PI * tail->GetFlux();		
+			
+			float dist = glm::length(pos - src_pos);
+			float cos_theta_i = glm::dot(glm::normalize(-direction), glm::normalize(orientation));
+			
+			glm::vec3 src_flux = 2 * PI * (dist * dist) / (cos_theta_i) * tail->GetFlux();
 			
 			head = new Light(pos, orientation, flux, src_pos, src_orientation, src_flux);
 		}
@@ -204,7 +209,7 @@ Light* Scene::CreateLight(Light* tail)
 	return head;
 }
 
-void Scene::CreatePath() 
+std::vector<Light*> Scene::CreatePath() 
 {
 	// first clear the information about and old path
 	ClearPath();
@@ -234,7 +239,7 @@ void Scene::CreatePath()
 				finish->SetDebugColor(glm::vec3(0.f, 0.0f, 0.8f));
 			}
 			m_Paths.push_back(m_CurrentPath);
-			return;
+			return m_CurrentPath;
 		}		
 		
 		// follow the path with cos-sampled direction (importance sample diffuse surface)
@@ -249,9 +254,10 @@ void Scene::CreatePath()
 			// if the ray hits no geometry the transpored energy
 			// goes to nirvana and is lost
 			m_Paths.push_back(m_CurrentPath);
-			return;
+			return m_CurrentPath;
 		}
 	}
+	return m_CurrentPath;
 }
 
 bool Scene::IntersectRayScene(Ray ray, Intersection &intersection)
@@ -328,15 +334,15 @@ void Scene::LoadSimpleScene()
 
 	m_Models.push_back(model);
 
-	m_Camera->Init(glm::vec3(-8.f, 6.f, 6.f), 
-		glm::vec3(0.f, 0.f, 0.f),
+	m_Camera->Init(glm::vec3(-9.2f, 5.7f, 6.75f), 
+		glm::vec3(0.f, -2.f, 0.f),
 		2.0f);
 	
-	m_AreaLight = new AreaLight(1.0f, 1.0f, 
+	m_AreaLight = new AreaLight(0.25f, 0.25f, 
 		glm::vec3(0.0f, 5.f, 0.0f), 
 		glm::vec3(0.0f, -1.0f, 0.0f),
 		glm::vec3(0.0f, 0.0f, 1.0f), 
-		glm::vec3(150.0f, 150.0f, 150.0f));
+		glm::vec3(36.0f, 36.0f, 36.0f));
 	
 	m_AreaLight->Init();
 }
@@ -460,11 +466,11 @@ void Scene::LoadCornellBox()
 		2.0f);
 	
 	
-	m_AreaLight = new AreaLight(1.3f, 1.05f, 
+	m_AreaLight = new AreaLight(0.25f, 0.25f, 
 		glm::vec3(2.8f, 5.5f, -2.8f), 
 		glm::vec3(0.0f, -1.0f, 0.0f),
 		glm::vec3(0.0f, 0.0f, 1.0f), 
-		glm::vec3(150.0f, 150.0f, 150.0f));
+		glm::vec3(10.0f, 10.0f, 10.0f));
 	
 	/*
 	m_AreaLight = new AreaLight(1.3f, 1.05f, 

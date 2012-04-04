@@ -45,7 +45,7 @@ public:
 
 	bool IntersectRayScene(Ray ray, Intersection &intersection);
 		
-	void CreatePath();
+	std::vector<Light*> CreatePath();
 	std::vector<Light*> GetCurrentPath() { return m_CurrentPath; } 	
 	std::vector<Light*> GetPath(int i) { return m_Paths[i]; } 	
 	std::vector<Light*> GetLights() { return m_Lights; }
