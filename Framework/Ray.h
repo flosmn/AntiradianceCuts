@@ -15,6 +15,8 @@ public:
 	glm::vec3 GetOrigin() { return origin; }
 	glm::vec3 GetDirection() { return direction; }
 
+	void SetOrigin(glm::vec3 _origin) { origin = _origin; }
+
 private:
 	glm::vec3 origin;
 	glm::vec3 direction;

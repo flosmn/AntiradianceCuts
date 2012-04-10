@@ -155,7 +155,8 @@ Light* Scene::CreateLight(Light* tail)
 	if(tail == 0)
 	{
 		// create new primary light source
-		head = m_AreaLight->GetNewPrimaryLight();
+		float pdf;
+		head = m_AreaLight->GetNewPrimaryLight(pdf);
 	}
 	else
 	{
@@ -163,7 +164,7 @@ Light* Scene::CreateLight(Light* tail)
 		// (importance sample diffuse surface)
 		glm::vec3 origin = tail->GetPosition();
 		float pdf;
-		glm::vec3 direction = GetRandomSampleDirectionCosCone(tail->GetOrientation(), pdf, 1.f);
+		glm::vec3 direction = GetRandomSampleDirectionCosCone(tail->GetOrientation(), pdf, 1);
 		
 		Ray ray(origin, direction);
 		Intersection intersection;
@@ -174,7 +175,7 @@ Light* Scene::CreateLight(Light* tail)
 			glm::vec3 orientation = intersection.GetTriangle().GetNormal();
 			glm::vec3 rho = glm::vec3(intersection.GetModel()->GetMaterial().diffuseColor);
 			//glm::vec3 flux = rho/m_MeanRho * tail->GetFlux();
-			glm::vec3 flux = glm::min(rho/m_MeanRho, glm::vec3(1.f, 1.f, 1.f)) * tail->GetFlux();
+			glm::vec3 L = glm::min(rho/m_MeanRho, glm::vec3(1.f, 1.f, 1.f)) * tail->GetRadiance();
 			
 			glm::vec3 src_pos = tail->GetPosition();
 			glm::vec3 src_orientation = tail->GetOrientation();
@@ -182,9 +183,9 @@ Light* Scene::CreateLight(Light* tail)
 			float dist = glm::length(pos - src_pos);
 			float cos_theta_i = glm::dot(glm::normalize(-direction), glm::normalize(orientation));
 			
-			glm::vec3 src_flux = 2 * PI * (dist * dist) / (cos_theta_i) * tail->GetFlux();
+			glm::vec3 src_L = 2 * PI * (dist * dist) / (cos_theta_i) * tail->GetRadiance();
 			
-			head = new Light(pos, orientation, flux, src_pos, src_orientation, src_flux);
+			head = new Light(pos, orientation, L, src_pos, src_orientation, src_L);
 		}
 	}
 
@@ -230,12 +231,12 @@ std::vector<Light*> Scene::CreatePath()
 	{
 		// decide whether to terminate path
 		float rand_01 = glm::linearRand(0.f, 1.f);
-		if(m_CurrentBounce > 0.f)
+		if(rand_01 > m_MeanRho)
 		{
 			// create finishing Anti-VPL
 			Light* finish = CreateLight(tail);
 			if(finish){
-				finish->SetFlux(glm::vec3(0.f, 0.f, 0.f));
+				finish->SetRadiance(glm::vec3(0.f, 0.f, 0.f));
 				finish->SetDebugColor(glm::vec3(0.f, 0.0f, 0.8f));
 			}
 			m_Paths.push_back(m_CurrentPath);
@@ -260,12 +261,91 @@ std::vector<Light*> Scene::CreatePath()
 	return m_CurrentPath;
 }
 
-bool Scene::IntersectRayScene(Ray ray, Intersection &intersection)
+std::vector<Light*> Scene::CreatePathPBRT()
 {
+	float epsilon = 0.0005f;
+	ClearPath();
+	m_CurrentBounce = 0;
 	
+	// Follow path _i_ from light to create virtual lights
+	float pdf;
+	Light *tail = m_AreaLight->GetNewPrimaryLight(pdf);
+	m_Lights.push_back(tail);
+	m_CurrentPath.push_back(tail);
+
+	glm::vec3 alpha = tail->GetRadiance() / pdf;
+	
+	// Sample ray leaving light source for virtual light path
+	glm::vec3 direction = GetRandomSampleDirectionCosCone(tail->GetOrientation(), pdf, 1);
+	glm::vec3 origin = tail->GetPosition();
+	    
+	if (pdf == 0.f || alpha.length() == 0)
+	{
+		m_Paths.push_back(m_CurrentPath);
+		return m_CurrentPath;
+	}
+	
+	alpha /= pdf;
+    
+	Ray ray(origin + epsilon * direction + epsilon * tail->GetOrientation(), direction);
+	Intersection intersection;
+	while(IntersectRayScene(ray, intersection) && m_CurrentBounce < 2) 
+	{
+		m_CurrentBounce++;
+
+		// Create virtual light and sample new ray for path
+		glm::vec3 albedo = glm::vec3(intersection.GetModel()->GetMaterial().diffuseColor);
+		glm::vec3 pos = intersection.GetPoint();
+		glm::vec3 normal = intersection.GetTriangle().GetNormal();
+		
+		// Create virtual light at ray intersection point
+        glm::vec3 contrib = albedo / PI * alpha;
+		Light* head = new Light(pos, normal, contrib, tail->GetPosition(),
+			tail->GetOrientation(), 2 * PI * tail->GetRadiance());
+		m_Lights.push_back(head);
+		m_CurrentPath.push_back(head);
+		
+		// Sample new ray direction and update weight for virtual light path
+		float pdf;
+		glm::vec3 direction = GetRandomSampleDirectionCosCone(head->GetOrientation(), pdf, 1);
+		
+		glm::vec3 fr = albedo;           
+		if (fr.length() == 0 || pdf == 0.f)
+		{
+			SetDebugColor(head, m_CurrentBounce);
+			m_Paths.push_back(m_CurrentPath);
+			return m_CurrentPath;
+		}
+        
+		glm::vec3 contribScale = fr * glm::dot(direction, normal) / pdf;
+		
+		// Possibly terminate virtual light path with Russian roulette
+		float rrProb = std::min(1.f, 1.f/3.f * ( contribScale.r + contribScale.g + contribScale.b));
+		
+		float rand_01 = glm::linearRand(0.f, 1.f);
+		if (rand_01 > rrProb || m_CurrentBounce > 4)
+		{
+			SetDebugColor(head, m_CurrentBounce);
+			m_Paths.push_back(m_CurrentPath);
+			return m_CurrentPath;
+		}
+		
+		alpha *= contribScale / rrProb;
+		ray = Ray(pos + epsilon * direction + epsilon * normal, direction);
+
+		SetDebugColor(head, m_CurrentBounce);
+		tail = head;
+	}
+	
+	m_Paths.push_back(m_CurrentPath);
+	return m_CurrentPath;
+}
+
+bool Scene::IntersectRayScene(Ray ray, Intersection &intersection)
+{	
 	float t = 1000000.0f;
 	bool hasIntersection = false;;
-
+	
 	std::vector<CModel*>::iterator it_models;
 	for (it_models = m_Models.begin(); it_models < m_Models.end(); it_models++ )
 	{
@@ -342,143 +422,32 @@ void Scene::LoadSimpleScene()
 		glm::vec3(0.0f, 5.f, 0.0f), 
 		glm::vec3(0.0f, -1.0f, 0.0f),
 		glm::vec3(0.0f, 0.0f, 1.0f), 
-		glm::vec3(36.0f, 36.0f, 36.0f));
+		glm::vec3(360.0f, 360.0f, 360.0f));
 	
 	m_AreaLight->Init();
 }
 
-
 void Scene::LoadCornellBox()
 {
-	MATERIAL* white = new MATERIAL;
-	white->diffuseColor = glm::vec4(1.f, 1.f, 1.f, 1.f);
-	MATERIAL* red = new MATERIAL;
-	red->diffuseColor = glm::vec4(0.5f, 0.f, 0.f, 1.f);
-	MATERIAL* green = new MATERIAL;
-	green->diffuseColor = glm::vec4(0.f, 0.5f, 0.f, 1.f);
-	MATERIAL* gray = new MATERIAL;
-	gray->diffuseColor = glm::vec4(0.5f, 0.5f, 0.5f, 1.f);
-
 	ClearScene();
 
-	float sum_area = 0.f;
-	float area;
-	glm::vec3 refl = glm::vec3(0.f);
+	CModel* model = new CModel();
+	model->Init("cornell");
+	model->SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
+		
+	m_MeanRho = 0.5f;
 
-	glm::mat4 translate = IdentityMatrix();
-	glm::mat4 rotate = IdentityMatrix();
-	glm::mat4 scale = IdentityMatrix();
-	glm::mat4 normalize = glm::translate(0.5f, 0.5f, 0.5f) * glm::scale(0.5f, 0.5f, 0.5f);
-
-	translate = glm::translate(glm::vec3(3.68f, 0.825f, -1.69f));
-	rotate = glm::rotate(Rad2Deg(-0.29f), glm::vec3(0.0f, 1.0f, 0.0f));
-	scale = glm::scale(glm::vec3(0.825f, 0.825f, 0.825f));
-	CModel* smallBox = new CModel();
-	smallBox->Init(new CCubeMesh());
-	smallBox->SetWorldTransform(translate * rotate * scale);
-	smallBox->SetMaterial(*gray);
-
-	area = 0.825f * 6 * 2;
-	sum_area += area;
-	refl += area * glm::vec3(0.5f, 0.5f, 0.5f);
-	
-	translate = glm::translate(glm::vec3(1.85f, 1.65f, -3.51f));
-	rotate = glm::rotate(Rad2Deg(-1.27f), glm::vec3(0.0f, 1.0f, 0.0f));
-	scale = glm::scale(glm::vec3(0.825f, 1.65f, 0.825f));
-	CModel* largeBox = new CModel();
-	largeBox->Init(new CCubeMesh());
-	largeBox->SetWorldTransform(translate * rotate * scale);
-	largeBox->SetMaterial(*gray);
-	
-	area = 0.825f * 4 * 2 + 1.65f * 4 * 1;
-	sum_area += area;
-	refl += area * glm::vec3(0.5f, 0.5f, 0.5f);
-	
-	translate = glm::translate(glm::vec3(2.8f, 0.0f, -2.8f));
-	rotate = glm::rotate(-90.0f, glm::vec3(1.0f, 0.0f, 0.0f));
-	scale = glm::scale(glm::vec3(2.8f, 1.0f, 2.8f));
-	CModel* floor = new CModel();
-	floor->Init(new CQuadMesh());
-	floor->SetWorldTransform(translate * scale * rotate);
-	floor->SetMaterial(*white);
-	area = 2.8f * 4.f;
-	sum_area += area;
-	refl += area * glm::vec3(1.0f, 1.0f, 1.0f);
-	
-	translate = glm::translate(glm::vec3(2.8f, 2.75f, -5.6f));
-	scale = glm::scale(glm::vec3(2.8f, 2.75f, 1.0f));
-	CModel* back = new CModel();
-	back->Init(new CQuadMesh());
-	back->SetWorldTransform(translate * scale);
-	back->SetMaterial(*white);
-	area = 2.8f * 2.f * 2.75f * 2.f;
-	sum_area += area;
-	refl += area * glm::vec3(1.0f, 1.0f, 1.0f);
-
-	translate = glm::translate(glm::vec3(0.0f, 2.75f, -2.8f));
-	rotate = glm::rotate(90.0f, glm::vec3(0.0f, 1.0f, 0.0f));
-	scale = glm::scale(glm::vec3(1.0f, 2.75f, 2.8f));
-	CModel* left = new CModel();
-	left->Init(new CQuadMesh());
-	left->SetWorldTransform(translate * scale * rotate);
-	left->SetMaterial(*red);
-	area = 2.8f * 2.f * 2.75f * 2.f;
-	sum_area += area;
-	refl += area * glm::vec3(0.5f, 0.0f, 0.0f);
-
-	translate = glm::translate(glm::vec3(5.6f, 2.75f, -2.8f));
-	rotate = glm::rotate(-90.0f, glm::vec3(0.0f, 1.0f, 0.0f));
-	scale = glm::scale(glm::vec3(1.0f, 2.75f, 2.8f));
-	CModel* right = new CModel();
-	right->Init(new CQuadMesh());
-	right->SetWorldTransform(translate * scale * rotate);
-	right->SetMaterial(*green);
-	area = 2.8f * 2.f * 2.75f * 2.f;
-	sum_area += area;
-	refl += area * glm::vec3(0.0f, 0.5f, 0.0f);
-
-	translate = glm::translate(glm::vec3(2.8f, 5.5f, -2.8f));
-	rotate = glm::rotate(90.0f, glm::vec3(1.0f, 0.0f, 0.0f));
-	scale = glm::scale(glm::vec3(2.8f, 1.0f, 2.8f));
-	CModel* ciel = new CModel();
-	ciel->Init(new CQuadMesh());
-	ciel->SetWorldTransform(translate * scale * rotate);
-	ciel->SetMaterial(*white);
-	area = 2.8f * 4.f;
-	sum_area += area;
-	refl += area * glm::vec3(1.0f, 1.0f, 1.0f);
-
-	m_AvgReflectivity = refl * 1.0f/sum_area;
-	m_MeanRho = 1.f/3.f * (m_AvgReflectivity.r + m_AvgReflectivity.g + m_AvgReflectivity.b);
-
-	std::cout << "Average reflectivity: (" << m_AvgReflectivity.r << ", " << m_AvgReflectivity.g << ", " << m_AvgReflectivity.b << ")" << std::endl;
-
-	m_Models.push_back(smallBox);
-	m_Models.push_back(largeBox);
-	m_Models.push_back(floor);
-	m_Models.push_back(back);
-	m_Models.push_back(left);
-	m_Models.push_back(right);
-	m_Models.push_back(ciel);
+	m_Models.push_back(model);
 
 	m_Camera->Init(glm::vec3(2.78f, 2.73f, 8.0f), 
 		glm::vec3(2.8f, 2.73f, -2.8f),
 		2.0f);
-	
-	
-	m_AreaLight = new AreaLight(0.25f, 0.25f, 
-		glm::vec3(2.8f, 5.5f, -2.8f), 
+		
+	m_AreaLight = new AreaLight(1.1f, 1.1f, 
+		glm::vec3(2.75f, 5.5f, -2.75f), 
 		glm::vec3(0.0f, -1.0f, 0.0f),
 		glm::vec3(0.0f, 0.0f, 1.0f), 
 		glm::vec3(10.0f, 10.0f, 10.0f));
-	
-	/*
-	m_AreaLight = new AreaLight(1.3f, 1.05f, 
-		glm::vec3(5.6f, 2.75f, -2.8f), 
-		glm::vec3(-1.0f, 0.0f, 0.0f),
-		glm::vec3(0.0f, 1.0f, 0.0f), 
-		glm::vec3(1.0f, 1.0f, 1.0f));
-	*/
 	
 	m_AreaLight->Init();
 }
@@ -492,4 +461,17 @@ void Scene::Stats() {
 	}
 	std::cout << "max flow (VPL) : (" << m_MaxVPLFlow.r << ", " << m_MaxVPLFlow.g << ", " << m_MaxVPLFlow.b << ")" << std::endl;
 	std::cout << "max flow (VPL) bounce : " << m_MaxVPLFlowBounce << std::endl;
+}
+
+void Scene::SetDebugColor(Light* light, int bounce)
+{
+	if(bounce == 1){
+		light->SetDebugColor(glm::vec3(0.8, 0.2, 0.2));
+	} else if(bounce == 2){
+		light->SetDebugColor(glm::vec3(0.2, 0.8, 0.2));
+	} else if(bounce == 3) {
+		light->SetDebugColor(glm::vec3(0.2, 0.2, 0.8));
+	} else {
+		light->SetDebugColor(glm::vec3(0.2, 0.2, 0.2));
+	}
 }

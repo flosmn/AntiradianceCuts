@@ -14,14 +14,15 @@
 
 AreaLight::AreaLight(float _width, float _height, glm::vec3 _centerPosition, 
 										 glm::vec3 _frontDirection, glm::vec3 _upDirection,
-										 glm::vec3 _intensity)
+										 glm::vec3 _Le)
 {
 	width = _width;
 	height = _height;
+	area = width * height;
 	centerPosition = _centerPosition;
 	frontDirection = _frontDirection;
 	upDirection = _upDirection;
-	intensity = _intensity;
+	Le = _Le;
 
 	m_pAreaLightModel = new CModel();
 }
@@ -45,10 +46,10 @@ bool AreaLight::Init()
 	V_RET_FOF(m_pAreaLightModel->Init(new CQuadMesh()));
 
 	MATERIAL* mat = new MATERIAL();
-	mat->diffuseColor = glm::vec4(intensity, 1.0f);
+	mat->diffuseColor = glm::vec4(Le, 1.0f);
 	m_pAreaLightModel->SetMaterial(*mat);
 
-	glm::mat4 scale = glm::scale(width/2.0f, height/2.0f, 1.0f);
+	glm::mat4 scale = glm::scale(width/2.f, height/2.f, 1.0f);
 	
 	glm::mat4 position = glm::lookAt(centerPosition, centerPosition - frontDirection, upDirection);
 
@@ -67,7 +68,7 @@ void AreaLight::Draw(Camera* camera, CGLUniformBuffer* pUBTransform)
 {
 	glUseProgram(drawAreaLightProgram);
 
-	glUniform3fv(uniformLightIntensity, 1, glm::value_ptr(intensity));
+	glUniform3fv(uniformLightIntensity, 1, glm::value_ptr(Le));
 	
 	glUniformMatrix4fv(uniformViewMatrix, 1, GL_FALSE, glm::value_ptr(camera->GetViewMatrix()));
 
@@ -79,7 +80,7 @@ void AreaLight::Draw(Camera* camera, CGLUniformBuffer* pUBTransform)
 
 }
 
-Light* AreaLight::GetNewPrimaryLight()
+Light* AreaLight::GetNewPrimaryLight(float& pdf)
 {
 		glm::mat4 transform = GetWorldTransform();
 		glm::vec3 orientation = GetFrontDirection();
@@ -88,8 +89,10 @@ Light* AreaLight::GetNewPrimaryLight()
 		glm::vec4 positionTemp = transform * glm::vec4(samplePos.x, samplePos.y, 0.0f, 1.0f);		
 		glm::vec3 position	= glm::vec3(positionTemp /= positionTemp.w);		
 		
+		pdf = 1.f/area;
+
 		Light* newLight = new Light(
-			glm::vec3(position), orientation, glm::vec3(intensity), 
+			glm::vec3(position), orientation, Le/pdf, 
 			glm::vec3(0), glm::vec3(0), glm::vec3(0));
 		
 		return newLight;

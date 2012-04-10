@@ -44,7 +44,10 @@ public:
 	int GetNumberOfLightPaths() { return m_Paths.size(); }
 
 	bool IntersectRayScene(Ray ray, Intersection &intersection);
-		
+	
+	void SetDebugColor(Light* light, int bounce);
+
+	std::vector<Light*> CreatePathPBRT();
 	std::vector<Light*> CreatePath();
 	std::vector<Light*> GetCurrentPath() { return m_CurrentPath; } 	
 	std::vector<Light*> GetPath(int i) { return m_Paths[i]; } 	
@@ -74,6 +77,7 @@ private:
 	int m_MaxVPLFlowBounce;
 
 	int m_CurrentBounce;	
+	glm::vec3 m_Alpha;
 };
 
 #endif SCENE_H

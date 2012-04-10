@@ -194,7 +194,7 @@ bool Renderer::Init()
 
 	scene = new Scene(camera);
 	scene->Init();
-	scene->LoadSimpleScene();
+	scene->LoadCornellBox();
 			
 	drawLight = false;
 	drawTexture = false;
@@ -255,7 +255,7 @@ void Renderer::Render()
 	
 	if(m_CurrentPath < m_NumPaths)
 	{
-		std::vector<Light*> path = scene->CreatePath();
+		std::vector<Light*> path = scene->CreatePathPBRT();
 
 		GatherRadiance();
 	
@@ -399,7 +399,7 @@ void Renderer::GatherRadianceFromLight(Light* light)
 		FillShadowMap(light);
 	}
 	
-	if(light->GetFlux().r == 0.f && light->GetFlux().g == 0.f && light->GetFlux().b == 0.f)
+	if(light->GetRadiance().length() == 0.f)
 		return;
 
 	glDisable(GL_DEPTH_TEST);
@@ -429,7 +429,7 @@ void Renderer::GatherRadianceFromLight(Light* light)
 
 void Renderer::GatherAntiradianceFromLight(Light* light)
 {
-	if(light->GetSrcFlux().r == 0.f && light->GetSrcFlux().g == 0.f && light->GetSrcFlux().b == 0.f)
+	if(light->GetSrcRadiance().length() == 0.f)
 		return;
 
 	glDisable(GL_DEPTH_TEST);
@@ -522,7 +522,7 @@ void Renderer::DrawAreaLight()
 	// avoid z-fighting
 	glPolygonOffset(-1.0f, 1.0f);
 	glDepthFunc(GL_LEQUAL);
-
+	
 	scene->DrawAreaLight(m_pUBTransform);
 	
 	err = glGetError();
