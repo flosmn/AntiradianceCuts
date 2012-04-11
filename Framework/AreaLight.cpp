@@ -14,7 +14,7 @@
 
 AreaLight::AreaLight(float _width, float _height, glm::vec3 _centerPosition, 
 										 glm::vec3 _frontDirection, glm::vec3 _upDirection,
-										 glm::vec3 _Le)
+										 glm::vec3 _flux)
 {
 	width = _width;
 	height = _height;
@@ -22,7 +22,7 @@ AreaLight::AreaLight(float _width, float _height, glm::vec3 _centerPosition,
 	centerPosition = _centerPosition;
 	frontDirection = _frontDirection;
 	upDirection = _upDirection;
-	Le = _Le;
+	flux = _flux;
 
 	m_pAreaLightModel = new CModel();
 }
@@ -46,7 +46,7 @@ bool AreaLight::Init()
 	V_RET_FOF(m_pAreaLightModel->Init(new CQuadMesh()));
 
 	MATERIAL* mat = new MATERIAL();
-	mat->diffuseColor = glm::vec4(Le, 1.0f);
+	mat->diffuseColor = glm::vec4(flux / (PI * area), 1.0f);
 	m_pAreaLightModel->SetMaterial(*mat);
 
 	glm::mat4 scale = glm::scale(width/2.f, height/2.f, 1.0f);
@@ -68,7 +68,7 @@ void AreaLight::Draw(Camera* camera, CGLUniformBuffer* pUBTransform)
 {
 	glUseProgram(drawAreaLightProgram);
 
-	glUniform3fv(uniformLightIntensity, 1, glm::value_ptr(Le));
+	glUniform3fv(uniformLightIntensity, 1, glm::value_ptr(flux/PI));
 	
 	glUniformMatrix4fv(uniformViewMatrix, 1, GL_FALSE, glm::value_ptr(camera->GetViewMatrix()));
 
@@ -92,7 +92,7 @@ Light* AreaLight::GetNewPrimaryLight(float& pdf)
 		pdf = 1.f/area;
 
 		Light* newLight = new Light(
-			glm::vec3(position), orientation, Le/pdf, 
+			glm::vec3(position), orientation, flux/pdf, 
 			glm::vec3(0), glm::vec3(0), glm::vec3(0));
 		
 		return newLight;

@@ -61,8 +61,8 @@ void main()
 	
 	vec4 A_in = blur * uLight.SrcFlux;	// blurred antiradiance
 
-	//float G = G_CLAMP(vPositionWS, vNormalWS, uLight.Position.xyz, -uLight.Orientation.xyz);
-	float G = G_CLAMP(vPositionWS, vNormalWS, uLight.SrcPosition.xyz, uLight.SrcOrientation.xyz);
+	float G = G_CLAMP(vPositionWS, vNormalWS, uLight.Position.xyz, -uLight.Orientation.xyz);
+	//float G = G_CLAMP(vPositionWS, vNormalWS, uLight.SrcPosition.xyz, uLight.SrcOrientation.xyz);
 
 	vec4 AntiIrradiance = A_in * G;
 	

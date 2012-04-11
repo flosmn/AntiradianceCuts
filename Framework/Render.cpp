@@ -194,7 +194,7 @@ bool Renderer::Init()
 
 	scene = new Scene(camera);
 	scene->Init();
-	scene->LoadCornellBox();
+	scene->LoadSimpleScene();
 			
 	drawLight = false;
 	drawTexture = false;
@@ -205,7 +205,7 @@ bool Renderer::Init()
 	m_UseAntiradiance = true;
 	m_DrawAntiradiance = false;
 	m_GeoTermLimit = 0.1f;
-	m_CosBlurFactor = 20.f;
+	m_CosBlurFactor = 0.1f;
 
 	ConfigureLighting();
 	
@@ -399,7 +399,7 @@ void Renderer::GatherRadianceFromLight(Light* light)
 		FillShadowMap(light);
 	}
 	
-	if(light->GetRadiance().length() == 0.f)
+	if(light->GetFlux().length() == 0.f)
 		return;
 
 	glDisable(GL_DEPTH_TEST);
@@ -429,7 +429,7 @@ void Renderer::GatherRadianceFromLight(Light* light)
 
 void Renderer::GatherAntiradianceFromLight(Light* light)
 {
-	if(light->GetSrcRadiance().length() == 0.f)
+	if(light->GetSrcFlux().length() == 0.f)
 		return;
 
 	glDisable(GL_DEPTH_TEST);

@@ -71,7 +71,7 @@ glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, float&pdf, uint
 	glm::vec3 direction = glm::normalize(glm::vec3(directionTemp));
 
 	const float cos_theta = glm::dot(glm::normalize(direction), glm::normalize(orientation));
-	pdf = (order + 1) / (2 * PI) * std::powf(cos_theta, order);
+	pdf = ((float)order + 1) / (2 * PI) * std::powf(cos_theta, (float)order);
 
 	return direction;
 }

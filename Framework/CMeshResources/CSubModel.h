@@ -33,8 +33,8 @@ public:
 	void Draw(CGLUniformBuffer* pUBMaterial);
 	void Draw();
 	
-	void SetMaterial(MATERIAL& mat);
-	MATERIAL& GetMaterial();
+	virtual void SetMaterial(MATERIAL& mat);
+	virtual MATERIAL& GetMaterial();
 		
 	std::vector<Triangle*> GetTriangles();
 

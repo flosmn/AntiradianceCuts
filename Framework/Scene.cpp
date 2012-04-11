@@ -175,7 +175,7 @@ Light* Scene::CreateLight(Light* tail)
 			glm::vec3 orientation = intersection.GetTriangle().GetNormal();
 			glm::vec3 rho = glm::vec3(intersection.GetModel()->GetMaterial().diffuseColor);
 			//glm::vec3 flux = rho/m_MeanRho * tail->GetFlux();
-			glm::vec3 L = glm::min(rho/m_MeanRho, glm::vec3(1.f, 1.f, 1.f)) * tail->GetRadiance();
+			glm::vec3 flux = glm::min(rho/m_MeanRho, glm::vec3(1.f, 1.f, 1.f)) * tail->GetFlux();
 			
 			glm::vec3 src_pos = tail->GetPosition();
 			glm::vec3 src_orientation = tail->GetOrientation();
@@ -183,9 +183,9 @@ Light* Scene::CreateLight(Light* tail)
 			float dist = glm::length(pos - src_pos);
 			float cos_theta_i = glm::dot(glm::normalize(-direction), glm::normalize(orientation));
 			
-			glm::vec3 src_L = 2 * PI * (dist * dist) / (cos_theta_i) * tail->GetRadiance();
+			glm::vec3 src_flux = 2 * PI * (dist * dist) / (cos_theta_i) * tail->GetFlux();
 			
-			head = new Light(pos, orientation, L, src_pos, src_orientation, src_L);
+			head = new Light(pos, orientation, flux, src_pos, src_orientation, src_flux);
 		}
 	}
 
@@ -236,7 +236,7 @@ std::vector<Light*> Scene::CreatePath()
 			// create finishing Anti-VPL
 			Light* finish = CreateLight(tail);
 			if(finish){
-				finish->SetRadiance(glm::vec3(0.f, 0.f, 0.f));
+				finish->SetFlux(glm::vec3(0.f, 0.f, 0.f));
 				finish->SetDebugColor(glm::vec3(0.f, 0.0f, 0.8f));
 			}
 			m_Paths.push_back(m_CurrentPath);
@@ -273,7 +273,7 @@ std::vector<Light*> Scene::CreatePathPBRT()
 	m_Lights.push_back(tail);
 	m_CurrentPath.push_back(tail);
 
-	glm::vec3 alpha = tail->GetRadiance() / pdf;
+	glm::vec3 alpha = tail->GetFlux() /*/ pdf*/; // pdf already considered in radiance
 	
 	// Sample ray leaving light source for virtual light path
 	glm::vec3 direction = GetRandomSampleDirectionCosCone(tail->GetOrientation(), pdf, 1);
@@ -289,7 +289,7 @@ std::vector<Light*> Scene::CreatePathPBRT()
     
 	Ray ray(origin + epsilon * direction + epsilon * tail->GetOrientation(), direction);
 	Intersection intersection;
-	while(IntersectRayScene(ray, intersection) && m_CurrentBounce < 2) 
+	while(IntersectRayScene(ray, intersection) && m_CurrentBounce < 1) 
 	{
 		m_CurrentBounce++;
 
@@ -301,7 +301,7 @@ std::vector<Light*> Scene::CreatePathPBRT()
 		// Create virtual light at ray intersection point
         glm::vec3 contrib = albedo / PI * alpha;
 		Light* head = new Light(pos, normal, contrib, tail->GetPosition(),
-			tail->GetOrientation(), 2 * PI * tail->GetRadiance());
+			tail->GetOrientation(), tail->GetFlux());
 		m_Lights.push_back(head);
 		m_CurrentPath.push_back(head);
 		
@@ -312,12 +312,13 @@ std::vector<Light*> Scene::CreatePathPBRT()
 		glm::vec3 fr = albedo;           
 		if (fr.length() == 0 || pdf == 0.f)
 		{
+			head->SetFlux(glm::vec3(0));
 			SetDebugColor(head, m_CurrentBounce);
 			m_Paths.push_back(m_CurrentPath);
 			return m_CurrentPath;
 		}
         
-		glm::vec3 contribScale = fr * glm::dot(direction, normal) / pdf;
+		glm::vec3 contribScale = fr / pdf * glm::dot(direction, normal);
 		
 		// Possibly terminate virtual light path with Russian roulette
 		float rrProb = std::min(1.f, 1.f/3.f * ( contribScale.r + contribScale.g + contribScale.b));
@@ -325,6 +326,7 @@ std::vector<Light*> Scene::CreatePathPBRT()
 		float rand_01 = glm::linearRand(0.f, 1.f);
 		if (rand_01 > rrProb || m_CurrentBounce > 4)
 		{
+			head->SetFlux(glm::vec3(0));
 			SetDebugColor(head, m_CurrentBounce);
 			m_Paths.push_back(m_CurrentPath);
 			return m_CurrentPath;
@@ -336,8 +338,10 @@ std::vector<Light*> Scene::CreatePathPBRT()
 		SetDebugColor(head, m_CurrentBounce);
 		tail = head;
 	}
-	
-	m_Paths.push_back(m_CurrentPath);
+
+	// make last vpl to pure antiradiance vpl
+	tail->SetFlux(glm::vec3(0));
+
 	return m_CurrentPath;
 }
 
@@ -382,7 +386,7 @@ bool Scene::IntersectRayScene(Ray ray, Intersection &intersection)
 						if(temp < t && temp > 0) {
 							t = temp;
 							glm::vec3 position = origin + t * direction;
-							intersection = Intersection(model, triangle, position);
+							intersection = Intersection(subModel, triangle, position);
 							hasIntersection = true;
 						}
 					}
@@ -391,7 +395,7 @@ bool Scene::IntersectRayScene(Ray ray, Intersection &intersection)
 						if(temp < t && temp > 0) {
 							t = temp;
 							glm::vec3 position = origin + t * direction;
-							intersection = Intersection(model, triangle, position);
+							intersection = Intersection(subModel, triangle, position);
 							hasIntersection = true;
 						}
 					}
@@ -418,11 +422,11 @@ void Scene::LoadSimpleScene()
 		glm::vec3(0.f, -2.f, 0.f),
 		2.0f);
 	
-	m_AreaLight = new AreaLight(0.25f, 0.25f, 
+	m_AreaLight = new AreaLight(0.5f, 0.5f, 
 		glm::vec3(0.0f, 5.f, 0.0f), 
 		glm::vec3(0.0f, -1.0f, 0.0f),
 		glm::vec3(0.0f, 0.0f, 1.0f), 
-		glm::vec3(360.0f, 360.0f, 360.0f));
+		glm::vec3(1500.0f, 1500.0f, 1500.0f));
 	
 	m_AreaLight->Init();
 }
@@ -432,7 +436,7 @@ void Scene::LoadCornellBox()
 	ClearScene();
 
 	CModel* model = new CModel();
-	model->Init("cornell");
+	model->Init("cornell-fine");
 	model->SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
 		
 	m_MeanRho = 0.5f;
@@ -447,7 +451,7 @@ void Scene::LoadCornellBox()
 		glm::vec3(2.75f, 5.5f, -2.75f), 
 		glm::vec3(0.0f, -1.0f, 0.0f),
 		glm::vec3(0.0f, 0.0f, 1.0f), 
-		glm::vec3(10.0f, 10.0f, 10.0f));
+		glm::vec3(120.0f, 120.0f, 120.0f));
 	
 	m_AreaLight->Init();
 }

@@ -34,8 +34,8 @@ public:
 	void SetWorldTransform(glm::mat4 matrix) { worldTransform = matrix; }
 	glm::mat4 GetWorldTransform() { return worldTransform; }
 	
-	void SetMaterial(MATERIAL& mat);	
-	MATERIAL& GetMaterial();
+	virtual void SetMaterial(MATERIAL& mat);	
+	virtual MATERIAL& GetMaterial();
 		
 	std::vector<CSubModel*> GetSubModels() { return m_vecSubModels; }
 

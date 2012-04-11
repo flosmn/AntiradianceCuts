@@ -13,7 +13,7 @@ class AreaLight
 {
 public:
 	AreaLight(float _width, float _height, glm::vec3 _centerPosition, 
-		glm::vec3 _frontDirection, glm::vec3 _upDirection, glm::vec3 _Le);
+		glm::vec3 _frontDirection, glm::vec3 _upDirection, glm::vec3 _flux);
 	~AreaLight();
 
 	bool Init();
@@ -27,7 +27,8 @@ public:
 	glm::mat4 GetWorldTransform();
 
 	Light* GetNewPrimaryLight(float& pdf);
-	glm::vec3 GetRadiance() { return Le; }
+	float GetArea() { return area; }
+	glm::vec3 GetFlux() { return flux; }
 
 private:
 	GLuint drawAreaLightProgram;
@@ -44,7 +45,7 @@ private:
 	glm::vec3 centerPosition;
 	glm::vec3 frontDirection;
 	glm::vec3 upDirection;
-	glm::vec3 Le;
+	glm::vec3 flux;
 };
 
 #endif
