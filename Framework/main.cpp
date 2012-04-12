@@ -104,7 +104,7 @@ int main()
 	myBar = TwNewBar("GUI");
 		
 	TwAddVarRW(myBar, "Use Antiradiance", TW_TYPE_BOOL32, &config_use_antiradiance, "");
-	TwAddVarRW(myBar, "Blur factor", TW_TYPE_FLOAT, &config_blur_factor, " min=0.01 max=2.0 step=0.01 ");
+	TwAddVarRW(myBar, "Blur factor", TW_TYPE_FLOAT, &config_blur_factor, " min=0.01 max=1000.0 step=0.01 ");
 	TwAddVarRW(myBar, "Geo-Term Limit", TW_TYPE_FLOAT, &config_geo_limit, "");
 	TwAddVarRW(myBar, "#Paths", TW_TYPE_INT32, &config_num_paths, " min=1 max=10000 step=1 ");
 

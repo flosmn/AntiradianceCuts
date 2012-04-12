@@ -55,9 +55,12 @@ void main()
 	vec3 vLightDir = normalize(vPositionWS - uLight.Position.xyz);				// direction from light to point
 	vec3 vAntiRadDir = normalize(uLight.Position.xyz - uLight.SrcPosition.xyz); // direction of antiradiance
 	
-	float theta = acos(clamp(dot(vAntiRadDir, vLightDir), 0, 1));
-	const float sigma = uConfig.BlurSigma;
-	float blur = uConfig.BlurK / (sqrt(2*PI)*sigma) * exp(-(theta*theta)/(2*sigma*sigma));
+	const float N = uConfig.BlurSigma;
+	float blur = (N+1)/(2*PI) * pow(clamp(dot(vAntiRadDir, vLightDir), 0, 1), N);
+	
+	//float theta = acos(clamp(dot(vAntiRadDir, vLightDir), 0, 1));
+	//const float sigma = uConfig.BlurSigma;
+	//float blur = uConfig.BlurK / (sqrt(2*PI)*sigma) * exp(-(theta*theta)/(2*sigma*sigma));
 	
 	vec4 A_in = blur * uLight.SrcFlux;	// blurred antiradiance
 

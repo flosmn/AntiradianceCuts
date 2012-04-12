@@ -273,12 +273,12 @@ std::vector<Light*> Scene::CreatePathPBRT()
 	m_Lights.push_back(tail);
 	m_CurrentPath.push_back(tail);
 
-	glm::vec3 alpha = tail->GetFlux() /*/ pdf*/; // pdf already considered in radiance
+	glm::vec3 alpha = tail->GetFlux();
 	
 	// Sample ray leaving light source for virtual light path
 	glm::vec3 direction = GetRandomSampleDirectionCosCone(tail->GetOrientation(), pdf, 1);
 	glm::vec3 origin = tail->GetPosition();
-	    
+	
 	if (pdf == 0.f || alpha.length() == 0)
 	{
 		m_Paths.push_back(m_CurrentPath);
@@ -289,7 +289,7 @@ std::vector<Light*> Scene::CreatePathPBRT()
     
 	Ray ray(origin + epsilon * direction + epsilon * tail->GetOrientation(), direction);
 	Intersection intersection;
-	while(IntersectRayScene(ray, intersection) && m_CurrentBounce < 1) 
+	while(IntersectRayScene(ray, intersection)) 
 	{
 		m_CurrentBounce++;
 
@@ -301,32 +301,29 @@ std::vector<Light*> Scene::CreatePathPBRT()
 		// Create virtual light at ray intersection point
         glm::vec3 contrib = albedo / PI * alpha;
 		Light* head = new Light(pos, normal, contrib, tail->GetPosition(),
-			tail->GetOrientation(), tail->GetFlux());
+			tail->GetOrientation(), PI * tail->GetFlux());
 		m_Lights.push_back(head);
 		m_CurrentPath.push_back(head);
 		
 		// Sample new ray direction and update weight for virtual light path
 		float pdf;
 		glm::vec3 direction = GetRandomSampleDirectionCosCone(head->GetOrientation(), pdf, 1);
-		
-		glm::vec3 fr = albedo;           
-		if (fr.length() == 0 || pdf == 0.f)
+
+		if (pdf == 0.f)
 		{
-			head->SetFlux(glm::vec3(0));
 			SetDebugColor(head, m_CurrentBounce);
 			m_Paths.push_back(m_CurrentPath);
 			return m_CurrentPath;
 		}
-        
-		glm::vec3 contribScale = fr / pdf * glm::dot(direction, normal);
+		
+		glm::vec3 contribScale = albedo/PI * glm::dot(direction, normal) / pdf;
 		
 		// Possibly terminate virtual light path with Russian roulette
 		float rrProb = std::min(1.f, 1.f/3.f * ( contribScale.r + contribScale.g + contribScale.b));
 		
 		float rand_01 = glm::linearRand(0.f, 1.f);
-		if (rand_01 > rrProb || m_CurrentBounce > 4)
+		if (rand_01 > rrProb)
 		{
-			head->SetFlux(glm::vec3(0));
 			SetDebugColor(head, m_CurrentBounce);
 			m_Paths.push_back(m_CurrentPath);
 			return m_CurrentPath;
@@ -338,10 +335,8 @@ std::vector<Light*> Scene::CreatePathPBRT()
 		SetDebugColor(head, m_CurrentBounce);
 		tail = head;
 	}
-
-	// make last vpl to pure antiradiance vpl
-	tail->SetFlux(glm::vec3(0));
-
+	
+	m_Paths.push_back(m_CurrentPath);
 	return m_CurrentPath;
 }
 
@@ -423,10 +418,10 @@ void Scene::LoadSimpleScene()
 		2.0f);
 	
 	m_AreaLight = new AreaLight(0.5f, 0.5f, 
-		glm::vec3(0.0f, 5.f, 0.0f), 
+		glm::vec3(0.0f, 2.f, 0.0f), 
 		glm::vec3(0.0f, -1.0f, 0.0f),
 		glm::vec3(0.0f, 0.0f, 1.0f), 
-		glm::vec3(1500.0f, 1500.0f, 1500.0f));
+		glm::vec3(350.0f, 350.0f, 350.0f));
 	
 	m_AreaLight->Init();
 }
@@ -436,7 +431,7 @@ void Scene::LoadCornellBox()
 	ClearScene();
 
 	CModel* model = new CModel();
-	model->Init("cornell-fine");
+	model->Init("cornell");
 	model->SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
 		
 	m_MeanRho = 0.5f;

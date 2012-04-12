@@ -60,6 +60,7 @@ private:
 
 	Light* CreateLight(Light* tail);
 
+	
 	std::vector<CModel*> m_Models;
 	std::vector<Light*> m_Lights;
 	std::vector<std::vector<Light*>> m_Paths;

@@ -194,7 +194,7 @@ bool Renderer::Init()
 
 	scene = new Scene(camera);
 	scene->Init();
-	scene->LoadSimpleScene();
+	scene->LoadCornellBox();
 			
 	drawLight = false;
 	drawTexture = false;
