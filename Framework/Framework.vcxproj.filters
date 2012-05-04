@@ -88,6 +88,10 @@
     <ClCompile Include="CGLResources\CGLVertexBuffer.cpp">
       <Filter>CGLResources</Filter>
     </ClCompile>
+    <ClCompile Include="CPointCloud.cpp" />
+    <ClCompile Include="CGLResources\CGLTextureBuffer.cpp">
+      <Filter>CGLResources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CMeshResources\CFullScreenQuad.h">
@@ -178,6 +182,10 @@
     <ClInclude Include="CGLResources\CGLVertexBuffer.h">
       <Filter>CGLResources</Filter>
     </ClInclude>
+    <ClInclude Include="CPointCloud.h" />
+    <ClInclude Include="CGLResources\CGLTextureBuffer.h">
+      <Filter>CGLResources</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">
@@ -202,9 +210,6 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="Shaders\GatherAntiradiance.frag">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="Shaders\GatherRadiance.frag">
       <Filter>Resource Files</Filter>
     </None>
     <None Include="Shaders\PostProcessing.frag">
@@ -235,6 +240,18 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="Shaders\Normalize.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Shaders\PointCloud.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Shaders\PointCloud.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Shaders\GatherRadianceWithSM.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Shaders\GatherRadiance.frag">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

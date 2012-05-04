@@ -9,8 +9,10 @@ public:
 	CGLVertexBuffer(std::string debugName);
 	~CGLVertexBuffer();
 
-	virtual bool Init(GLuint size, void* data, GLenum usage);
+	virtual bool Init();
 	virtual void Release();
+
+	bool SetContent(GLuint size, void* data, GLenum usage);
 
 private:
 	virtual void Bind(CGLBindSlot slot);

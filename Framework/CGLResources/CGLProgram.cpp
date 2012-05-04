@@ -114,7 +114,7 @@ GLuint CGLProgram::LoadShader(GLenum eShaderType, const std::string &strShaderFi
 	shaderData << shaderFile.rdbuf();
 	shaderFile.close();
 
-	return CreateShader(eShaderType, shaderData.str());
+	return CreateShader(eShaderType, shaderData.str(), strShaderFilename);
 }
 
 std::string CGLProgram::FindFileOrThrow( const std::string &strBasename )
@@ -132,7 +132,7 @@ std::string CGLProgram::FindFileOrThrow( const std::string &strBasename )
 	throw std::runtime_error("Could not find the file " + strBasename);
 }
 
-GLuint CGLProgram::CreateShader(GLenum eShaderType, const std::string &strShaderFile)
+GLuint CGLProgram::CreateShader(GLenum eShaderType, const std::string &strShaderFile, const std::string& strFileName)
 {
 	GLuint shader = glCreateShader(eShaderType);
 	const char *strFileData = strShaderFile.c_str();
@@ -158,7 +158,7 @@ GLuint CGLProgram::CreateShader(GLenum eShaderType, const std::string &strShader
 		case GL_FRAGMENT_SHADER: strShaderType = "fragment"; break;
 		}
 
-		fprintf(stderr, "Compile failure in %s shader:\n%s\n", strShaderType, 
+		fprintf(stderr, "Compile failure in %s shader:\n%s\n%s\n", strShaderType, strFileName.c_str(),
 			strInfoLog);
 
 		delete[] strInfoLog;

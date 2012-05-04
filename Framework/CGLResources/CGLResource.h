@@ -16,7 +16,7 @@ class CGLResource
 
 public:
 	enum CGLResourceType { CGL_TEXTURE_2D, CGL_FRAMEBUFFER, CGL_RENDERBUFFER, CGL_VERTEXBUFFER,
-		CGL_VERTEXARRAY, CGL_UNIFORMBUFFER, CGL_PROGRAM, CGL_SAMPLER };
+		CGL_VERTEXARRAY, CGL_UNIFORMBUFFER, CGL_PROGRAM, CGL_SAMPLER, CGL_TEXTURE_BUFFER };
 
 	CGLResource(CGLResourceType resourceType, std::string debugName);
 	virtual ~CGLResource();
@@ -53,6 +53,7 @@ private:
 	bool m_IsInitialized;
 
 	static std::map<CGLBindSlot, std::string> mapSlotsToCGLTEXTURE2D;
+	static std::map<CGLBindSlot, std::string> mapSlotsToCGLTEXTUREBUFFER;
 	static std::map<CGLBindSlot, std::string> mapSlotsToCGLFRAMEBUFFER;
 	static std::map<CGLBindSlot, std::string> mapSlotsToCGLRENDERBUFFER;
 	static std::map<CGLBindSlot, std::string> mapSlotsToCGLVERTEXBUFFER;

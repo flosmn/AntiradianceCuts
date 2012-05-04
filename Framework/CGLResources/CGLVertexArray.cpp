@@ -12,28 +12,29 @@
 
 
 CGLVertexArray::CGLVertexArray(std::string debugName)
-	: CGLResource(CGL_VERTEXARRAY, debugName), m_pGLVBPositionData(nullptr), 
-	  m_pGLVBNormalData(nullptr), m_pGLVBIndexData(nullptr),
-	  m_HasPositionData(false), m_HasNormalData(false), m_HasTextureData(false),
-	  m_HasIndexData(false)
+	: CGLResource(CGL_VERTEXARRAY, debugName), m_pGLVBIndexData(nullptr), m_HasIndexData(false)
 {
-	m_pGLVBPositionData = new CGLVertexBuffer("CGLVertexArray.m_pGLVBPositionData");
-	m_pGLVBNormalData = new CGLVertexBuffer("CGLVertexArray.m_pGLVBNormalData");
-	m_pGLVBTextureData = new CGLVertexBuffer("CGLVertexArray.m_pGLVBTextureData");
 	m_pGLVBIndexData = new CGLVertexBuffer("CGLVertexArray.m_pGLVBIndexData");
+
+	memset(m_ChannelsUsed, 0, 10 * sizeof(uint));
 }
 
 CGLVertexArray::~CGLVertexArray()
 {
-	SAFE_DELETE(m_pGLVBPositionData);
-	SAFE_DELETE(m_pGLVBNormalData);
-	SAFE_DELETE(m_pGLVBTextureData);
 	SAFE_DELETE(m_pGLVBIndexData);
+
+	for(uint i = 0; i < 10; ++i)
+	{
+		if(m_ChannelsUsed[i] != 0)
+			SAFE_DELETE(m_VertexDataChannels[i]);
+	}
 }
 
-bool CGLVertexArray::Init()
+bool CGLVertexArray::Init(GLenum primitiveType)
 {
 	V_RET_FOF(CGLResource::Init());
+
+	m_PrimitiveType = primitiveType;
 
 	glGenVertexArrays(1, &m_Resource);
 
@@ -46,14 +47,11 @@ void CGLVertexArray::Release()
 {
 	CGLResource::Release();
 
-	if(m_HasPositionData)
-		m_pGLVBPositionData->Release();
-
-	if(m_HasNormalData)
-		m_pGLVBNormalData->Release();
-
-	if(m_HasTextureData)
-		m_pGLVBTextureData->Release();
+	for(uint i = 0; i < 10; ++i)
+	{
+		if(m_ChannelsUsed[i] != 0)
+			m_VertexDataChannels[i]->Release();
+	}
 
 	if(m_HasIndexData)
 		m_pGLVBIndexData->Release();
@@ -63,44 +61,46 @@ void CGLVertexArray::Release()
 	CheckGLError(m_DebugName, "CGLVertexArray::Release()");
 }
 
-bool CGLVertexArray::AddPositionData(GLuint size, void* pData)
+bool CGLVertexArray::AddVertexDataChannel(uint index, uint elements)
 {
-	CheckInitialized("CGLVertexArray::AddPositionData()");
-	CheckNotBound("CGLVertexArray::AddPositionData()");
+	CheckInitialized("CGLVertexArray::AddVertexDataChannel()");
+	CheckNotBound("CGLVertexArray::AddVertexDataChannel()");
 
-	V_RET_FOF(m_pGLVBPositionData->Init(size, pData, GL_STATIC_DRAW));
+	CHANNEL_INFO info;
+	info.index = index;
+	info.elements = elements;
+	
+	m_VertexDataChannelInfo[index] = info;
+	m_ChannelsUsed[index] = 1;
 
-	CheckGLError(m_DebugName, "CGLVertexArray::AddPositionData()");
+	CGLVertexBuffer* pBuffer = new CGLVertexBuffer("CGLVertexArray.pBuffer");
+	V_RET_FOF(pBuffer->Init());
 
-	m_HasPositionData = true;
+	m_VertexDataChannels[index] = pBuffer;
 
 	return true;
 }
 
-bool CGLVertexArray::AddNormalData(GLuint size, void* pData)
+bool CGLVertexArray::AddVertexData(uint index, uint size, void* pData)
 {
-	CheckInitialized("CGLVertexArray::AddNormalData()");
-	CheckNotBound("CGLVertexArray::AddNormalData()");
-	
-	V_RET_FOF(m_pGLVBNormalData->Init(size, pData, GL_STATIC_DRAW));
-
-	CheckGLError(m_DebugName, "CGLVertexArray::AddNormalData()");
-
-	m_HasNormalData = true;
+	CheckInitialized("CGLVertexArray::AddVertexData()");
+	CheckNotBound("CGLVertexArray::AddVertexData()");
+		
+	V_RET_FOF(m_VertexDataChannels[index]->SetContent(size, pData, GL_STATIC_DRAW));
 	
 	return true;
 }
 
-bool CGLVertexArray::AddTextureData(GLuint size, void* pData)
+bool CGLVertexArray::AddIndexDataChannel()
 {
-	CheckInitialized("CGLVertexArray::AddTextureData()");
-	CheckNotBound("CGLVertexArray::AddTextureData()");
+	CheckInitialized("CGLVertexArray::AddIndexData()");
+	CheckNotBound("CGLVertexArray::AddIndexData()");
 
-	V_RET_FOF(m_pGLVBTextureData->Init(size, pData, GL_STATIC_DRAW));
-
-	CheckGLError(m_DebugName, "CGLVertexArray::AddTextureData()");
-
-	m_HasTextureData = true;
+	V_RET_FOF(m_pGLVBIndexData->Init());
+	
+	CheckGLError(m_DebugName, "CGLVertexArray::AddIndexDataChannel()");
+	
+	m_HasIndexData = true;
 
 	return true;
 }
@@ -110,12 +110,10 @@ bool CGLVertexArray::AddIndexData(GLuint size, void* pData)
 	CheckInitialized("CGLVertexArray::AddIndexData()");
 	CheckNotBound("CGLVertexArray::AddIndexData()");
 
-	V_RET_FOF(m_pGLVBIndexData->Init(size, pData, GL_STATIC_DRAW));
+	V_RET_FOF(m_pGLVBIndexData->SetContent(size, pData, GL_STATIC_DRAW));
 
 	CheckGLError(m_DebugName, "CGLVertexArray::AddIndexData()");
-
-	m_HasIndexData = true;
-
+	
 	return true;
 }
 
@@ -132,25 +130,18 @@ void CGLVertexArray::Finish()
 
 	CGLBindLock lock(this, CGL_VERTEX_ARRAY_SLOT);
 	
-	if(m_HasPositionData)
+	for(uint i = 0; i < 10; ++i)
 	{
-		CGLBindLock lockPositionData(m_pGLVBPositionData, CGL_ARRAY_BUFFER_SLOT);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
-	}
+		if(m_ChannelsUsed[i] == 0)
+			continue;
 
-	if(m_HasNormalData)
-	{
-		CGLBindLock lockNormalData(m_pGLVBNormalData, CGL_ARRAY_BUFFER_SLOT);
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
-	}
-
-	if(m_HasTextureData)
-	{
-		CGLBindLock lockTextureData(m_pGLVBTextureData, CGL_ARRAY_BUFFER_SLOT);
-		glEnableVertexAttribArray(2);
-		glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		CGLVertexBuffer* pBuffer = m_VertexDataChannels[i];
+					
+		CHANNEL_INFO info = m_VertexDataChannelInfo[i];
+			
+		CGLBindLock lock(pBuffer, CGL_ARRAY_BUFFER_SLOT);
+		glEnableVertexAttribArray(info.index);
+		glVertexAttribPointer(info.index, info.elements, GL_FLOAT, GL_FALSE, 0, 0);
 	}
 
 	CGLBindLock lockIndexData(m_pGLVBIndexData, CGL_ELEMENT_ARRAY_BUFFER_SLOT);
@@ -169,7 +160,7 @@ void CGLVertexArray::Draw(GLuint count)
 
 	CGLBindLock lock(this, CGL_VERTEX_ARRAY_SLOT);
 
-	glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_SHORT, 0);
+	glDrawElements(m_PrimitiveType, count, GL_UNSIGNED_SHORT, 0);
 
 	CheckGLError(m_DebugName, "CGLVertexArray::Draw() after glDrawElements");
 }

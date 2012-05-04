@@ -20,25 +20,20 @@ uniform config
 	int UseAntiradiance;
 	int DrawAntiradiance;
 	int nPaths;
+	int N;
+	float Bias;
 } uConfig;
 
-uniform light
+uniform info
 {
-	vec4 Position;
-	vec4 Orientation;
-	vec4 Flux;
-	vec4 SrcPosition;
-	vec4 SrcOrientation;
-	vec4 SrcFlux;
-	vec4 DebugColor;
-	mat4 ViewMatrix;
-	mat4 ProjectionMatrix;
-} uLight;
+	int numLights;
+} uInfo;
 
 out vec4 outputColor;
 
 layout(binding=0) uniform sampler2D samplerPositionWS;
 layout(binding=1) uniform sampler2D samplerNormalWS;
+layout(binding=2) uniform samplerBuffer samplerLightBuffer;
 
 float G(vec3 p1, vec3 n1, vec3 p2, vec3 n3);
 float G_CLAMP(vec3 p1, vec3 n1, vec3 p2, vec3 n3);
@@ -52,24 +47,46 @@ void main()
 	vec3 vPositionWS = texture2D(samplerPositionWS, coord).xyz;
 	vec3 vNormalWS = normalize(texture2D(samplerNormalWS, coord).xyz);
 	
-	vec3 vLightDir = normalize(vPositionWS - uLight.Position.xyz);				// direction from light to point
-	vec3 vAntiRadDir = normalize(uLight.Position.xyz - uLight.SrcPosition.xyz); // direction of antiradiance
-	
-	const float N = uConfig.BlurSigma;
-	float blur = (N+1)/(2*PI) * pow(clamp(dot(vAntiRadDir, vLightDir), 0, 1), N);
-	
-	//float theta = acos(clamp(dot(vAntiRadDir, vLightDir), 0, 1));
-	//const float sigma = uConfig.BlurSigma;
-	//float blur = uConfig.BlurK / (sqrt(2*PI)*sigma) * exp(-(theta*theta)/(2*sigma*sigma));
-	
-	vec4 A_in = blur * uLight.SrcFlux;	// blurred antiradiance
+	outputColor = vec4(0.f);
+	for(int i = 0; i < uInfo.numLights; ++i)
+	{
+		int size = 4 * 7 + 4 * 4 * 2 + 1;
+		
+		const vec3 vLightPosWS = vec3(	texelFetch(samplerLightBuffer, i * size + 0).r,
+										texelFetch(samplerLightBuffer, i * size + 1).r,
+										texelFetch(samplerLightBuffer, i * size + 2).r);
 
-	float G = G_CLAMP(vPositionWS, vNormalWS, uLight.Position.xyz, -uLight.Orientation.xyz);
-	//float G = G_CLAMP(vPositionWS, vNormalWS, uLight.SrcPosition.xyz, uLight.SrcOrientation.xyz);
+		const vec3 vSrcLightPosWS = vec3(	texelFetch(samplerLightBuffer, i * size + 12).r,
+											texelFetch(samplerLightBuffer, i * size + 13).r,
+											texelFetch(samplerLightBuffer, i * size + 14).r);
 
-	vec4 AntiIrradiance = A_in * G;
-	
-	outputColor = AntiIrradiance;
+		const vec3 vSrcLightOrientationWS = vec3(	texelFetch(samplerLightBuffer, i * size + 16).r,
+													texelFetch(samplerLightBuffer, i * size + 17).r,
+													texelFetch(samplerLightBuffer, i * size + 18).r);
+
+		const vec4 vSrcLightContrib	= vec4(	texelFetch(samplerLightBuffer, i * size + 20).r,
+											texelFetch(samplerLightBuffer, i * size + 21).r,
+											texelFetch(samplerLightBuffer, i * size + 22).r,
+											texelFetch(samplerLightBuffer, i * size + 23).r);
+		
+		
+		vec3 omega_i = normalize(vLightPosWS - vSrcLightPosWS);
+		vec3 omega = normalize(vPositionWS - vSrcLightPosWS);
+		
+		vec3 vLightPosBiased = vLightPosWS + uConfig.Bias * omega_i;
+		vec3 vLightToPos = normalize(vPositionWS - vLightPosBiased);
+					
+		if(dot(vLightToPos, omega_i) > 0.01f)
+		{
+			if(dot(omega_i, omega) > cos(PI/float(uConfig.N + 1)))
+			{
+				float G = G_CLAMP(vPositionWS, vNormalWS, vSrcLightPosWS, vSrcLightOrientationWS);
+				vec4 A_in = vSrcLightContrib;
+
+				outputColor += A_in * G;
+			}
+		}
+	}
 	outputColor.w = 1.0f;
 }
 

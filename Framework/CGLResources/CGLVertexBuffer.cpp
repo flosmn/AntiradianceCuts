@@ -20,18 +20,13 @@ CGLVertexBuffer::~CGLVertexBuffer()
 
 }
 
-bool CGLVertexBuffer::Init(GLuint size, void* data, GLenum usage)
+bool CGLVertexBuffer::Init()
 {
 	V_RET_FOF(CGLResource::Init());
 
 	glGenBuffers(1, &m_Resource);
 
-	V_RET_FOT(CheckGLError(m_DebugName, "CGLArrayBuffer::Init()"));
-
-	CGLBindLock lock(this, CGL_ARRAY_BUFFER_SLOT);
-	glBufferData(GL_ARRAY_BUFFER, size, data, usage);
-
-	V_RET_FOT(CheckGLError(m_DebugName, "CGLArrayBuffer::Init()"));
+	V_RET_FOT(CheckGLError(m_DebugName, "CGLVertexBuffer::Init()"));
 
 	return true;
 }
@@ -43,6 +38,18 @@ void CGLVertexBuffer::Release()
 	glDeleteBuffers(1, &m_Resource);
 
 	CheckGLError(m_DebugName, "CGLArrayBuffer::Release()");
+}
+
+bool CGLVertexBuffer::SetContent(GLuint size, void* data, GLenum usage)
+{
+	CheckInitialized("CGLVertexBuffer::SetContent()");
+
+	CGLBindLock lock(this, CGL_ARRAY_BUFFER_SLOT);
+	glBufferData(GL_ARRAY_BUFFER, size, data, usage);
+
+	V_RET_FOT(CheckGLError(m_DebugName, "CGLVertexBuffer::SetContent()"));
+
+	return true;
 }
 
 void CGLVertexBuffer::Bind(CGLBindSlot slot)

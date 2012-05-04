@@ -13,6 +13,8 @@ uniform config
 	int UseAntiradiance;
 	int DrawAntiradiance;
 	int nPaths;
+	int N;
+	float Bias;
 } uConfig;
 
 uniform camera
@@ -22,18 +24,10 @@ uniform camera
 	int height;
 } uCamera;
 
-uniform light
+uniform info
 {
-	vec4 Position;
-	vec4 Orientation;
-	vec4 Flux;
-	vec4 SrcPosition;
-	vec4 SrcOrientation;
-	vec4 SrcFlux;
-	vec4 DebugColor;
-	mat4 ViewMatrix;
-	mat4 ProjectionMatrix;
-} uLight;
+	int numLights;
+} uInfo;
 
 out vec4 outputColor;
 
@@ -41,8 +35,8 @@ layout(binding=0) uniform sampler2D samplerShadowMap;
 layout(binding=1) uniform sampler2D samplerPositionWS;
 layout(binding=2) uniform sampler2D samplerNormalWS;
 layout(binding=3) uniform sampler2D samplerMaterial;
+layout(binding=4) uniform samplerBuffer samplerLightBuffer;
 
-float IsLit(in vec3 positionWS);
 float G(vec3 p1, vec3 n1, vec3 p2, vec3 n3);
 float G_CLAMP(vec3 p1, vec3 n1, vec3 p2, vec3 n3);
 
@@ -51,24 +45,34 @@ void main()
 	vec2 coord = gl_FragCoord.xy;
 	coord.x /= uCamera.width;
 	coord.y /= uCamera.height;
-
+	
 	vec3 vPositionWS = texture2D(samplerPositionWS, coord).xyz;
 	vec3 vNormalWS = normalize(texture2D(samplerNormalWS, coord).xyz);
 	vec4 cAlbedo = texture2D(samplerMaterial, coord);
-
-	float V = 1.f;
-
-	if (uConfig.UseAntiradiance == 0) {
-		// shadow map shadows
-		V = IsLit(vPositionWS);
-	}
-
-	// calc radiance
-	vec4 I = uLight.Flux / PI;
-	float G = G_CLAMP(vPositionWS, vNormalWS, uLight.Position.xyz, uLight.Orientation.xyz);
-	vec4 Irradiance = V * I * G;	
 	
-	outputColor = Irradiance;
+	for(int i = 0; i < uInfo.numLights; ++i)
+	{		
+		int size = 4 * 7 + 4 * 4 * 2 + 1;	
+		const vec3 vLightPosWS = vec3(	texelFetch(samplerLightBuffer, i * size + 0).r,
+										texelFetch(samplerLightBuffer, i * size + 1).r,
+										texelFetch(samplerLightBuffer, i * size + 2).r);
+
+		const vec3 vLightOrientationWS = vec3(	texelFetch(samplerLightBuffer, i * size + 4).r,
+												texelFetch(samplerLightBuffer, i * size + 5).r,
+												texelFetch(samplerLightBuffer, i * size + 6).r);
+
+		const vec4 vLightContrib	= vec4(	texelFetch(samplerLightBuffer, i * size + 8).r,
+											texelFetch(samplerLightBuffer, i * size + 9).r,
+											texelFetch(samplerLightBuffer, i * size + 10).r,
+											texelFetch(samplerLightBuffer, i * size + 11).r);
+
+		// calc radiance
+		vec4 I = vLightContrib;
+		float G = G_CLAMP(vPositionWS, vNormalWS, vLightPosWS, vLightOrientationWS);
+		vec4 Irradiance = I * G;	
+	
+		outputColor += Irradiance;
+	}
 	outputColor.w = 1.0f;
 }
 
@@ -89,39 +93,4 @@ float G(in vec3 p1, in vec3 n1, in vec3 p2, in vec3 n2)
 	float dist = length(p2 - p1);
 	
 	return (cos_theta_1 * cos_theta_2) / (dist * dist);
-}
-
-float IsLit(in vec3 position)
-{
-	float lit = 0.0f;
-	
-	float zNear = 0.1f;
-	float zFar = 100.0f;
-	float zBias = 0.0f;
-	
-	vec4 positionLS = uLight.ViewMatrix * vec4(position, 1.f);
-	positionLS = positionLS / positionLS.w;
-	
-	float depthLS = positionLS.z;
-		
-	if(depthLS <= 0)
-	{
-		// paraboloid projection
-		float len = length(positionLS.xyz);
-		positionLS = positionLS/len;
-		positionLS.z = positionLS.z - 1.0f;
-		positionLS.x = positionLS.x / positionLS.z;
-		positionLS.y = positionLS.y / positionLS.z;
-		positionLS.z = (len - zNear)/(zFar-zNear) + zBias;
-		positionLS.w = 1.0f;
-	
-		vec3 texCoord = positionLS.xyz * 0.5f + 0.5f;
-		float depthSM = texture2D(samplerShadowMap, texCoord.xy).r;
-		lit = (depthSM < texCoord.z) ? 0.0f : 1.0f;
-	}
-	else
-	{
-		lit = 0.0f;
-	}
-	return lit;
 }

@@ -13,7 +13,7 @@ CGLSampler::~CGLSampler()
 	CGLResource::~CGLResource();
 }
 
-bool CGLSampler::Init(GLenum minFilter, GLenum magFilter)
+bool CGLSampler::Init(GLenum minFilter, GLenum magFilter, GLenum clampS, GLenum clampT)
 {
 	V_RET_FOF(CGLResource::Init());
 
@@ -21,6 +21,8 @@ bool CGLSampler::Init(GLenum minFilter, GLenum magFilter)
 
 	glSamplerParameteri(m_Resource, GL_TEXTURE_MIN_FILTER, minFilter);
 	glSamplerParameteri(m_Resource, GL_TEXTURE_MAG_FILTER, magFilter);
+	glSamplerParameteri(m_Resource, GL_TEXTURE_WRAP_S, clampS);
+	glSamplerParameteri(m_Resource, GL_TEXTURE_WRAP_T, clampT);
 
 	return true;
 }

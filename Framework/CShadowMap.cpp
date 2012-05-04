@@ -26,7 +26,7 @@ bool CShadowMap::Init(uint size)
 	m_ShadowMapSize = size;
 
 	V_RET_FOF(m_pShadowMapTexture->Init(m_ShadowMapSize, m_ShadowMapSize, GL_DEPTH_COMPONENT24, 
-		GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, 1, false));
+		GL_DEPTH_COMPONENT, GL_FLOAT, 1, false));
 
 	V_RET_FOF(m_pRenderTarget->Init());
 

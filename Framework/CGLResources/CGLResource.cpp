@@ -174,6 +174,7 @@ std::map<CGLBindSlot, std::string>& CGLResource::GetMapForResourceType(CGLResour
 	switch(type)
 	{
 	case CGL_TEXTURE_2D: return mapSlotsToCGLTEXTURE2D;
+	case CGL_TEXTURE_BUFFER: return mapSlotsToCGLTEXTUREBUFFER;
 	case CGL_FRAMEBUFFER: return mapSlotsToCGLFRAMEBUFFER;
 	case CGL_RENDERBUFFER: return mapSlotsToCGLRENDERBUFFER;
 	case CGL_VERTEXBUFFER: return mapSlotsToCGLVERTEXBUFFER;
@@ -218,6 +219,7 @@ std::string CGLResource::GetStringForBindSlot( CGLBindSlot slot )
 }
 
 std::map<CGLBindSlot, std::string> CGLResource::mapSlotsToCGLTEXTURE2D;
+std::map<CGLBindSlot, std::string> CGLResource::mapSlotsToCGLTEXTUREBUFFER;
 std::map<CGLBindSlot, std::string> CGLResource::mapSlotsToCGLFRAMEBUFFER;
 std::map<CGLBindSlot, std::string> CGLResource::mapSlotsToCGLRENDERBUFFER;
 std::map<CGLBindSlot, std::string> CGLResource::mapSlotsToCGLVERTEXBUFFER;

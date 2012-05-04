@@ -22,6 +22,7 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#include <memory>
 
 using std::cout;
 using std::cin;
@@ -56,14 +57,27 @@ bool leftMouseButton = false;
 bool rightMouseButton = false;
 
 bool config_use_antiradiance = true;
-float config_blur_factor = 0.1f;
-float config_geo_limit = 0.1f;
+float config_blur_factor = 50.f;
+float config_geo_limit = 0.05f;
 int config_num_paths = 1;
+int config_render_bounce = -1; // render all bounces on default
+int config_num_add_avpl = 0; // number of additional avpls per vpl
+int config_N = 50;
+float config_bias = 1.0f;
+bool config_useHammersley = false;
+int config_paths_per_frame = 100;
+
+class Test
+{
+public:
+	int a;
+	int b;
+};
 
 int main()
 {
 	srand ( 0 );
-
+	
 	GLFWvidmode mode;
 	
 	int running = GL_TRUE;
@@ -104,9 +118,15 @@ int main()
 	myBar = TwNewBar("GUI");
 		
 	TwAddVarRW(myBar, "Use Antiradiance", TW_TYPE_BOOL32, &config_use_antiradiance, "");
-	TwAddVarRW(myBar, "Blur factor", TW_TYPE_FLOAT, &config_blur_factor, " min=0.01 max=1000.0 step=0.01 ");
+	TwAddVarRW(myBar, "Blur factor", TW_TYPE_FLOAT, &config_blur_factor, " min=1.0 max=1000.0 step=1.0 ");
 	TwAddVarRW(myBar, "Geo-Term Limit", TW_TYPE_FLOAT, &config_geo_limit, "");
-	TwAddVarRW(myBar, "#Paths", TW_TYPE_INT32, &config_num_paths, " min=1 max=10000 step=1 ");
+	TwAddVarRW(myBar, "#Paths", TW_TYPE_INT32, &config_num_paths, " min=1 max=1000000 step=1 ");
+	TwAddVarRW(myBar, "#Paths per frame", TW_TYPE_INT32, &config_paths_per_frame, " min=1 max=5000 step=1 ");
+	TwAddVarRW(myBar, "RenderBounce", TW_TYPE_INT32, &config_render_bounce, " min=-1 max=100 step=1 ");
+	TwAddVarRW(myBar, "N", TW_TYPE_INT32, &config_N, " min=1 max=1000 step=1 ");
+	TwAddVarRW(myBar, "bias", TW_TYPE_FLOAT, &config_bias, " min=0.0 max=10.0 step=0.01 ");
+	TwAddVarRW(myBar, "use hammersley", TW_TYPE_BOOL32, &config_useHammersley, " ");
+	TwAddVarRW(myBar, "#add. AVPL", TW_TYPE_INT32, &config_num_add_avpl, " min=1 max=5000 step=1 ");
 
 	camera = new Camera(windowWidth, windowHeight, 0.1f, 100.0f); 
 	
@@ -230,6 +250,7 @@ void GLFWCALL KeyCallback(int key, int action)
 
 	if(key == 'C' && action == GLFW_PRESS){
 		renderer->ClearLighting();
+		renderer->ConfigureLighting();
 	}
 
 	if(key == 'S' && action == GLFW_PRESS){
@@ -256,12 +277,13 @@ void GLFWCALL KeyCallback(int key, int action)
 		renderer->DrawAntiradiance(!renderer->GetDrawAntiradiance());
 	}
 
-	if(key == 'N' && action == GLFW_PRESS){
-		renderer->SetBlurFactor(renderer->GetBlurFactor() * 0.5f);
-	}
-
 	if(key == 'M' && action == GLFW_PRESS){
-		renderer->SetBlurFactor(renderer->GetBlurFactor() * 2.0f);
+		camera->ZoomIn(0.5f);
+		renderer->ClearLighting();
+	}
+	if(key == 'N' && action == GLFW_PRESS){
+		camera->ZoomIn(-0.5f);
+		renderer->ClearLighting();
 	}
 }
 
@@ -296,11 +318,11 @@ void GLFWCALL MousePositionCallback(int x, int y)
 	if(leftMouseButton) {
 		camera->RotLeft((float)deltaX/windowWidth);
 		camera->RotUp((float)deltaY/windowHeight);
-		renderer->ClearLighting();
+		renderer->ClearAccumulationBuffer();
 	}
 	else if(rightMouseButton) {
 		camera->ZoomIn((float)deltaY/windowHeight);
-		renderer->ClearLighting();
+		renderer->ClearAccumulationBuffer();
 	}
 	
 }
@@ -315,7 +337,13 @@ void UpdateConfig()
 	renderer->UseAntiradiance(config_use_antiradiance);
 	renderer->SetBlurFactor(config_blur_factor);
 	renderer->SetNumPaths(config_num_paths);
+	renderer->SetNumPathsPerFrame(config_paths_per_frame);
+	renderer->SetNumOfAdditionalAVPLs(config_num_add_avpl);
 	renderer->SetGeoTermLimit(config_geo_limit);
-
+	renderer->SetRenderBounce(config_render_bounce);
+	renderer->SetN(config_N);
+	renderer->SetBias(config_bias);
+	renderer->SetUseHammersley(config_useHammersley);
+	
 	updateConfig = false;
 }

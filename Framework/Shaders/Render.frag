@@ -14,11 +14,11 @@ uniform camera
 
 uniform config
 {
-	float GeoTermLimit;
+	float uGeoTermLimit;
 	float BlurSigma;
 	float BlurK;
-	int UseAntiradiance;
-	int DrawAntiradiance;
+	int uUseAntiradiance;
+	int uDrawAntiradiance;
 	int nPaths;
 } uConfig;
 
@@ -26,13 +26,14 @@ uniform light
 {
 	vec4 Position;
 	vec4 Orientation;
-	vec4 Flux;
+	vec4 Contrib;
 	vec4 SrcPosition;
 	vec4 SrcOrientation;
-	vec4 SrcFlux;
+	vec4 SrcContrib;
 	vec4 DebugColor;
 	mat4 ViewMatrix;
 	mat4 ProjectionMatrix;
+	int Bounce;
 } uLight;
 
 out vec4 outputColor;

@@ -1,6 +1,8 @@
 #ifndef SCENE_H
 #define SCENE_H
 
+typedef unsigned int uint;
+
 #include "GL/glew.h"
 
 #include "Ray.h"
@@ -44,31 +46,28 @@ public:
 	int GetNumberOfLightPaths() { return m_Paths.size(); }
 
 	bool IntersectRayScene(Ray ray, Intersection &intersection);
-	
-	void SetDebugColor(Light* light, int bounce);
-
+		
 	std::vector<Light*> CreatePathPBRT();
-	std::vector<Light*> CreatePath();
-	std::vector<Light*> GetCurrentPath() { return m_CurrentPath; } 	
+	std::vector<Light*> CreatePaths(uint numPaths, uint currentNumberOfPaths, int N, int nAdditionalAVPLs, bool useHammersley);
+	std::vector<Light*> CreatePath(uint currentNumberOfPaths, int N, int nAdditionalAVPLs, bool useHammersley);
 	std::vector<Light*> GetPath(int i) { return m_Paths[i]; } 	
-	std::vector<Light*> GetLights() { return m_Lights; }
-
+	
 	void Stats();
+
+	void CreatePlaneHammersleySamples(int i);
 		
 private:
 	void ClearPath();
 
-	Light* CreateLight(Light* tail);
-
+	Light* CreateLight(Light* tail, int N, int nAdditionalAVPLs, bool useHammersley);
 	
 	std::vector<CModel*> m_Models;
-	std::vector<Light*> m_Lights;
 	std::vector<std::vector<Light*>> m_Paths;
-	std::vector<Light*> m_CurrentPath;
-
-	glm::vec3 m_AvgReflectivity;
-	float m_MeanRho;
 	
+	float* m_pPlaneHammersleySamples;
+
+	int m_CurrentBounce;	
+
 	Camera* m_Camera;		
 	AreaLight* m_AreaLight;
 
@@ -76,8 +75,6 @@ private:
 	int m_MaxBounceInfo;
 	glm::vec3 m_MaxVPLFlow;
 	int m_MaxVPLFlowBounce;
-
-	int m_CurrentBounce;	
 	glm::vec3 m_Alpha;
 };
 

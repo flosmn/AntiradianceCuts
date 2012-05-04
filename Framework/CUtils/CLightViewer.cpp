@@ -46,8 +46,7 @@ void CLightViewer::Release()
 }
 
 void CLightViewer::DrawLight(Light* light, Camera* camera, CGLUniformBuffer* pUBTransform) 
-{
-	
+{	
 	glm::mat4 scale = glm::scale(0.025f, 0.025f, 0.025f);
 	glm::mat4 translate = glm::translate(light->GetPosition());
 
@@ -55,7 +54,19 @@ void CLightViewer::DrawLight(Light* light, Camera* camera, CGLUniformBuffer* pUB
 
 	CGLBindLock lockProgram(GetGLProgram(), CGL_PROGRAM_SLOT);
 
-	glUniform3fv(uniformLightColor, 1, glm::value_ptr(light->GetDebugColor()));
+	glm::vec3 color;
+	switch(light->GetBounce()){
+		case 0: color = glm::vec3(0.8f, 0.8f, 0.8f); break;
+		case 1: color = glm::vec3(0.8f, 0.0f, 0.0f); break;
+		case 2: color = glm::vec3(0.0f, 0.8f, 0.0f); break;
+		case 3: color = glm::vec3(0.0f, 0.0f, 0.8f); break;
+		case 4: color = glm::vec3(0.8f, 0.8f, 0.0f); break;
+		case 5: color = glm::vec3(0.8f, 0.0f, 0.8f); break;
+		case 6: color = glm::vec3(0.0f, 0.8f, 0.8f); break;
+		default: color = glm::vec3(0.2f, 0.2f, 0.2f); break;
+	}
+
+	glUniform3fv(uniformLightColor, 1, glm::value_ptr(color));
 
 	m_pLightModel->Draw(camera->GetViewMatrix(), camera->GetProjectionMatrix(), pUBTransform);
 }

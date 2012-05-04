@@ -9,7 +9,7 @@ public:
 	CGLSampler(std::string debugName);
 	~CGLSampler();
 
-	bool Init(GLenum minFilter, GLenum magFilter);
+	bool Init(GLenum minFilter, GLenum magFilter, GLenum clampS, GLenum clampT);
 	void Release();
 
 private:

@@ -21,6 +21,7 @@ float Rad2Deg (float Angle);
 
 glm::vec2 GetUniformRandomSample2D(glm::vec2 range_u, glm::vec2 range_v);
 glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, float&pdf, uint order);
+glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, const float u1, const float u2, float&pdf, uint order);
 
 float map(float x, float x0, float x1, float y0, float y1);
 
@@ -34,5 +35,7 @@ bool IntersectRayTriangle(glm::vec3 origin, glm::vec3 direction,
 
 std::string AsString(glm::vec3 v);
 std::string AsString(glm::vec4 v);
+
+void PlaneHammersley(float *result, int n);
 
 #endif

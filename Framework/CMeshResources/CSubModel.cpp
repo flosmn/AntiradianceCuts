@@ -29,7 +29,7 @@ CSubModel::~CSubModel()
 
 bool CSubModel::Init(CMeshGeometry* pMeshGeometry) 
 {
-	V_RET_FOF(m_pGLVARenderData->Init());
+	V_RET_FOF(m_pGLVARenderData->Init(GL_TRIANGLES));
 
 	uint nVertices = pMeshGeometry->GetNumberOfVertices();
 	m_nTriangles = pMeshGeometry->GetNumberOfFaces();
@@ -39,10 +39,13 @@ bool CSubModel::Init(CMeshGeometry* pMeshGeometry)
 	GLuint normalDataSize = sizeof(glm::vec3) * nVertices;
 	GLuint indexDataSize = sizeof(GLshort) * 3 * m_nTriangles;
 	
-	V_RET_FOF(m_pGLVARenderData->AddPositionData(positionDataSize, (void*)pMeshGeometry->GetPositionData()));
+	V_RET_FOF(m_pGLVARenderData->AddVertexDataChannel(0, 4));
+	V_RET_FOF(m_pGLVARenderData->AddVertexData(0, positionDataSize, (void*)pMeshGeometry->GetPositionData()));
 
-	V_RET_FOF(m_pGLVARenderData->AddNormalData(normalDataSize, (void*)pMeshGeometry->GetNormalData()));
+	V_RET_FOF(m_pGLVARenderData->AddVertexDataChannel(1, 3));
+	V_RET_FOF(m_pGLVARenderData->AddVertexData(1, normalDataSize, (void*)pMeshGeometry->GetNormalData()));
 
+	V_RET_FOF(m_pGLVARenderData->AddIndexDataChannel());
 	V_RET_FOF(m_pGLVARenderData->AddIndexData(indexDataSize, (void*)pMeshGeometry->GetIndexData()));
 	
 	m_pGLVARenderData->Finish();
@@ -54,7 +57,7 @@ bool CSubModel::Init(CMeshGeometry* pMeshGeometry)
 
 bool CSubModel::Init(CMesh* pMesh) 
 {
-	V_RET_FOF(m_pGLVARenderData->Init());
+	V_RET_FOF(m_pGLVARenderData->Init(GL_TRIANGLES));
 
 	uint nVertices = pMesh->GetNumberOfVertices();
 	m_nTriangles = pMesh->GetNumberOfTriangles();
@@ -64,10 +67,13 @@ bool CSubModel::Init(CMesh* pMesh)
 	GLuint normalDataSize = sizeof(glm::vec3) * nVertices;
 	GLuint indexDataSize = sizeof(GLshort) * 3 * m_nTriangles;
 	
-	V_RET_FOF(m_pGLVARenderData->AddPositionData(positionDataSize, (void*)pMesh->GetVertexPositions()));
+	V_RET_FOF(m_pGLVARenderData->AddVertexDataChannel(0, 4));
+	V_RET_FOF(m_pGLVARenderData->AddVertexData(0, positionDataSize, (void*)pMesh->GetVertexPositions()));
 
-	V_RET_FOF(m_pGLVARenderData->AddNormalData(normalDataSize, (void*)pMesh->GetVertexNormals()));
+	V_RET_FOF(m_pGLVARenderData->AddVertexDataChannel(1, 3));
+	V_RET_FOF(m_pGLVARenderData->AddVertexData(1, normalDataSize, (void*)pMesh->GetVertexNormals()));
 
+	V_RET_FOF(m_pGLVARenderData->AddIndexDataChannel());
 	V_RET_FOF(m_pGLVARenderData->AddIndexData(indexDataSize, (void*)pMesh->GetIndexData()));
 	
 	m_pGLVARenderData->Finish();

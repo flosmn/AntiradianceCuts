@@ -76,6 +76,7 @@
     <ClCompile Include="CGLResources\CGLResource.cpp" />
     <ClCompile Include="CGLResources\CGLSampler.cpp" />
     <ClCompile Include="CGLResources\CGLTexture2D.cpp" />
+    <ClCompile Include="CGLResources\CGLTextureBuffer.cpp" />
     <ClCompile Include="CGLResources\CGLUniformBuffer.cpp" />
     <ClCompile Include="CGLResources\CGLVertexArray.cpp" />
     <ClCompile Include="CGLResources\CGLVertexBuffer.cpp" />
@@ -85,6 +86,7 @@
     <ClCompile Include="CMeshResources\CModel.cpp" />
     <ClCompile Include="CMeshResources\CObjFileLoader.cpp" />
     <ClCompile Include="CMeshResources\CSubModel.cpp" />
+    <ClCompile Include="CPointCloud.cpp" />
     <ClCompile Include="CProgram.cpp" />
     <ClCompile Include="CShadowMap.cpp" />
     <ClCompile Include="CTimer.cpp" />
@@ -112,6 +114,7 @@
     <ClInclude Include="CGLResources\CGLResource.h" />
     <ClInclude Include="CGLResources\CGLSampler.h" />
     <ClInclude Include="CGLResources\CGLTexture2D.h" />
+    <ClInclude Include="CGLResources\CGLTextureBuffer.h" />
     <ClInclude Include="CGLResources\CGLUniformBuffer.h" />
     <ClInclude Include="CGLResources\CGLVertexArray.h" />
     <ClInclude Include="CGLResources\CGLVertexBuffer.h" />
@@ -122,6 +125,7 @@
     <ClInclude Include="CMeshResources\CModel.h" />
     <ClInclude Include="CMeshResources\CObjFileLoader.h" />
     <ClInclude Include="CMeshResources\CSubModel.h" />
+    <ClInclude Include="CPointCloud.h" />
     <ClInclude Include="CProgram.h" />
     <ClInclude Include="CShadowMap.h" />
     <ClInclude Include="CTimer.h" />
@@ -164,7 +168,10 @@
     <None Include="Shaders\Gather.vert" />
     <None Include="Shaders\GatherAntiradiance.frag" />
     <None Include="Shaders\GatherRadiance.frag" />
+    <None Include="Shaders\GatherRadianceWithSM.frag" />
     <None Include="Shaders\Normalize.frag" />
+    <None Include="Shaders\PointCloud.frag" />
+    <None Include="Shaders\PointCloud.vert" />
     <None Include="Shaders\PostProcessing.frag" />
     <None Include="Shaders\PostProcessing.vert" />
     <None Include="Shaders\Render.frag" />

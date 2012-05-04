@@ -23,7 +23,7 @@ private:
 	virtual void Unbind();
 
 	GLuint LoadShader(GLenum eShaderType, const std::string &strShaderFilename);
-	GLuint CreateShader(GLenum eShaderType, const std::string &strShaderFile);
+	GLuint CreateShader(GLenum eShaderType, const std::string &strShaderFile, const std::string &strFileName);
 	std::string FindFileOrThrow(const std::string &strBasename);
 
 	std::string m_VS;	// vertex shader string

@@ -7,6 +7,7 @@
 #include <glm/gtc/random.hpp>
 
 #include <sstream>
+#include <iostream>
 
 glm::mat4 IdentityMatrix() 
 {
@@ -43,18 +44,39 @@ glm::vec2 GetUniformRandomSample2D(glm::vec2 range_u, glm::vec2 range_v) {
 
 glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, float&pdf, uint order)
 {
-	float xi_1 = glm::linearRand(0.f, 1.f);
-	float xi_2 = glm::linearRand(0.f, 1.f);
+	glm::vec3 direction = glm::vec3(0.f);
+
+	do {
+		float xi_1 = glm::linearRand(0.f, 1.f);
+		float xi_2 = glm::linearRand(0.f, 1.f);
+		
+		direction = GetRandomSampleDirectionCosCone(orientation, xi_1, xi_2, pdf, order);
+
+	} while (pdf < 0.0001f);
 	
+	return direction;
+}
+
+glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, const float u1, const float u2, float&pdf, uint order)
+{
+	glm::vec3 sampleDir = glm::vec3(0.f);
+
+	float xi_1 = u1;
+	float xi_2 = u2;
+		
 	// cos-sampled point with orientation (0, 0, 1)
 	float power = 1.0f / ((float)order + 1.0f);
-	float theta = acos(pow(1-xi_1, power));
+	float theta = acos(pow(xi_1, power));
 	float phi = 2 * PI * xi_2;
-	glm::vec3 sampleDir = glm::normalize(glm::vec3(
+
+	sampleDir = glm::normalize(glm::vec3(
 		sin(theta) * cos(phi),
 		sin(theta) * sin(phi),
 		-cos(theta)) );
-	
+		
+	const float cos_theta = glm::dot(sampleDir, glm::vec3(0.f, 0.f, -1.f));
+	pdf = ((float)order + 1) / (2 * PI) * std::powf(cos_theta, (float)order);
+			
 	glm::vec4 directionTemp = glm::vec4(sampleDir, 0.0f);
 	
 	glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
@@ -69,9 +91,6 @@ glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, float&pdf, uint
 	directionTemp = transformDir * directionTemp;
 	
 	glm::vec3 direction = glm::normalize(glm::vec3(directionTemp));
-
-	const float cos_theta = glm::dot(glm::normalize(direction), glm::normalize(orientation));
-	pdf = ((float)order + 1) / (2 * PI) * std::powf(cos_theta, (float)order);
 
 	return direction;
 }
@@ -163,4 +182,20 @@ std::string AsString(glm::vec4 v)
 	temp << "(" << v.x << ", " << v.y << ", " << v.z << ", " << v.w << ")";
 	std::string str(temp.str());
 	return str;
+}
+
+void PlaneHammersley(float *result, int n)
+{
+	float p, u, v;
+	int k, kk, pos;
+	for (k=0, pos=0 ; k<n ; k++)
+	{
+		u = 0;
+		for (p=0.5f, kk=k ; kk ; p*=0.5f, kk>>=1)
+			if (kk & 1) // kk mod 2 == 1
+				u += p;
+		v = (k + 0.5f) / n;
+		result[pos++] = u;
+		result[pos++] = v;
+	}
 }

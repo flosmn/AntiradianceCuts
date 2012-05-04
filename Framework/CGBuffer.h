@@ -8,7 +8,6 @@ class ShadowMap;
 class Light;
 
 class CGLTexture2D;
-class CGLRenderBuffer;
 class CGLFrameBuffer;
 class CGLSampler;
 class CFullScreenQuad;
@@ -21,7 +20,7 @@ public:
 	CGBuffer();
 	~CGBuffer();
 
-	bool Init(uint width, uint height);
+	bool Init(uint width, uint height, CGLTexture2D* pDepthBuffer);
 	void Release();
 
 	CGLTexture2D* GetPositionTextureWS() { return m_pGLTTexturePositionWS; }
@@ -37,7 +36,6 @@ private:
 	CGLTexture2D* m_pGLTTexturePositionWS;
 	CGLTexture2D* m_pGLTTextureNormalWS;
 	CGLTexture2D* m_pGLTTextureMaterials;
-	CGLRenderBuffer* m_pGLRBDepthRenderBuffer;
 	CGLSampler* m_pGLPointSampler;
 
 	CProgram* m_pCreateGBufferProgram;

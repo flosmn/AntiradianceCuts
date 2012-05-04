@@ -6,11 +6,14 @@
 #include "Light.h"
 
 #include "CUtils\ShaderUtil.h"
+#include "CUtils\Util.h"
 
 #include "CMeshResources\CMesh.h"
 #include "CMeshResources\CModel.h"
 
 #include "CGLResources\CGLUniformBuffer.h"
+
+#define NUM_QR_NUMBERS 10000
 
 AreaLight::AreaLight(float _width, float _height, glm::vec3 _centerPosition, 
 										 glm::vec3 _frontDirection, glm::vec3 _upDirection,
@@ -24,12 +27,18 @@ AreaLight::AreaLight(float _width, float _height, glm::vec3 _centerPosition,
 	upDirection = _upDirection;
 	flux = _flux;
 
+	m_PlaneHammersleyIndex = 0;
+	m_pPlaneHammersleyNumbers = new float[2 * NUM_QR_NUMBERS];
+	memset(m_pPlaneHammersleyNumbers, 0, 2 * NUM_QR_NUMBERS * sizeof(float));
+	PlaneHammersley(m_pPlaneHammersleyNumbers, NUM_QR_NUMBERS);
+
 	m_pAreaLightModel = new CModel();
 }
 
 AreaLight::~AreaLight()
 {
 	SAFE_DELETE(m_pAreaLightModel);
+	SAFE_DELETE_ARRAY(m_pPlaneHammersleyNumbers);
 }
 
 bool AreaLight::Init()
@@ -93,9 +102,36 @@ Light* AreaLight::GetNewPrimaryLight(float& pdf)
 
 		Light* newLight = new Light(
 			glm::vec3(position), orientation, flux/pdf, 
-			glm::vec3(0), glm::vec3(0), glm::vec3(0));
+			glm::vec3(0), glm::vec3(0), glm::vec3(0), 0);
 		
 		return newLight;
+}
+
+glm::vec3 AreaLight::SamplePos(float& pdf)
+{
+		glm::mat4 transform = GetWorldTransform();
+		glm::vec3 orientation = GetFrontDirection();
+		
+		glm::vec2 samplePos = glm::linearRand(glm::vec2(-1, -1), glm::vec2(1, 1));
+		glm::vec4 positionTemp = transform * glm::vec4(samplePos.x, samplePos.y, 0.0f, 1.0f);		
+		glm::vec3 position	= glm::vec3(positionTemp /= positionTemp.w);		
+		
+		pdf = 1.f/area;
+
+		return position;
+}
+
+glm::vec3 AreaLight::SampleDir(float& pdf, int order)
+{
+	float u1 = m_pPlaneHammersleyNumbers[2 * m_PlaneHammersleyIndex + 0];
+	float u2 = m_pPlaneHammersleyNumbers[2 * m_PlaneHammersleyIndex + 1];
+
+	glm::vec3 direction = GetRandomSampleDirectionCosCone(GetFrontDirection(), u1, u2, pdf, order);
+
+	m_PlaneHammersleyIndex++;
+	if(m_PlaneHammersleyIndex >= NUM_QR_NUMBERS) m_PlaneHammersleyIndex = 0;
+
+	return direction;
 }
 
 glm::mat4 AreaLight::GetWorldTransform()

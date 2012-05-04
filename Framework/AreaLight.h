@@ -4,6 +4,8 @@
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 
+#include "Defines.h"
+
 class CModel;
 class Camera;
 class Light;
@@ -27,8 +29,11 @@ public:
 	glm::mat4 GetWorldTransform();
 
 	Light* GetNewPrimaryLight(float& pdf);
+	glm::vec3 SamplePos(float& pdf);
+	glm::vec3 SampleDir(float& pdf, int order);
 	float GetArea() { return area; }
 	glm::vec3 GetFlux() { return flux; }
+	glm::vec3 GetRadiance() { return flux / (PI * area); }
 
 private:
 	GLuint drawAreaLightProgram;
@@ -46,6 +51,9 @@ private:
 	glm::vec3 frontDirection;
 	glm::vec3 upDirection;
 	glm::vec3 flux;
+
+	float* m_pPlaneHammersleyNumbers;
+	int m_PlaneHammersleyIndex;
 };
 
 #endif

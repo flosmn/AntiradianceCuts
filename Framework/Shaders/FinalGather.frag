@@ -5,16 +5,6 @@ layout(std140) uniform;
 #define ONE_OVER_PI 0.3183
 #define PI 3.14159
 
-uniform config
-{
-	float GeoTermLimit;
-	float BlurSigma;
-	float BlurK;
-	int UseAntiradiance;
-	int DrawAntiradiance;
-	int nPaths;
-} uConfig;
-
 uniform camera
 {
 	vec3 vPositionWS;
