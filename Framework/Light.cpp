@@ -46,3 +46,14 @@ void Light::Fill(LIGHT& light)
 	light.ProjectionMatrix = m_ProjectionMatrix;
 	light.Bounce = m_Bounce;
 }
+
+void Light::Fill(LIGHT_BUFFER& light)
+{
+	memset(&light, 0, sizeof(LIGHT_BUFFER));
+	light.Position = glm::vec4(m_Position, 1.f);
+	light.Orientation = glm::vec4(m_Orientation, 1.f);
+	light.Contrib = glm::vec4(m_Contrib, 1.f);
+	light.SrcPosition = glm::vec4(m_SrcPosition, 1.f);
+	light.SrcOrientation = glm::vec4(m_SrcOrientation, 1.f);
+	light.SrcContrib = glm::vec4(m_SrcContrib, 1.f);
+}

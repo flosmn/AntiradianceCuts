@@ -5,6 +5,14 @@ layout(std140) uniform;
 #define ONE_OVER_PI 0.3183
 #define PI 3.14159
 
+uniform info_block
+{
+	int numLights;
+	float debugColorR;
+	float debugColorG;
+	float debugColorB;
+} uInfo;
+
 uniform config
 {
 	float GeoTermLimit;
@@ -24,18 +32,11 @@ uniform camera
 	int height;
 } uCamera;
 
-uniform info
-{
-	int numLights;
-} uInfo;
-
 out vec4 outputColor;
 
-layout(binding=0) uniform sampler2D samplerShadowMap;
-layout(binding=1) uniform sampler2D samplerPositionWS;
-layout(binding=2) uniform sampler2D samplerNormalWS;
-layout(binding=3) uniform sampler2D samplerMaterial;
-layout(binding=4) uniform samplerBuffer samplerLightBuffer;
+layout(binding=0) uniform sampler2D samplerPositionWS;
+layout(binding=1) uniform sampler2D samplerNormalWS;
+layout(binding=2) uniform samplerBuffer samplerLightBuffer;
 
 float G(vec3 p1, vec3 n1, vec3 p2, vec3 n3);
 float G_CLAMP(vec3 p1, vec3 n1, vec3 p2, vec3 n3);
@@ -48,11 +49,11 @@ void main()
 	
 	vec3 vPositionWS = texture2D(samplerPositionWS, coord).xyz;
 	vec3 vNormalWS = normalize(texture2D(samplerNormalWS, coord).xyz);
-	vec4 cAlbedo = texture2D(samplerMaterial, coord);
-	
+
+	int size = 4 * 8;
+	outputColor = vec4(0);
 	for(int i = 0; i < uInfo.numLights; ++i)
 	{		
-		int size = 4 * 7 + 4 * 4 * 2 + 1;	
 		const vec3 vLightPosWS = vec3(	texelFetch(samplerLightBuffer, i * size + 0).r,
 										texelFetch(samplerLightBuffer, i * size + 1).r,
 										texelFetch(samplerLightBuffer, i * size + 2).r);

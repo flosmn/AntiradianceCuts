@@ -4,6 +4,7 @@
 
 #include "..\CUtils\GLErrorUtil.h"
 
+#include <assert.h>
 
 CGLTexture2D::CGLTexture2D(std::string debugName)
 	: CGLResource(CGL_TEXTURE_2D, debugName)
@@ -69,6 +70,49 @@ void CGLTexture2D::GenerateMipMaps()
 			"MipMap generation was not activated at initialization.";
 		PrintWarning(warning);
 	}
+}
+
+void CGLTexture2D::GetPixelData(void* pData)
+{
+	CheckInitialized("CGLTexture2D.GetPixelData()");
+
+	CGLBindLock lock(this, CGL_TEXTURE0_SLOT);
+
+	glGetTexImage(GL_TEXTURE_2D, 0, m_Format, m_Type, pData);
+
+	CheckGLError(m_DebugName, "CGLTexture2D::GetPixelData()");
+}
+
+void CGLTexture2D::CopyData(CGLTexture2D* pTexture)
+{
+	uint src_width = pTexture->GetWidth();
+	uint src_height = pTexture->GetHeight();
+
+	if(src_width != m_Width || src_height != m_Height)
+	{
+		std::cout << "CGLTexture2D.CopyData(): Cannot copy because dimensions are not the same" << std::endl;
+	}
+
+	GLenum src_internalformat = pTexture->GetInternalFormat();
+	GLenum src_format = pTexture->GetFormat();
+	GLenum src_type = pTexture->GetType();
+
+	assert(src_internalformat == GL_RGBA32F);
+	assert(m_InternalFormat == GL_RGBA32F);
+
+	float* pData = new float[4 * sizeof(float) * m_Width * m_Height];
+	
+	{
+		CGLBindLock lock(pTexture, CGL_TEXTURE0_SLOT);
+		glGetTexImage(GL_TEXTURE_2D, 0, m_Format, m_Type, pData);
+	}
+
+	{
+		CGLBindLock lock(this, CGL_TEXTURE0_SLOT);
+		glTexImage2D(GL_TEXTURE_2D, 0, m_InternalFormat, m_Width, m_Height, 0, m_Format, m_Type, pData);
+	}
+
+	delete [] pData;
 }
 
 void CGLTexture2D::Bind(CGLBindSlot slot)

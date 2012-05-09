@@ -68,6 +68,7 @@
     <ClCompile Include="AreaLight.cpp" />
     <ClCompile Include="CAccumulationBuffer.cpp" />
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="CExport.cpp" />
     <ClCompile Include="CGBuffer.cpp" />
     <ClCompile Include="CGLResources\CGLBindLock.cpp" />
     <ClCompile Include="CGLResources\CGLFrameBuffer.cpp" />
@@ -88,15 +89,18 @@
     <ClCompile Include="CMeshResources\CSubModel.cpp" />
     <ClCompile Include="CPointCloud.cpp" />
     <ClCompile Include="CProgram.cpp" />
+    <ClCompile Include="CRenderTarget.cpp" />
     <ClCompile Include="CShadowMap.cpp" />
     <ClCompile Include="CTimer.cpp" />
     <ClCompile Include="CUtils\CLightViewer.cpp" />
     <ClCompile Include="CUtils\CTextureViewer.cpp" />
     <ClCompile Include="CUtils\GLErrorUtil.cpp" />
+    <ClCompile Include="CUtils\mtrand.cpp" />
     <ClCompile Include="CUtils\Util.cpp" />
     <ClCompile Include="Light.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Postprocessing.cpp" />
+    <ClCompile Include="CPostprocess.cpp" />
+    <ClCompile Include="Rand.cpp" />
     <ClCompile Include="Render.cpp" />
     <ClCompile Include="Scene.cpp" />
   </ItemGroup>
@@ -104,7 +108,7 @@
     <ClInclude Include="AreaLight.h" />
     <ClInclude Include="CAccumulationBuffer.h" />
     <ClInclude Include="Camera.h" />
-    <ClInclude Include="CCreateGBufferProgram.h" />
+    <ClInclude Include="CExport.h" />
     <ClInclude Include="CGBuffer.h" />
     <ClInclude Include="CGLResources\CGLBindLock.h" />
     <ClInclude Include="CGLResources\CGLBindSlot.h" />
@@ -127,18 +131,21 @@
     <ClInclude Include="CMeshResources\CSubModel.h" />
     <ClInclude Include="CPointCloud.h" />
     <ClInclude Include="CProgram.h" />
+    <ClInclude Include="CRenderTarget.h" />
     <ClInclude Include="CShadowMap.h" />
     <ClInclude Include="CTimer.h" />
     <ClInclude Include="CUtils\CLightViewer.h" />
     <ClInclude Include="CUtils\CTextureViewer.h" />
     <ClInclude Include="CUtils\GLErrorUtil.h" />
+    <ClInclude Include="CUtils\mtrand.h" />
     <ClInclude Include="CUtils\ShaderUtil.h" />
     <ClInclude Include="CUtils\Util.h" />
     <ClInclude Include="Defines.h" />
     <ClInclude Include="Intersection.h" />
     <ClInclude Include="Light.h" />
     <ClInclude Include="Macros.h" />
-    <ClInclude Include="Postprocessing.h" />
+    <ClInclude Include="CPostprocess.h" />
+    <ClInclude Include="Rand.h" />
     <ClInclude Include="Ray.h" />
     <ClInclude Include="Render.h" />
     <ClInclude Include="Scene.h" />
@@ -165,6 +172,7 @@
     <None Include="Shaders\DrawTexture.frag" />
     <None Include="Shaders\DrawTexture.vert" />
     <None Include="Shaders\FinalGather.frag" />
+    <None Include="Shaders\Gather.frag" />
     <None Include="Shaders\Gather.vert" />
     <None Include="Shaders\GatherAntiradiance.frag" />
     <None Include="Shaders\GatherRadiance.frag" />
@@ -172,10 +180,11 @@
     <None Include="Shaders\Normalize.frag" />
     <None Include="Shaders\PointCloud.frag" />
     <None Include="Shaders\PointCloud.vert" />
-    <None Include="Shaders\PostProcessing.frag" />
-    <None Include="Shaders\PostProcessing.vert" />
+    <None Include="Shaders\PostProcess.frag" />
+    <None Include="Shaders\PostProcess.vert" />
     <None Include="Shaders\Render.frag" />
     <None Include="Shaders\Render.vert" />
+    <None Include="Shaders\Shade.frag" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

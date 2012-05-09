@@ -8,6 +8,8 @@
 #include "Macros.h"
 #include "CUtils\GLErrorUtil.h"
 
+#include "Rand.h"
+
 #include "Render.h"
 #include "Camera.h"
 
@@ -20,9 +22,11 @@
 #include "CMeshResources\CMeshMaterial.h"
 
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <map>
 #include <memory>
+#include <time.h>
 
 using std::cout;
 using std::cin;
@@ -59,13 +63,17 @@ bool rightMouseButton = false;
 bool config_use_antiradiance = true;
 float config_blur_factor = 50.f;
 float config_geo_limit = 0.05f;
-int config_num_paths = 1;
+int config_num_paths = 10000;
 int config_render_bounce = -1; // render all bounces on default
-int config_num_add_avpl = 0; // number of additional avpls per vpl
+int config_num_add_avpl = 128; // number of additional avpls per vpl
 int config_N = 50;
 float config_bias = 1.0f;
-bool config_useHammersley = false;
-int config_paths_per_frame = 100;
+int config_paths_per_frame = 1;
+bool config_hammersley;
+float config_gamma = 2.2f;
+float config_exposure = 1.f;
+
+double fps;
 
 class Test
 {
@@ -76,8 +84,8 @@ public:
 
 int main()
 {
-	srand ( 0 );
-	
+	RandInit(0);
+
 	GLFWvidmode mode;
 	
 	int running = GL_TRUE;
@@ -117,17 +125,23 @@ int main()
 	TwBar *myBar;
 	myBar = TwNewBar("GUI");
 		
+	TwAddVarRO(myBar, "fps", TW_TYPE_DOUBLE, &fps, "");
+	
+	TwAddSeparator(myBar, "", "");
+
 	TwAddVarRW(myBar, "Use Antiradiance", TW_TYPE_BOOL32, &config_use_antiradiance, "");
-	TwAddVarRW(myBar, "Blur factor", TW_TYPE_FLOAT, &config_blur_factor, " min=1.0 max=1000.0 step=1.0 ");
-	TwAddVarRW(myBar, "Geo-Term Limit", TW_TYPE_FLOAT, &config_geo_limit, "");
+	TwAddVarRW(myBar, "Gamma", TW_TYPE_FLOAT, &config_gamma, " min=0.0 max=10.0 step=0.1 ");
+	TwAddVarRW(myBar, "Exposure", TW_TYPE_FLOAT, &config_exposure, " min=0.0 max=10.0 step=0.1 ");
+	//TwAddVarRW(myBar, "Blur factor", TW_TYPE_FLOAT, &config_blur_factor, " min=1.0 max=1000.0 step=1.0 ");
+	//TwAddVarRW(myBar, "Geo-Term Limit", TW_TYPE_FLOAT, &config_geo_limit, "");
 	TwAddVarRW(myBar, "#Paths", TW_TYPE_INT32, &config_num_paths, " min=1 max=1000000 step=1 ");
 	TwAddVarRW(myBar, "#Paths per frame", TW_TYPE_INT32, &config_paths_per_frame, " min=1 max=5000 step=1 ");
 	TwAddVarRW(myBar, "RenderBounce", TW_TYPE_INT32, &config_render_bounce, " min=-1 max=100 step=1 ");
 	TwAddVarRW(myBar, "N", TW_TYPE_INT32, &config_N, " min=1 max=1000 step=1 ");
 	TwAddVarRW(myBar, "bias", TW_TYPE_FLOAT, &config_bias, " min=0.0 max=10.0 step=0.01 ");
-	TwAddVarRW(myBar, "use hammersley", TW_TYPE_BOOL32, &config_useHammersley, " ");
-	TwAddVarRW(myBar, "#add. AVPL", TW_TYPE_INT32, &config_num_add_avpl, " min=1 max=5000 step=1 ");
-
+	TwAddVarRW(myBar, "use hammersley", TW_TYPE_BOOL32, &config_hammersley, " ");
+	TwAddVarRW(myBar, "#add. AVPL", TW_TYPE_INT32, &config_num_add_avpl, " min=0 max=512 step=1 ");
+	
 	camera = new Camera(windowWidth, windowHeight, 0.1f, 100.0f); 
 	
 	renderer = new Renderer(camera);
@@ -135,8 +149,22 @@ int main()
 		cout << "renderer initialization failed." << endl;
 		Quit(EXIT_FAILURE);
 	}
+	
+	UpdateConfig();
 
+	clock_t c1, c2, delta;
+	
+	c1 = clock();
+	
 	while(running) {
+		do {
+		c2 = clock();
+		delta = c2 - c1;
+		} while (delta == 0);
+				
+		fps = (double)CLOCKS_PER_SEC / (double)delta;
+		c1 = c2;
+		
 		if(updateConfig) UpdateConfig();
 		
 		renderer->Render();
@@ -240,14 +268,14 @@ void GLFWCALL KeyCallback(int key, int action)
 		renderer->ClearAccumulationBuffer();
 	}
 
+	if(key == 'E' && action == GLFW_PRESS){
+		renderer->Export();
+	}
+
 	if(key == 'T' && action == GLFW_PRESS){
 		renderer->SetDrawTexture(!renderer->GetDrawTexture());
 	}
 	
-	if(key == 'P' && action == GLFW_PRESS){
-		renderer->PrintCameraConfig();
-	}
-
 	if(key == 'C' && action == GLFW_PRESS){
 		renderer->ClearLighting();
 		renderer->ConfigureLighting();
@@ -284,6 +312,10 @@ void GLFWCALL KeyCallback(int key, int action)
 	if(key == 'N' && action == GLFW_PRESS){
 		camera->ZoomIn(-0.5f);
 		renderer->ClearLighting();
+	}
+
+	if(key == 'P' && action == GLFW_PRESS){
+		renderer->SetPartialSum(!renderer->GetPartialSum());
 	}
 }
 
@@ -343,7 +375,9 @@ void UpdateConfig()
 	renderer->SetRenderBounce(config_render_bounce);
 	renderer->SetN(config_N);
 	renderer->SetBias(config_bias);
-	renderer->SetUseHammersley(config_useHammersley);
-	
+	renderer->SetUseHammersley(config_hammersley);
+	renderer->SetGamma(config_gamma);
+	renderer->SetExposure(config_exposure);
+
 	updateConfig = false;
 }

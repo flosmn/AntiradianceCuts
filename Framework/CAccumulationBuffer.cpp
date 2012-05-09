@@ -41,7 +41,7 @@ bool CAccumulationBuffer::Init(GLuint width, GLuint height, CGLTexture2D* pDepth
 	m_Height = height;
 	
 	V_RET_FOF(m_pGLTAccumTexture->Init(m_Width, m_Height, 
-		GL_RGBA32F, GL_RGBA, GL_FLOAT, 1, false));
+		GL_RGBA16F, GL_RGBA, GL_FLOAT, 1, false));
 	
 	V_RET_FOF(m_pGLFBRenderTarget->Init());
 

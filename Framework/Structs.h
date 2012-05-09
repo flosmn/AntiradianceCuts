@@ -34,6 +34,18 @@ struct LIGHT
 	int Bounce;
 };
 
+struct LIGHT_BUFFER
+{
+	glm::vec4 Position;			// 0 - 3
+	glm::vec4 Orientation;		// 4- 7
+	glm::vec4 Contrib;			// 8 - 11
+	glm::vec4 SrcPosition;		// 12 - 15
+	glm::vec4 SrcOrientation;	// 16 - 19
+	glm::vec4 SrcContrib;		// 20 - 23
+	glm::vec4 padd0;
+	glm::vec4 padd1;
+};
+
 struct CONFIG
 {
 	float GeoTermLimit;
@@ -62,6 +74,9 @@ struct POINT_CLOUD_POINT
 struct INFO
 {
 	int numLights;
+	float debugColorR;
+	float debugColorG;
+	float debugColorB;
 };
 
 #endif // _STRUCTS_H_

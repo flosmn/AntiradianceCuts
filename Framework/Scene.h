@@ -8,6 +8,8 @@ typedef unsigned int uint;
 #include "Ray.h"
 #include "Intersection.h"
 
+#include "CUtils\mtrand.h"
+
 #include <vector>
 
 class Camera;
@@ -43,14 +45,12 @@ public:
 
 	void ClearLighting();
 
-	int GetNumberOfLightPaths() { return m_Paths.size(); }
+	int GetNumberOfLightPaths() { return m_NumLightPaths; }
 
 	bool IntersectRayScene(Ray ray, Intersection &intersection);
 		
-	std::vector<Light*> CreatePathPBRT();
-	std::vector<Light*> CreatePaths(uint numPaths, uint currentNumberOfPaths, int N, int nAdditionalAVPLs, bool useHammersley);
-	std::vector<Light*> CreatePath(uint currentNumberOfPaths, int N, int nAdditionalAVPLs, bool useHammersley);
-	std::vector<Light*> GetPath(int i) { return m_Paths[i]; } 	
+	std::vector<Light*> CreatePaths(uint numPaths, int N, int nAdditionalAVPLs, bool useHammersley);
+	std::vector<Light*> CreatePath(int N, int nAdditionalAVPLs, bool useHammersley);
 	
 	void Stats();
 
@@ -60,13 +60,15 @@ private:
 	void ClearPath();
 
 	Light* CreateLight(Light* tail, int N, int nAdditionalAVPLs, bool useHammersley);
-	
+	Light* CreateLight(Light* tail, glm::vec3 direction, float pdf, int N, int nAdditionalAVPLs, bool useHammersley);
+	void CreateAVPLs(Light* tail, std::vector<Light*>& path, int N, int nAVPLs, bool useHammersley);
+
 	std::vector<CModel*> m_Models;
-	std::vector<std::vector<Light*>> m_Paths;
-	
+		
 	float* m_pPlaneHammersleySamples;
 
-	int m_CurrentBounce;	
+	int m_CurrentBounce;
+	int m_NumLightPaths;
 
 	Camera* m_Camera;		
 	AreaLight* m_AreaLight;

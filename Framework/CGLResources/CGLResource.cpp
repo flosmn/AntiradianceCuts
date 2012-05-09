@@ -213,6 +213,7 @@ std::string CGLResource::GetStringForBindSlot( CGLBindSlot slot )
 	case CGL_ARRAY_BUFFER_SLOT : return "GL_ARRAY_BUFFER";
 	case CGL_ELEMENT_ARRAY_BUFFER_SLOT : return "GL_ELEMENT_ARRAY_BUFFER";
 	case CGL_VERTEX_ARRAY_SLOT : return "GL_VERTEX_ARRAY";
+	case CGL_PROGRAM_SLOT : return "GL_PROGRAM";
 
 	default : std::cout << "No string for GLenum found!!!" << std::endl; return "";
 	}

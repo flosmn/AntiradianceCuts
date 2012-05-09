@@ -57,7 +57,6 @@
     <ClCompile Include="CProgram.cpp" />
     <ClCompile Include="CShadowMap.cpp" />
     <ClCompile Include="CTimer.cpp" />
-    <ClCompile Include="Postprocessing.cpp" />
     <ClCompile Include="CGLResources\CGLBindLock.cpp">
       <Filter>CGLResources</Filter>
     </ClCompile>
@@ -91,6 +90,17 @@
     <ClCompile Include="CPointCloud.cpp" />
     <ClCompile Include="CGLResources\CGLTextureBuffer.cpp">
       <Filter>CGLResources</Filter>
+    </ClCompile>
+    <ClCompile Include="CExport.cpp">
+      <Filter>CUtils</Filter>
+    </ClCompile>
+    <ClCompile Include="CRenderTarget.cpp" />
+    <ClCompile Include="CPostprocess.cpp" />
+    <ClCompile Include="CUtils\mtrand.cpp">
+      <Filter>CUtils</Filter>
+    </ClCompile>
+    <ClCompile Include="Rand.cpp">
+      <Filter>CUtils</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -144,11 +154,9 @@
     <ClInclude Include="AreaLight.h" />
     <ClInclude Include="CAccumulationBuffer.h" />
     <ClInclude Include="Camera.h" />
-    <ClInclude Include="CCreateGBufferProgram.h" />
     <ClInclude Include="CGBuffer.h" />
     <ClInclude Include="CProgram.h" />
     <ClInclude Include="CShadowMap.h" />
-    <ClInclude Include="Postprocessing.h" />
     <ClInclude Include="CGLResources\CGLBindLock.h">
       <Filter>CGLResources</Filter>
     </ClInclude>
@@ -186,6 +194,17 @@
     <ClInclude Include="CGLResources\CGLTextureBuffer.h">
       <Filter>CGLResources</Filter>
     </ClInclude>
+    <ClInclude Include="CExport.h">
+      <Filter>CUtils</Filter>
+    </ClInclude>
+    <ClInclude Include="CRenderTarget.h" />
+    <ClInclude Include="CPostprocess.h" />
+    <ClInclude Include="CUtils\mtrand.h">
+      <Filter>CUtils</Filter>
+    </ClInclude>
+    <ClInclude Include="Rand.h">
+      <Filter>CUtils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">
@@ -210,12 +229,6 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="Shaders\GatherAntiradiance.frag">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="Shaders\PostProcessing.frag">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="Shaders\PostProcessing.vert">
       <Filter>Resource Files</Filter>
     </None>
     <None Include="Shaders\Render.frag">
@@ -252,6 +265,18 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="Shaders\GatherRadiance.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Shaders\PostProcess.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Shaders\PostProcess.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Shaders\Gather.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Shaders\Shade.frag">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

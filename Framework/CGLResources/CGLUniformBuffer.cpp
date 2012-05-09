@@ -2,6 +2,8 @@
 
 #include "..\Macros.h"
 
+#include "..\CUtils\GLErrorUtil.h"
+
 #include <assert.h>
 
 
@@ -28,11 +30,17 @@ bool CGLUniformBuffer::Init(uint size, void* data, GLenum usage)
 
 	glGenBuffers(1, &m_Resource);
 	
+	CheckGLError("CGLUniformBuffer", "Init() 1");
+
 	CGLBindLock lock(this, CGL_UNIFORM_BUFFER_SLOT);
 	
+	CheckGLError("CGLUniformBuffer", "Init() 2");
+
 	glBufferData(GL_UNIFORM_BUFFER, m_Size, data, GL_DYNAMIC_DRAW);
 	glBindBufferRange(GL_UNIFORM_BUFFER, m_GlobalBindingPoint, m_Resource, 0, m_Size);
 	
+	CheckGLError("CGLUniformBuffer", "Init() 3");
+
 	return true;
 }	
 
@@ -50,7 +58,11 @@ void CGLUniformBuffer::UpdateData(void* data)
 	
 	CGLBindLock lock(this, CGL_UNIFORM_BUFFER_SLOT);
 	
+	CheckGLError("CGLUniformBuffer", "UpdateData() 1");
+
 	glBufferData(GL_UNIFORM_BUFFER, m_Size, data, GL_DYNAMIC_DRAW);
+	
+	CheckGLError("CGLUniformBuffer", "UpdateData() 2");
 }
 
 uint CGLUniformBuffer::GetGlobalBindingPoint()

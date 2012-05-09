@@ -5,6 +5,14 @@ layout(std140) uniform;
 #define ONE_OVER_PI 0.3183
 #define PI 3.14159
 
+uniform info_block
+{
+	int numLights;
+	float debugColorR;
+	float debugColorG;
+	float debugColorB;
+} uInfo;
+
 uniform camera
 {
 	vec3 vPositionWS;
@@ -24,11 +32,6 @@ uniform config
 	float Bias;
 } uConfig;
 
-uniform info
-{
-	int numLights;
-} uInfo;
-
 out vec4 outputColor;
 
 layout(binding=0) uniform sampler2D samplerPositionWS;
@@ -47,15 +50,14 @@ void main()
 	vec3 vPositionWS = texture2D(samplerPositionWS, coord).xyz;
 	vec3 vNormalWS = normalize(texture2D(samplerNormalWS, coord).xyz);
 	
+	int size = 4 * 8;
 	outputColor = vec4(0.f);
 	for(int i = 0; i < uInfo.numLights; ++i)
 	{
-		int size = 4 * 7 + 4 * 4 * 2 + 1;
-		
 		const vec3 vLightPosWS = vec3(	texelFetch(samplerLightBuffer, i * size + 0).r,
 										texelFetch(samplerLightBuffer, i * size + 1).r,
 										texelFetch(samplerLightBuffer, i * size + 2).r);
-
+		
 		const vec3 vSrcLightPosWS = vec3(	texelFetch(samplerLightBuffer, i * size + 12).r,
 											texelFetch(samplerLightBuffer, i * size + 13).r,
 											texelFetch(samplerLightBuffer, i * size + 14).r);
@@ -68,7 +70,6 @@ void main()
 											texelFetch(samplerLightBuffer, i * size + 21).r,
 											texelFetch(samplerLightBuffer, i * size + 22).r,
 											texelFetch(samplerLightBuffer, i * size + 23).r);
-		
 		
 		vec3 omega_i = normalize(vLightPosWS - vSrcLightPosWS);
 		vec3 omega = normalize(vPositionWS - vSrcLightPosWS);

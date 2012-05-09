@@ -10,6 +10,8 @@ typedef unsigned int uint;
 #include "..\Triangle.h"
 #include "..\Ray.h"
 
+#include "..\rand.h"
+
 #include <vector>
 #include <string>
 

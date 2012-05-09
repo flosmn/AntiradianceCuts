@@ -43,6 +43,7 @@ bool Scene::Init()
 	}
 	m_MaxVPLFlow = glm::vec3(0.f);
 	m_MaxVPLFlowBounce = 0;
+	m_NumLightPaths = 0;
 
 	return true;
 }
@@ -77,20 +78,11 @@ void Scene::ClearScene()
 	
 	m_BounceInfo = new int[m_MaxBounceInfo];
 	memset(m_BounceInfo, 0, m_MaxBounceInfo * sizeof(int));
-	
-	for(uint i = 0; i < m_Paths.size(); i++)
-	{
-		for(uint j = 0; j < m_Paths[i].size(); ++j)
-		{
-			delete m_Paths[i][j];
-		}
-		m_Paths[i].clear();
-	}
-	m_Paths.clear();
-			
+				
 	m_MaxVPLFlow = glm::vec3(0.f);
 	m_MaxVPLFlowBounce = 0;
 	m_CurrentBounce = 0;
+	m_NumLightPaths = 0;
 }
 
 void Scene::DrawScene(CGLUniformBuffer* pUBTransform, CGLUniformBuffer* pUBMaterial)
@@ -148,58 +140,72 @@ Light* Scene::CreateLight(Light* tail, int N, int nAdditionalAVPLs, bool useHamm
 	{
 		// create new path segment starting from tail with cos-sampled direction 
 		// (importance sample diffuse surface)
-		glm::vec3 origin = tail->GetPosition();
-		
 		float pdf = 0.f;
-		glm::vec3 direction = glm::vec3(0.f);
-		if(useHammersley && tail->GetBounce() == 0)
-		{
-			direction = m_AreaLight->SampleDir(pdf, 1);
-		}
-		else 
-		{			
-			direction = GetRandomSampleDirectionCosCone(tail->GetOrientation(), pdf, 1);
-		}
-
-		if(!(pdf > 0.0001f))
-			return head;
-
-		const float epsilon = 0.0005f;
-		Ray ray(origin + epsilon * direction + epsilon * tail->GetOrientation(), direction);
+		glm::vec3 direction = GetRandomSampleDirectionCosCone(tail->GetOrientation(), Rand01(), Rand01(), pdf, 1);
 		
-		Intersection intersection;
-		if(IntersectRayScene(ray, intersection)) 
-		{
-			// gather information for the new VPL
-			glm::vec3 pos = intersection.GetPoint();
-			glm::vec3 ori = intersection.GetTriangle().GetNormal();
-			glm::vec3 rho = glm::vec3(intersection.GetModel()->GetMaterial().diffuseColor);
-
-			float cos_theta = glm::dot(glm::normalize(ori), glm::normalize(-direction));
-
-			glm::vec3 contrib = rho/PI * cos_theta/pdf * tail->GetContrib();
-			
-			glm::vec3 src_pos = tail->GetPosition();
-			glm::vec3 src_orientation = tail->GetOrientation();
-			
-			const float area = 2 * PI * ( 1 - cos(PI/float(N+1)) );
-			const float dist = glm::length(pos - src_pos);
-
-			glm::vec3 src_contrib = 1.f / float(nAdditionalAVPLs + 1) * tail->GetContrib() / (pdf * area);
-			
-			head = new Light(pos, ori, contrib, src_pos, src_orientation, src_contrib, tail->GetBounce() + 1);
-		}
+		head = CreateLight(tail, direction, pdf, N, nAdditionalAVPLs, useHammersley);
 	}
-		
 	return head;
 }
 
-std::vector<Light*> Scene::CreatePaths(uint numPaths, uint currentNumberOfPaths, int N, int nAdditionalAVPLs, bool useHammersley)
+Light* Scene::CreateLight(Light* tail, glm::vec3 direction, float pdf, int N, int nAdditionalAVPLs, bool useHammersley)
+{
+	Light* head = 0;
+
+	glm::vec3 origin = tail->GetPosition();
+
+	const float epsilon = 0.0005f;
+	Ray ray(origin + epsilon * direction + epsilon * tail->GetOrientation(), direction);
+		
+	Intersection intersection;
+	if(IntersectRayScene(ray, intersection)) 
+	{
+		// gather information for the new VPL
+		glm::vec3 pos = intersection.GetPoint();
+		glm::vec3 ori = intersection.GetTriangle().GetNormal();
+		glm::vec3 rho = glm::vec3(intersection.GetModel()->GetMaterial().diffuseColor);
+
+		float cos_theta = glm::dot(glm::normalize(ori), glm::normalize(-direction));
+		
+		glm::vec3 contrib = rho/PI * cos_theta/pdf * tail->GetContrib();
+		
+		glm::vec3 src_pos = tail->GetPosition();
+		glm::vec3 src_orientation = tail->GetOrientation();
+		
+		const float area = 2 * PI * ( 1 - cos(PI/float(N+1)) );
+		const float dist = glm::length(pos - src_pos);
+
+		glm::vec3 src_contrib = 1.f / float(nAdditionalAVPLs + 1) * tail->GetContrib() / (pdf * area);
+		
+		if(pdf < 0.00001)
+		{
+			std::cout << "pdf small, discard vpl. pdf:" << pdf << std::endl;
+			return 0;
+		}
+		else if(glm::length(contrib) > 10000.f)
+		{
+			std::cout << "contrib high, discard vpl. contrib: " << AsString(contrib) << std::endl;
+			return 0;
+		}
+		else if(glm::length(src_contrib) > 100000.f)
+		{
+			std::cout << "antiradiance high, discard vpl. antirad: " << AsString(src_contrib) << std::endl;
+			return 0;
+		}
+		else{
+			head = new Light(pos, ori, contrib, src_pos, src_orientation, src_contrib, tail->GetBounce() + 1);
+		}
+	}
+
+	return head;
+}
+
+std::vector<Light*> Scene::CreatePaths(uint numPaths, int N, int nAdditionalAVPLs, bool useHammersley)
 {
 	std::vector<Light*> lights;
 	for(uint i = 0; i < numPaths; ++i)
 	{
-		std::vector<Light*> path = CreatePath(currentNumberOfPaths + i, N, nAdditionalAVPLs, useHammersley);
+		std::vector<Light*> path = CreatePath(N, nAdditionalAVPLs, useHammersley);
 		for(uint j = 0; j < path.size(); ++j)
 			lights.push_back(path[j]);
 	}
@@ -207,9 +213,9 @@ std::vector<Light*> Scene::CreatePaths(uint numPaths, uint currentNumberOfPaths,
 	return lights;
 }
 
-std::vector<Light*> Scene::CreatePath(uint currentNumberOfPaths, int N, int nAdditionalAVPLs, bool useHammersley) 
+std::vector<Light*> Scene::CreatePath(int N, int nAdditionalAVPLs, bool useHammersley) 
 {
-	if(currentNumberOfPaths < m_Paths.size()) return GetPath(currentNumberOfPaths);
+	m_NumLightPaths++;
 
 	m_CurrentBounce = 0;
 	std::vector<Light*> path;
@@ -235,34 +241,26 @@ std::vector<Light*> Scene::CreatePath(uint currentNumberOfPaths, int N, int nAdd
 		if(rand_01 > rrProb || m_CurrentBounce >= 3)
 		{
 			// create path-finishing Anti-VPLs
-			for(int i = 0; i < nAdditionalAVPLs + 1; ++i)
+			CreateAVPLs(tail, path, N, nAdditionalAVPLs, useHammersley);
+
+			Light* avpl = CreateLight(tail, N, nAdditionalAVPLs, useHammersley);
+			if(avpl != 0)
 			{
-				Light* avpl = CreateLight(tail, N, nAdditionalAVPLs, useHammersley);
-				if(avpl)
-				{
-					avpl->SetContrib(glm::vec3(0.f));
-					path.push_back(avpl);
-				}
+				avpl->SetContrib(glm::vec3(0.f));
+				path.push_back(avpl);
 			}
+			
 			terminate = true;
 		}
 		else
 		{
 			// create additional avpls
-			for(int i = 0; i < nAdditionalAVPLs; ++i)
-			{
-				Light* avpl = CreateLight(tail, N, nAdditionalAVPLs, useHammersley);
-				if(avpl)
-				{
-					avpl->SetContrib(glm::vec3(0.f));
-					path.push_back(avpl);
-				}
-			}
+			CreateAVPLs(tail, path, N, nAdditionalAVPLs, useHammersley);
 
 			// follow the path with cos-sampled direction (importance sample diffuse surface)
 			// if the ray hits geometry
 			head = CreateLight(tail, N, nAdditionalAVPLs, useHammersley);
-			if(head)
+			if(head != 0)
 			{
 				head->SetContrib(head->GetContrib() / rrProb);
 				path.push_back(head);
@@ -281,94 +279,39 @@ std::vector<Light*> Scene::CreatePath(uint currentNumberOfPaths, int N, int nAdd
 		m_CurrentBounce++;
 	}
 
-	m_Paths.push_back(path);
 	return path;
 }
 
-std::vector<Light*> Scene::CreatePathPBRT()
+void Scene::CreateAVPLs(Light* tail, std::vector<Light*>& path, int N, int nAVPLs, bool useHammersley)
 {
-	float epsilon = 0.0005f;
-	m_CurrentBounce = 0;
-	std::vector<Light*> path;
+	glm::vec3 orientation = tail->GetOrientation();
+	float deltaX = 0.f;
+	float deltaY = 0.f;
 
-	// Follow path _i_ from light to create virtual lights
-	float pdf;
-	Light *tail = 0; //m_AreaLight->GetNewPrimaryLight(pdf, );
-	path.push_back(tail);
-
-	glm::vec3 alpha = tail->GetContrib();
-	
-	// Sample ray leaving light source for virtual light path
-	glm::vec3 direction = GetRandomSampleDirectionCosCone(tail->GetOrientation(), pdf, 1);
-	glm::vec3 origin = tail->GetPosition();
-	
-	if (pdf == 0.f || alpha.length() == 0)
+	for(int i = 0; i < nAVPLs; ++i)
 	{
-		m_Paths.push_back(path);
-		return path;
-	}
-	
-	alpha /= pdf;
-    
-	Ray ray(origin + epsilon * direction + epsilon * tail->GetOrientation(), direction);
-	Intersection intersection;
-	while(IntersectRayScene(ray, intersection))
-	{
-		m_CurrentBounce++;
+		float pdf;
+		glm::vec3 direction;
 
-		// Create virtual light and sample new ray for path
-		glm::vec3 albedo = glm::vec3(intersection.GetModel()->GetMaterial().diffuseColor);
-		glm::vec3 pos = intersection.GetPoint();
-		glm::vec3 normal = intersection.GetTriangle().GetNormal();
-		
-		// Create virtual light at ray intersection point
-        glm::vec3 contrib = albedo / PI * alpha;
-		const float dist = glm::length(pos - tail->GetPosition());
-		Light* head = new Light(pos, normal, contrib, tail->GetPosition(),
-			tail->GetOrientation(), 1/pdf * tail->GetContrib(), tail->GetBounce() + 1);
-		path.push_back(head);
-		
-		// Sample new ray direction and update weight for virtual light path
-		glm::vec3 direction = GetRandomSampleDirectionCosCone(head->GetOrientation(), pdf, 1);
+		if(useHammersley)
+		{
+			float u1 = fmod(deltaX + m_pPlaneHammersleySamples[2 * i + 0], 1.f);
+			float u2 = fmod(deltaY + m_pPlaneHammersleySamples[2 * i + 1], 1.f);
+			
+			direction = GetRandomSampleDirectionCosCone(orientation, u1, u2, pdf, 1);
+		}
+		else
+		{
+			direction = GetRandomSampleDirectionCosCone(orientation, Rand01(), Rand01(), pdf, 1);
+		}
 
-		if (pdf == 0.f)
+		Light* avpl = CreateLight(tail, direction, pdf, N, nAVPLs, useHammersley);
+		if(avpl != 0)
 		{
-			m_Paths.push_back(path);
-			return path;
+			avpl->SetContrib(glm::vec3(0.f));
+			path.push_back(avpl);
 		}
-		
-		glm::vec3 contribScale = albedo/PI * glm::dot(direction, normal) / pdf;
-		
-		// Possibly terminate virtual light path with Russian roulette
-		float rrProb = std::min(1.f, 1.f/3.f * (contribScale.r + contribScale.g + contribScale.b));
-		
-		float rand_01 = glm::linearRand(0.f, 1.f);
-		if (rand_01 > rrProb)
-		{
-			// create additional avpl
-			glm::vec3 direction = GetRandomSampleDirectionCosCone(head->GetOrientation(), pdf, 1);
-			ray = Ray(pos + epsilon * direction + epsilon * normal, direction);
-			if(IntersectRayScene(ray, intersection))
-			{
-				glm::vec3 pos = intersection.GetPoint();
-				glm::vec3 normal = intersection.GetTriangle().GetNormal();
-				const float dist = glm::length(pos - head->GetPosition());
-				Light* avpl = new Light(pos, normal, glm::vec3(0), head->GetPosition(),
-					head->GetOrientation(), 1/pdf * head->GetContrib(), head->GetBounce() + 1);
-				path.push_back(avpl);
-			}
-			m_Paths.push_back(path);
-			return path;
-		}
-		
-		alpha *= contribScale / rrProb;
-		ray = Ray(pos + epsilon * direction + epsilon * normal, direction);
-				
-		tail = head;
 	}
-	
-	m_Paths.push_back(path);
-	return path;
 }
 
 bool Scene::IntersectRayScene(Ray ray, Intersection &intersection)

@@ -9,6 +9,7 @@ class CGLRenderTargetConfig;
 
 class CGLFrameBuffer : public CGLResource
 {
+	friend class CRenderTarget;
 	friend class CGLRenderTargetLock;
 
 public:

@@ -28,9 +28,7 @@ bool CTextureViewer::Init()
 	V_RET_FOF(CProgram::Init());
 
 	V_RET_FOF(m_pFullScreenQuad->Init());
-
-	glGenSamplers(1, &sampler);
-
+	
 	return true;
 }
 

@@ -47,4 +47,6 @@ void CPointCloud::Draw(glm::vec4* positionData, glm::vec4* colorData, uint nPoin
 	glPointSize(5.f);
 			
 	m_pVertexArray->Draw(nPoints);	
+
+	delete [] indexData;
 }

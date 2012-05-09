@@ -35,8 +35,8 @@ glm::vec3 GetArbitraryUpVector(glm::vec3 v)
 }
 
 glm::vec2 GetUniformRandomSample2D(glm::vec2 range_u, glm::vec2 range_v) {
-	float u = (float)rand() / (float)RAND_MAX;
-	float v = (float)rand() / (float)RAND_MAX;
+	float u = Rand01();
+	float v = Rand01();
 	u = map(u, 0, 1, range_u.x, range_u.y);
 	v = map(v, 0, 1, range_v.x, range_v.y);
 	return glm::vec2(u, v);

@@ -24,9 +24,12 @@ public:
 	glm::vec3 GetSrcContrib() { return m_SrcContrib; }	
 		
 	void SetContrib(glm::vec3 contrib) { m_Contrib = contrib; }
+	void SetSrcContrib(glm::vec3 contrib) { m_SrcContrib = contrib; }
+	
 	int GetBounce() { return m_Bounce; } 
 	
 	void Fill(LIGHT& light);
+	void Fill(LIGHT_BUFFER& light);
 
 private:
 	glm::vec3 m_Position;

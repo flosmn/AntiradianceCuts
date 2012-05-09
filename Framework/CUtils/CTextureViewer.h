@@ -20,8 +20,6 @@ public:
 		GLuint width, GLuint height);
 
 private:
-	GLuint sampler;
-
 	CFullScreenQuad* m_pFullScreenQuad;
 };
 

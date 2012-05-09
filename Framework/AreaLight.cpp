@@ -13,7 +13,7 @@
 
 #include "CGLResources\CGLUniformBuffer.h"
 
-#define NUM_QR_NUMBERS 10000
+#define NUM_QR_NUMBERS 1024
 
 AreaLight::AreaLight(float _width, float _height, glm::vec3 _centerPosition, 
 										 glm::vec3 _frontDirection, glm::vec3 _upDirection,

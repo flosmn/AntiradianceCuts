@@ -43,7 +43,6 @@ out vec4 outputColor;
 layout(binding=0) uniform sampler2D samplerShadowMap;
 layout(binding=1) uniform sampler2D samplerPositionWS;
 layout(binding=2) uniform sampler2D samplerNormalWS;
-layout(binding=3) uniform sampler2D samplerMaterial;
 
 float IsLit(in vec3 positionWS);
 float G(vec3 p1, vec3 n1, vec3 p2, vec3 n3);
@@ -57,8 +56,7 @@ void main()
 	
 	vec3 vPositionWS = texture2D(samplerPositionWS, coord).xyz;
 	vec3 vNormalWS = normalize(texture2D(samplerNormalWS, coord).xyz);
-	vec4 cAlbedo = texture2D(samplerMaterial, coord);
-
+	
 	float V = 1.f;
 
 	if (uConfig.UseAntiradiance == 0) {

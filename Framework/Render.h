@@ -11,7 +11,7 @@
 class Scene;
 class Camera;
 class CShadowMap;
-class Postprocessing;
+class CPostprocess;
 class Light;
 
 class CAccumulationBuffer;
@@ -22,6 +22,8 @@ class CLightViewer;
 class CTextureViewer;
 class CFullScreenQuad;
 class CPointCloud;
+class CExport;
+class CRenderTarget;
 
 class CGLUniformBuffer;
 class CGLSampler;
@@ -69,22 +71,32 @@ public:
 	void SetBlurFactor(float f) { if(m_BlurSigma == f) return; m_BlurSigma = f; ConfigureLighting(); ClearLighting();}
 	void SetNumPaths(int i) {if(m_NumPaths == i) return; m_NumPaths = i; ConfigureLighting(); ClearLighting(); }
 	void SetNumPathsPerFrame(int i) {if(m_NumPathsPerFrame == i) return; m_NumPathsPerFrame = i; ConfigureLighting(); ClearLighting(); }
-	void SetNumOfAdditionalAVPLs(int i) {if(m_NumAdditionalAVPLs == i) return; m_NumAdditionalAVPLs = i; CreatePlaneHammersleySamples(m_NumAdditionalAVPLs); ClearLighting(); }
+	void SetNumOfAdditionalAVPLs(int i) { if(m_NumAdditionalAVPLs == i) return; m_NumAdditionalAVPLs = i; CreatePlaneHammersleySamples(m_NumAdditionalAVPLs); ClearLighting(); }
 	void SetRenderBounce(int i) { if(m_RenderBounce == i) return; m_RenderBounce = i; ConfigureLighting(); ClearLighting(); }
 	void SetN(int n) { if(m_N == n) return; m_N = n; ConfigureLighting(); ClearLighting(); }
 	void SetBias(float b) { if(m_Bias == b) return; m_Bias = b; ConfigureLighting(); ClearAccumulationBuffer(); }
 	void SetUseHammersley(bool useHamm) { if(m_UseHammersley == useHamm) return; m_UseHammersley = useHamm; ConfigureLighting(); ClearAccumulationBuffer(); }
+
+	void SetGamma(float gamma);
+	void SetExposure(float exposure);
+
+	void SetPartialSum(bool b) { m_PartialSum = b; }
+	bool GetPartialSum() { return m_PartialSum; }
 
 	float GetBlurFactor() { return m_BlurSigma; }
 
 	void ConfigureLighting();
 
 	void Stats();
+
+	void Export();
 	
 private:
 	// functions of the render phase
 	void SetUpRender();
 	void CreateGBuffer();
+	void Gather(std::vector<Light*> path);
+	void Shade();
 	void GatherRadiance(std::vector<Light*> path);
 	void GatherRadianceWithShadowMap(std::vector<Light*> path);
 	void GatherAntiradiance(std::vector<Light*> path);
@@ -99,14 +111,12 @@ private:
 	void Debug(Light* light);
 	std::string Debug(glm::vec3 v);
 	std::string Debug(glm::vec4 v);
-
-	void GatherRadianceFromLight(Light* light);
-	void GatherRadianceFromLights(std::vector<Light*> lights);
+		
 	void GatherRadianceFromLightWithShadowMap(Light* light);
-	void GatherAntiradianceFromLight(Light* light);
-	void GatherAntiradianceFromLights(std::vector<Light*> lights);
-
+	
 	void FillShadowMap(Light* light);
+
+	void DrawLights(std::vector<Light*> lights);
 
 	float CalcBlurNormalizationFactor(float sigma);
 	
@@ -116,16 +126,28 @@ private:
 	Scene* scene;
 	CShadowMap* m_pShadowMap;
 	CGBuffer* m_pGBuffer;
-	Postprocessing* postProcessing;
 	CAccumulationBuffer* m_pAccumulationRadiance;
 	CAccumulationBuffer* m_pNormalizedRadiance;
 	CAccumulationBuffer* m_pAccumulationAntiradiance;
 	CAccumulationBuffer* m_pNormalizedAntiradiance;
 	CAccumulationBuffer* m_pFinalResult;
 
+	CRenderTarget* m_pAccumRenderTarget;
+	CRenderTarget* m_pNormalizeRenderTarget;
+	CRenderTarget* m_pShadeRenderTarget;
+		
+	CProgram* m_pGatherProgram;
+	CProgram* m_pNormalizeProgram;
+	CProgram* m_pShadeProgram;
+		
+	CRenderTarget* m_pLightDebugRenderTarget;
+	CRenderTarget* m_pPostProcessRenderTarget;
+	CPostprocess* m_pPostProcess;
+
 	CGLTextureBuffer* m_pLightBuffer;
 
 	CPointCloud* m_pPointCloud;
+	CExport* m_Export;
 
 	CTextureViewer* m_pTextureViewer;
 
@@ -171,6 +193,7 @@ private:
 	int m_N;
 	float m_Bias;
 	bool m_UseHammersley;
+	bool m_PartialSum;
 
 	bool m_Finished;
 

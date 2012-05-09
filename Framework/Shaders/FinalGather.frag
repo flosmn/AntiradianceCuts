@@ -27,13 +27,8 @@ void main()
 	vec4 R = texture2D(samplerRadiance, coord);
 	vec4 A = texture2D(samplerAntiRadiance, coord);
 	vec4 cAlbedo = texture2D(samplerMaterial, coord);
-	
-	vec4 temp = R - A;
-	temp.r = max(temp.r, 0.f);
-	temp.g = max(temp.g, 0.f);
-	temp.b = max(temp.b, 0.f);
-	
-	outputColor = cAlbedo * temp;
+		
+	outputColor = R-A;
 	outputColor.w = 1.0f;
 }
 
