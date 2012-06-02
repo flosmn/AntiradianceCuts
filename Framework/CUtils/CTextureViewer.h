@@ -8,7 +8,7 @@
 class CGLTexture2D;
 class CFullScreenQuad;
 
-class CTextureViewer : public CProgram {
+class CTextureViewer {
 public:
 	CTextureViewer();
 	~CTextureViewer();
@@ -20,6 +20,8 @@ public:
 		GLuint width, GLuint height);
 
 private:
+	CProgram* m_pProgram;
+
 	CFullScreenQuad* m_pFullScreenQuad;
 };
 

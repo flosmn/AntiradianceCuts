@@ -12,7 +12,7 @@ class Scene;
 class Camera;
 class CShadowMap;
 class CPostprocess;
-class Light;
+class AVPL;
 
 class CAccumulationBuffer;
 class CGBuffer;
@@ -47,28 +47,16 @@ public:
 
 	void SetDrawLight(bool b) { drawLight = b; }
 	bool GetDrawLight() { return drawLight; } 
-
-	void SetPrintTimes(bool b) { m_PrintTimes = b; }
-
+	
 	void ClearAccumulationBuffer();
 	void ClearLighting();
 
 	void PrintCameraConfig();
-
-	void SetDrawLightNumber(int i) { drawLightNumber = i; }
-
-	void DrawOnlyDirectLight(bool b) { m_DrawOnlyDirectLight = b; }
-	void DrawOnlyIndirectLight(bool b) { m_DrawOnlyIndirectLight = b; }
-	bool GetDrawOnlyDirectLight() { return m_DrawOnlyDirectLight; }
-	bool GetDrawOnlyIndirectLight() { return m_DrawOnlyIndirectLight; }
-
+		
 	void UseAntiradiance(bool b) { if(m_UseAntiradiance == b) return; m_UseAntiradiance = b; ConfigureLighting(); ClearLighting(); }
 	bool GetUseAntiradiance() { return m_UseAntiradiance; }
-	void DrawAntiradiance(bool b) { if(m_DrawAntiradiance == b) return; m_DrawAntiradiance = b; ConfigureLighting(); ClearLighting();}
-	bool GetDrawAntiradiance() { return m_DrawAntiradiance; }
-
+	
 	void SetGeoTermLimit(float f) { if(m_GeoTermLimit == f) return; m_GeoTermLimit = f; ConfigureLighting(); ClearLighting();}
-	void SetBlurFactor(float f) { if(m_BlurSigma == f) return; m_BlurSigma = f; ConfigureLighting(); ClearLighting();}
 	void SetNumPaths(int i) {if(m_NumPaths == i) return; m_NumPaths = i; ConfigureLighting(); ClearLighting(); }
 	void SetNumPathsPerFrame(int i) {if(m_NumPathsPerFrame == i) return; m_NumPathsPerFrame = i; ConfigureLighting(); ClearLighting(); }
 	void SetNumOfAdditionalAVPLs(int i) { if(m_NumAdditionalAVPLs == i) return; m_NumAdditionalAVPLs = i; CreatePlaneHammersleySamples(m_NumAdditionalAVPLs); ClearLighting(); }
@@ -76,14 +64,10 @@ public:
 	void SetN(int n) { if(m_N == n) return; m_N = n; ConfigureLighting(); ClearLighting(); }
 	void SetBias(float b) { if(m_Bias == b) return; m_Bias = b; ConfigureLighting(); ClearAccumulationBuffer(); }
 	void SetUseHammersley(bool useHamm) { if(m_UseHammersley == useHamm) return; m_UseHammersley = useHamm; ConfigureLighting(); ClearAccumulationBuffer(); }
+	void SetToneMapping(bool b) { m_ToneMapping = b; }
 
 	void SetGamma(float gamma);
 	void SetExposure(float exposure);
-
-	void SetPartialSum(bool b) { m_PartialSum = b; }
-	bool GetPartialSum() { return m_PartialSum; }
-
-	float GetBlurFactor() { return m_BlurSigma; }
 
 	void ConfigureLighting();
 
@@ -95,44 +79,31 @@ private:
 	// functions of the render phase
 	void SetUpRender();
 	void CreateGBuffer();
-	void Gather(std::vector<Light*> path);
-	void Shade();
-	void GatherRadiance(std::vector<Light*> path);
-	void GatherRadianceWithShadowMap(std::vector<Light*> path);
-	void GatherAntiradiance(std::vector<Light*> path);
+	
+	void Gather(std::vector<AVPL*> path);
+	void Normalize();
+	void Shade();	
+	
+	void GatherRadianceWithShadowMap(std::vector<AVPL*> path);	
 	void DebugRender();
 	void DrawAreaLight();
-	void Normalize();
-	void FinalGather();
-
+	
 	void CreatePlaneHammersleySamples(int i);
-
-	void Debug(std::vector<Light*> path);
-	void Debug(Light* light);
-	std::string Debug(glm::vec3 v);
-	std::string Debug(glm::vec4 v);
 		
-	void GatherRadianceFromLightWithShadowMap(Light* light);
+	void GatherRadianceFromLightWithShadowMap(AVPL* avpl);
+	void FillShadowMap(AVPL* avpl);
+	void DrawLights(std::vector<AVPL*> avpl);
 	
-	void FillShadowMap(Light* light);
-
-	void DrawLights(std::vector<Light*> lights);
-
-	float CalcBlurNormalizationFactor(float sigma);
+	glm::vec4 ColorForLight(AVPL* light);
 	
-	glm::vec4 ColorForLight(Light* light);
+	void ExportPartialResult();
 
 	Camera *camera;
 	Scene* scene;
 	CShadowMap* m_pShadowMap;
 	CGBuffer* m_pGBuffer;
-	CAccumulationBuffer* m_pAccumulationRadiance;
-	CAccumulationBuffer* m_pNormalizedRadiance;
-	CAccumulationBuffer* m_pAccumulationAntiradiance;
-	CAccumulationBuffer* m_pNormalizedAntiradiance;
-	CAccumulationBuffer* m_pFinalResult;
-
-	CRenderTarget* m_pAccumRenderTarget;
+	
+	CRenderTarget* m_pGatherRenderTarget;
 	CRenderTarget* m_pNormalizeRenderTarget;
 	CRenderTarget* m_pShadeRenderTarget;
 		
@@ -149,6 +120,7 @@ private:
 	CPointCloud* m_pPointCloud;
 	CExport* m_Export;
 
+	CTimer* m_Timer;
 	CTextureViewer* m_pTextureViewer;
 
 	CGLUniformBuffer* m_pUBTransform;
@@ -157,17 +129,15 @@ private:
 	CGLUniformBuffer* m_pUBConfig;
 	CGLUniformBuffer* m_pUBCamera;
 	CGLUniformBuffer* m_pUBInfo;
+	CGLUniformBuffer* m_pUBAreaLight;
 
 	CGLTexture2D* m_pDepthBuffer;
 
 	CProgram* m_pCreateGBufferProgram;
 	CProgram* m_pCreateSMProgram;
 	CProgram* m_pGatherRadianceWithSMProgram;
-	CProgram* m_pGatherRadianceProgram;
-	CProgram* m_pGatherAntiradianceProgram;
-	CProgram* m_pFinalGatherProgram;
-	CProgram* m_pNormalizeRadianceProgram;
 	CProgram* m_pPointCloudProgram;
+	CProgram* m_pAreaLightProgram;
 
 	CGLSampler* m_pGLPointSampler;
 	CGLSampler* m_pGLShadowMapSampler;
@@ -176,11 +146,7 @@ private:
 
 	bool drawTexture;
 	bool drawLight;
-	bool m_PrintTimes;
-	bool m_DrawOnlyIndirectLight;
-	bool m_DrawOnlyDirectLight;
 	bool m_UseAntiradiance;
-	bool m_DrawAntiradiance;
 	float m_GeoTermLimit;
 	float m_CosBlurFactor;
 	int m_RenderBounce;
@@ -194,12 +160,11 @@ private:
 	float m_Bias;
 	bool m_UseHammersley;
 	bool m_PartialSum;
+	bool m_ToneMapping;
 
 	bool m_Finished;
 
-	float m_BlurSigma;
-
-	int drawLightNumber;
+	time_t m_StartTime;
 };
 
 #endif

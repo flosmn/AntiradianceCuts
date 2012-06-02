@@ -50,8 +50,8 @@ void main()
 	coord.y /= uCamera.height;
 	
 	const float N = float(uConfig.N);
-	const float PI_OVER_N_PLUS_ONE = PI / (N + 1.f);
-	const float K = (PI * (1 - cos(PI_OVER_N_PLUS_ONE))) / (PI - (N+1) * sin(PI_OVER_N_PLUS_ONE));
+	const float PI_OVER_N = PI / N;
+	const float K = (PI * (1 - cos(PI_OVER_N))) / (PI - N * sin(PI_OVER_N));
 	
 	vec3 vPositionWS = texture2D(samplerPositionWS, coord).xyz;
 	vec3 vNormalWS = normalize(texture2D(samplerNormalWS, coord).xyz);
@@ -60,69 +60,63 @@ void main()
 	outputRadiance = vec4(0.f);
 	outputAntiradiance = vec4(0.f);
 
-	int size = 4 * 8;
+	int size = 4 * 5; // sizeof(AVPL_BUFFER)
 	for(int i = 0; i < uInfo.numLights; ++i)
 	{		
 		vec4 radiance = vec4(0.f);
 		vec4 antiradiance = vec4(0.f);
 		vec4 diff = vec4(0.f);
 		
-		const vec3 vLightPosWS = vec3(	texelFetch(samplerLightBuffer, i * size + 0).r,
-										texelFetch(samplerLightBuffer, i * size + 1).r,
-										texelFetch(samplerLightBuffer, i * size + 2).r);
+		const vec4 I = vec4(texelFetch(samplerLightBuffer, i * size + 0).r,
+			texelFetch(samplerLightBuffer, i * size + 1).r,
+			texelFetch(samplerLightBuffer, i * size + 2).r,
+			texelFetch(samplerLightBuffer, i * size + 3).r);
 
-		const vec3 vLightOrientationWS = vec3(	texelFetch(samplerLightBuffer, i * size + 4).r,
-												texelFetch(samplerLightBuffer, i * size + 5).r,
-												texelFetch(samplerLightBuffer, i * size + 6).r);
+		const vec4 A = vec4(texelFetch(samplerLightBuffer, i * size + 4).r,
+			texelFetch(samplerLightBuffer, i * size + 5).r,
+			texelFetch(samplerLightBuffer, i * size + 6).r,
+			texelFetch(samplerLightBuffer, i * size + 7).r);
 
-		const vec4 vLightContrib = vec4(	texelFetch(samplerLightBuffer, i * size + 8).r,
-											texelFetch(samplerLightBuffer, i * size + 9).r,
-											texelFetch(samplerLightBuffer, i * size + 10).r,
-											texelFetch(samplerLightBuffer, i * size + 11).r);
+		const vec3 p = vec3(texelFetch(samplerLightBuffer, i * size + 8).r,
+			texelFetch(samplerLightBuffer, i * size + 9).r,
+			texelFetch(samplerLightBuffer, i * size + 10).r);
 
-		const vec3 vSrcLightPosWS = vec3(	texelFetch(samplerLightBuffer, i * size + 12).r,
-											texelFetch(samplerLightBuffer, i * size + 13).r,
-											texelFetch(samplerLightBuffer, i * size + 14).r);
+		const vec3 n = vec3(texelFetch(samplerLightBuffer, i * size + 12).r,
+			texelFetch(samplerLightBuffer, i * size + 13).r,
+			texelFetch(samplerLightBuffer, i * size + 14).r);
 
-		const vec3 vSrcLightOrientationWS = vec3(	texelFetch(samplerLightBuffer, i * size + 16).r,
-													texelFetch(samplerLightBuffer, i * size + 17).r,
-													texelFetch(samplerLightBuffer, i * size + 18).r);
-
-		const vec4 vSrcLightContrib	= vec4(	texelFetch(samplerLightBuffer, i * size + 20).r,
-											texelFetch(samplerLightBuffer, i * size + 21).r,
-											texelFetch(samplerLightBuffer, i * size + 22).r,
-											texelFetch(samplerLightBuffer, i * size + 23).r);
+		const vec3 w_A = vec3(texelFetch(samplerLightBuffer, i * size + 16).r,
+			texelFetch(samplerLightBuffer, i * size + 17).r,
+			texelFetch(samplerLightBuffer, i * size + 18).r);
 
 		// calc radiance
-		if(length(vLightContrib) > 0.f)
+		if(length(I) > 0.f)
 		{
-			vec4 I = vLightContrib;
-			float G = G_CLAMP(vPositionWS, vNormalWS, vLightPosWS, vLightOrientationWS);
+			float G = G_CLAMP(vPositionWS, vNormalWS, p, n);
 			vec4 Irradiance = I * G;	
-	
 			radiance = Irradiance;
 		}
 
 		// calc antiradiance
-		if(length(vSrcLightContrib) > 0.f)
+		if(length(A) > 0.f)
 		{
-			vec3 omega_i = normalize(vLightPosWS - vSrcLightPosWS);
-			vec3 omega = normalize(vPositionWS - vSrcLightPosWS);
-			
-			vec3 vLightPosBiased = vLightPosWS + uConfig.Bias * omega_i;
-			vec3 vLightToPos = normalize(vPositionWS - vLightPosBiased);
-						
-			if(dot(vLightToPos, omega_i) > 0.01f)
+			const vec3 vLightToPos = vPositionWS - p;
+			const float d_xz = length(vLightToPos);
+			vec3 w = normalize(vLightToPos);
+									
+			if(dot(w, w_A) > 0.01f)
 			{				
-				const float theta = acos(clamp(dot(omega_i, omega), 0, 1));
-				if(theta < PI_OVER_N_PLUS_ONE)
+				const float theta = acos(clamp(dot(w, w_A), 0, 1));
+				if(theta < PI_OVER_N)
 				{
-					float G = G_CLAMP(vPositionWS, vNormalWS, vSrcLightPosWS, vSrcLightOrientationWS);
-					vec4 A_in = vSrcLightContrib;				
+					const float cos_theta_xz = clamp(dot(vNormalWS, -w), 0, 1);
 					
-					vec4 A = K * (1 - theta / PI_OVER_N_PLUS_ONE) * A_in;
+					vec4 A_in = (cos_theta_xz) / (d_xz * d_xz) * A;
+												
+					// blur			
+					vec4 A = K * (1 - theta / PI_OVER_N) * A_in;
 					
-					antiradiance = A * G;
+					antiradiance = A_in;
 				}
 			}
 		}

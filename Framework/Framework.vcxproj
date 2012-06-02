@@ -97,7 +97,7 @@
     <ClCompile Include="CUtils\GLErrorUtil.cpp" />
     <ClCompile Include="CUtils\mtrand.cpp" />
     <ClCompile Include="CUtils\Util.cpp" />
-    <ClCompile Include="Light.cpp" />
+    <ClCompile Include="AVPL.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="CPostprocess.cpp" />
     <ClCompile Include="Rand.cpp" />
@@ -142,7 +142,7 @@
     <ClInclude Include="CUtils\Util.h" />
     <ClInclude Include="Defines.h" />
     <ClInclude Include="Intersection.h" />
-    <ClInclude Include="Light.h" />
+    <ClInclude Include="AVPL.h" />
     <ClInclude Include="Macros.h" />
     <ClInclude Include="CPostprocess.h" />
     <ClInclude Include="Rand.h" />
@@ -167,23 +167,16 @@
     <None Include="Shaders\CreateSM.vert" />
     <None Include="Shaders\DrawAreaLight.frag" />
     <None Include="Shaders\DrawAreaLight.vert" />
-    <None Include="Shaders\DrawLight.frag" />
-    <None Include="Shaders\DrawLight.vert" />
     <None Include="Shaders\DrawTexture.frag" />
     <None Include="Shaders\DrawTexture.vert" />
-    <None Include="Shaders\FinalGather.frag" />
     <None Include="Shaders\Gather.frag" />
     <None Include="Shaders\Gather.vert" />
-    <None Include="Shaders\GatherAntiradiance.frag" />
-    <None Include="Shaders\GatherRadiance.frag" />
     <None Include="Shaders\GatherRadianceWithSM.frag" />
     <None Include="Shaders\Normalize.frag" />
     <None Include="Shaders\PointCloud.frag" />
     <None Include="Shaders\PointCloud.vert" />
     <None Include="Shaders\PostProcess.frag" />
     <None Include="Shaders\PostProcess.vert" />
-    <None Include="Shaders\Render.frag" />
-    <None Include="Shaders\Render.vert" />
     <None Include="Shaders\Shade.frag" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

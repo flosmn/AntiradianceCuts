@@ -4,7 +4,7 @@
 
 #include "..\Macros.h"
 
-#include "..\Light.h"
+#include "..\AVPL.h"
 #include "..\Camera.h"
 
 #include "..\CMeshResources\CMesh.h"
@@ -45,17 +45,17 @@ void CLightViewer::Release()
 	m_pLightModel->Release();
 }
 
-void CLightViewer::DrawLight(Light* light, Camera* camera, CGLUniformBuffer* pUBTransform) 
+void CLightViewer::DrawLight(AVPL* avpl, Camera* camera, CGLUniformBuffer* pUBTransform) 
 {	
 	glm::mat4 scale = glm::scale(0.025f, 0.025f, 0.025f);
-	glm::mat4 translate = glm::translate(light->GetPosition());
+	glm::mat4 translate = glm::translate(avpl->GetPosition());
 
 	m_pLightModel->SetWorldTransform(translate * scale);
 
 	CGLBindLock lockProgram(GetGLProgram(), CGL_PROGRAM_SLOT);
 
 	glm::vec3 color;
-	switch(light->GetBounce()){
+	switch(avpl->GetBounce()){
 		case 0: color = glm::vec3(0.8f, 0.8f, 0.8f); break;
 		case 1: color = glm::vec3(0.8f, 0.0f, 0.0f); break;
 		case 2: color = glm::vec3(0.0f, 0.8f, 0.0f); break;

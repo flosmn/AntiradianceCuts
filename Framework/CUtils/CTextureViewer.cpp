@@ -11,22 +11,20 @@
 #include "..\CMeshResources\CFullScreenQuad.h"
 
 CTextureViewer::CTextureViewer()
-	: CProgram("TextureViewer.m_pGLProgram", "Shaders\\DrawTexture.vert", "Shaders\\DrawTexture.frag")
 {
+	m_pProgram = new CProgram("TextureViewer.m_pGLProgram", "Shaders\\DrawTexture.vert", "Shaders\\DrawTexture.frag");
 	m_pFullScreenQuad = new CFullScreenQuad();
 }
 
 CTextureViewer::~CTextureViewer()
 {
-	CProgram::~CProgram();
-
+	SAFE_DELETE(m_pProgram);
 	SAFE_DELETE(m_pFullScreenQuad);
 }
 
 bool CTextureViewer::Init()
 {
-	V_RET_FOF(CProgram::Init());
-
+	V_RET_FOF(m_pProgram->Init());
 	V_RET_FOF(m_pFullScreenQuad->Init());
 	
 	return true;
@@ -34,15 +32,14 @@ bool CTextureViewer::Init()
 
 void CTextureViewer::Release()
 {
-	CProgram::Release();
-
+	m_pProgram->Release();
 	m_pFullScreenQuad->Release();
 }
 
 void CTextureViewer::DrawTexture(CGLTexture2D* pTexture, GLuint x, GLuint y, 
 	GLuint width, GLuint height) 
 {		
-	CGLBindLock lockProgram(GetGLProgram(), CGL_PROGRAM_SLOT);
+	CGLBindLock lockProgram(m_pProgram->GetGLProgram(), CGL_PROGRAM_SLOT);
 
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);

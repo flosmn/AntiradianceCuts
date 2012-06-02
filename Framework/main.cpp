@@ -32,7 +32,8 @@ using std::cout;
 using std::cin;
 using std::endl;
 
-int windowWidth, windowHeight;
+int windowWidth = 1280;
+int	windowHeight = 720;
 Renderer *renderer;
 Camera* camera = 0;
 
@@ -61,31 +62,24 @@ bool leftMouseButton = false;
 bool rightMouseButton = false;
 
 bool config_use_antiradiance = true;
-float config_blur_factor = 50.f;
-float config_geo_limit = 0.05f;
-int config_num_paths = 10000;
+float config_geo_limit = 1.f;
+int config_num_paths = 100000000;
 int config_render_bounce = -1; // render all bounces on default
-int config_num_add_avpl = 128; // number of additional avpls per vpl
+int config_num_add_avpl = 0; // number of additional avpls per vpl
 int config_N = 50;
-float config_bias = 1.0f;
 int config_paths_per_frame = 1;
 bool config_hammersley;
+bool config_tone_mapping = false;
 float config_gamma = 2.2f;
 float config_exposure = 1.f;
 
 double fps;
 
-class Test
-{
-public:
-	int a;
-	int b;
-};
-
 int main()
 {
-	RandInit(0);
-
+	int t = (int)(time(NULL));
+	RandInit(t);
+	
 	GLFWvidmode mode;
 	
 	int running = GL_TRUE;
@@ -100,7 +94,7 @@ int main()
 	glfwOpenWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 
 	glfwGetDesktopMode(&mode);
-	if(glfwOpenWindow(windowWidth = 1280, windowHeight = 720, mode.RedBits, mode.GreenBits, mode.BlueBits, 0, 32, 32, GLFW_WINDOW) == GL_FALSE) {
+	if(glfwOpenWindow(windowWidth, windowHeight, mode.RedBits, mode.GreenBits, mode.BlueBits, 0, 32, 32, GLFW_WINDOW) == GL_FALSE) {
 		cout << "glfwOpenWindow failed." << endl;
 		Quit(EXIT_FAILURE);
 	}
@@ -130,19 +124,27 @@ int main()
 	TwAddSeparator(myBar, "", "");
 
 	TwAddVarRW(myBar, "Use Antiradiance", TW_TYPE_BOOL32, &config_use_antiradiance, "");
-	TwAddVarRW(myBar, "Gamma", TW_TYPE_FLOAT, &config_gamma, " min=0.0 max=10.0 step=0.1 ");
-	TwAddVarRW(myBar, "Exposure", TW_TYPE_FLOAT, &config_exposure, " min=0.0 max=10.0 step=0.1 ");
-	//TwAddVarRW(myBar, "Blur factor", TW_TYPE_FLOAT, &config_blur_factor, " min=1.0 max=1000.0 step=1.0 ");
-	//TwAddVarRW(myBar, "Geo-Term Limit", TW_TYPE_FLOAT, &config_geo_limit, "");
+	
+	TwAddSeparator(myBar, "", "");
+
 	TwAddVarRW(myBar, "#Paths", TW_TYPE_INT32, &config_num_paths, " min=1 max=1000000 step=1 ");
 	TwAddVarRW(myBar, "#Paths per frame", TW_TYPE_INT32, &config_paths_per_frame, " min=1 max=5000 step=1 ");
-	TwAddVarRW(myBar, "RenderBounce", TW_TYPE_INT32, &config_render_bounce, " min=-1 max=100 step=1 ");
 	TwAddVarRW(myBar, "N", TW_TYPE_INT32, &config_N, " min=1 max=1000 step=1 ");
-	TwAddVarRW(myBar, "bias", TW_TYPE_FLOAT, &config_bias, " min=0.0 max=10.0 step=0.01 ");
-	TwAddVarRW(myBar, "use hammersley", TW_TYPE_BOOL32, &config_hammersley, " ");
 	TwAddVarRW(myBar, "#add. AVPL", TW_TYPE_INT32, &config_num_add_avpl, " min=0 max=512 step=1 ");
 	
-	camera = new Camera(windowWidth, windowHeight, 0.1f, 100.0f); 
+	TwAddSeparator(myBar, "", "");
+
+	TwAddVarRW(myBar, "RenderBounce", TW_TYPE_INT32, &config_render_bounce, " min=-1 max=100 step=1 ");
+	TwAddVarRW(myBar, "use hammersley", TW_TYPE_BOOL32, &config_hammersley, " ");
+	TwAddVarRW(myBar, "Geo-Term Limit", TW_TYPE_FLOAT, &config_geo_limit, "min=0 max=100000 step=0.00001");
+
+	TwAddSeparator(myBar, "", "");
+
+	//TwAddVarRW(myBar, "Tone Mapping", TW_TYPE_BOOL32, &config_dummy, "");
+	TwAddVarRW(myBar, "Gamma", TW_TYPE_FLOAT, &config_gamma, " min=0.0 max=10.0 step=0.1 ");
+	TwAddVarRW(myBar, "Exposure", TW_TYPE_FLOAT, &config_exposure, " min=0.0 max=10.0 step=0.1 ");
+		
+	camera = new Camera(windowWidth, windowHeight, 0.1f, 2000.0f); 
 	
 	renderer = new Renderer(camera);
 	if(!renderer->Init()) {
@@ -275,6 +277,11 @@ void GLFWCALL KeyCallback(int key, int action)
 	if(key == 'T' && action == GLFW_PRESS){
 		renderer->SetDrawTexture(!renderer->GetDrawTexture());
 	}
+
+	if(key == 'X' && action == GLFW_PRESS){
+		config_tone_mapping = !config_tone_mapping;
+		renderer->SetToneMapping(config_tone_mapping);
+	}
 	
 	if(key == 'C' && action == GLFW_PRESS){
 		renderer->ClearLighting();
@@ -289,20 +296,8 @@ void GLFWCALL KeyCallback(int key, int action)
 		renderer->SetDrawLight(!renderer->GetDrawLight());
 	}
 
-	if(key == 'D' && action == GLFW_PRESS){
-		renderer->DrawOnlyDirectLight(!renderer->GetDrawOnlyDirectLight());
-	}
-	
-	if(key == 'I' && action == GLFW_PRESS){
-		renderer->DrawOnlyIndirectLight(!renderer->GetDrawOnlyIndirectLight());
-	}
-
 	if(key == 'A' && action == GLFW_PRESS){
 		renderer->UseAntiradiance(!renderer->GetUseAntiradiance());
-	}
-
-	if(key == 'B' && action == GLFW_PRESS){
-		renderer->DrawAntiradiance(!renderer->GetDrawAntiradiance());
 	}
 
 	if(key == 'M' && action == GLFW_PRESS){
@@ -312,10 +307,6 @@ void GLFWCALL KeyCallback(int key, int action)
 	if(key == 'N' && action == GLFW_PRESS){
 		camera->ZoomIn(-0.5f);
 		renderer->ClearLighting();
-	}
-
-	if(key == 'P' && action == GLFW_PRESS){
-		renderer->SetPartialSum(!renderer->GetPartialSum());
 	}
 }
 
@@ -367,17 +358,16 @@ void GLFWCALL MouseWheelCallback(int pos)
 void UpdateConfig()
 {
 	renderer->UseAntiradiance(config_use_antiradiance);
-	renderer->SetBlurFactor(config_blur_factor);
 	renderer->SetNumPaths(config_num_paths);
 	renderer->SetNumPathsPerFrame(config_paths_per_frame);
 	renderer->SetNumOfAdditionalAVPLs(config_num_add_avpl);
 	renderer->SetGeoTermLimit(config_geo_limit);
 	renderer->SetRenderBounce(config_render_bounce);
 	renderer->SetN(config_N);
-	renderer->SetBias(config_bias);
 	renderer->SetUseHammersley(config_hammersley);
 	renderer->SetGamma(config_gamma);
 	renderer->SetExposure(config_exposure);
+	renderer->SetToneMapping(config_tone_mapping);
 
 	updateConfig = false;
 }

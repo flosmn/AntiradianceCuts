@@ -13,7 +13,7 @@ typedef unsigned int uint;
 #include <vector>
 
 class Camera;
-class Light;
+class AVPL;
 class AreaLight;
 
 class CGLUniformBuffer;
@@ -36,7 +36,7 @@ public:
 
 	void DrawScene(const glm::mat4& mView, const glm::mat4& mProj, CGLUniformBuffer* pUBTransform);
 
-	void DrawAreaLight(CGLUniformBuffer* pUBTransform);
+	void DrawAreaLight(CGLUniformBuffer* pUBTransform, CGLUniformBuffer* pUBAreaLight);
 
 	void LoadCornellBox();
 	void LoadSimpleScene();
@@ -49,19 +49,17 @@ public:
 
 	bool IntersectRayScene(Ray ray, Intersection &intersection);
 		
-	std::vector<Light*> CreatePaths(uint numPaths, int N, int nAdditionalAVPLs, bool useHammersley);
-	std::vector<Light*> CreatePath(int N, int nAdditionalAVPLs, bool useHammersley);
+	std::vector<AVPL*> CreatePaths(uint numPaths, int N, int nAdditionalAVPLs, bool useHammersley);
+	std::vector<AVPL*> CreatePath(int N, int nAdditionalAVPLs, bool useHammersley);
 	
-	void Stats();
-
 	void CreatePlaneHammersleySamples(int i);
 		
 private:
 	void ClearPath();
 
-	Light* CreateLight(Light* tail, int N, int nAdditionalAVPLs, bool useHammersley);
-	Light* CreateLight(Light* tail, glm::vec3 direction, float pdf, int N, int nAdditionalAVPLs, bool useHammersley);
-	void CreateAVPLs(Light* tail, std::vector<Light*>& path, int N, int nAVPLs, bool useHammersley);
+	AVPL* CreateAVPL(AVPL* pred, int N, int nAdditionalAVPLs, bool useHammersley);
+	AVPL* ContinueAVPLPath(AVPL* pred, glm::vec3 direction, float pdf, int N, int nAdditionalAVPLs, bool useHammersley);
+	void CreateAVPLs(AVPL* pred, std::vector<AVPL*>& path, int N, int nAVPLs, bool useHammersley);
 
 	std::vector<CModel*> m_Models;
 		
@@ -72,12 +70,6 @@ private:
 
 	Camera* m_Camera;		
 	AreaLight* m_AreaLight;
-
-	int *m_BounceInfo;
-	int m_MaxBounceInfo;
-	glm::vec3 m_MaxVPLFlow;
-	int m_MaxVPLFlowBounce;
-	glm::vec3 m_Alpha;
 };
 
 #endif SCENE_H

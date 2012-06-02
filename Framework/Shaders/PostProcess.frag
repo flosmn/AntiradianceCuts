@@ -21,5 +21,6 @@ void main()
 	color.r = pow(color.r, uPostProcess.one_over_gamma);
 	color.g = pow(color.g, uPostProcess.one_over_gamma);
 	color.b = pow(color.b, uPostProcess.one_over_gamma);
+	
 	outputColor = color;
 }

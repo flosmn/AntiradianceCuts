@@ -24,9 +24,11 @@ void main()
 	coord.y /= uCamera.height;
 
 	vec4 cIrradiance = texture2D(samplerIrradiance, coord);
+	cIrradiance = max(cIrradiance, vec4(0.f, 0.f, 0.f, 0.f));
+
 	vec4 cAlbedo = texture2D(samplerMaterial, coord);
 		
-	outputColor = cIrradiance;
+	outputColor = ONE_OVER_PI * cAlbedo * cIrradiance;
 	outputColor.w = 1.0f;
 }
 

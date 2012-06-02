@@ -46,7 +46,6 @@
     <ClCompile Include="CUtils\Util.cpp">
       <Filter>CUtils</Filter>
     </ClCompile>
-    <ClCompile Include="Light.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Render.cpp" />
     <ClCompile Include="Scene.cpp" />
@@ -102,6 +101,7 @@
     <ClCompile Include="Rand.cpp">
       <Filter>CUtils</Filter>
     </ClCompile>
+    <ClCompile Include="AVPL.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CMeshResources\CFullScreenQuad.h">
@@ -143,7 +143,6 @@
     <ClInclude Include="CTimer.h" />
     <ClInclude Include="Defines.h" />
     <ClInclude Include="Intersection.h" />
-    <ClInclude Include="Light.h" />
     <ClInclude Include="Macros.h" />
     <ClInclude Include="Ray.h" />
     <ClInclude Include="Render.h" />
@@ -205,15 +204,10 @@
     <ClInclude Include="Rand.h">
       <Filter>CUtils</Filter>
     </ClInclude>
+    <ClInclude Include="AVPL.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="Shaders\DrawLight.frag">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="Shaders\DrawLight.vert">
       <Filter>Resource Files</Filter>
     </None>
     <None Include="Shaders\DrawTexture.frag">
@@ -222,19 +216,7 @@
     <None Include="Shaders\DrawTexture.vert">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="Shaders\FinalGather.frag">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="Shaders\Gather.vert">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="Shaders\GatherAntiradiance.frag">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="Shaders\Render.frag">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="Shaders\Render.vert">
       <Filter>Resource Files</Filter>
     </None>
     <None Include="Shaders\CreateGBuffer.frag">
@@ -262,9 +244,6 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="Shaders\GatherRadianceWithSM.frag">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="Shaders\GatherRadiance.frag">
       <Filter>Resource Files</Filter>
     </None>
     <None Include="Shaders\PostProcess.frag">

@@ -11,8 +11,7 @@ Camera::Camera(int w, int h, float zNear, float zFar)
 	width = w;
 	height = h;
  
-	projectionMatrix = glm::perspective(45.0f, (float)width / (float)height, 
-																			zNear, zFar);
+	projectionMatrix = glm::perspective(45.0f, (float)width / (float)height, zNear, zFar);
 
 	center = glm::vec3(0.0f, 0.0f, 0.0f);
 	coord.r = 10.0f; coord.phi = 0.0f; coord.theta = PI/2.0f;

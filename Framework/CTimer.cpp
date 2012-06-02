@@ -12,10 +12,10 @@ void CTimer::Init()
 	m_Queries = new GLuint[2 * m_MaxEvents];
 	m_TimesStartGPU = new GLuint[m_MaxEvents];
 	m_TimesEndGPU = new GLuint[m_MaxEvents];
-	m_TimesStartCPU = new time_t[m_MaxEvents];
-	m_TimesEndCPU = new time_t[m_MaxEvents];
+	m_ClocksStartCPU = new clock_t[m_MaxEvents];
+	m_ClocksEndCPU = new clock_t[m_MaxEvents];
 	m_NumberOfStartStops = new GLuint[m_MaxEvents];
-	m_TotalTime = new unsigned long[m_MaxEvents];
+	m_TotalClocks = new clock_t[m_MaxEvents];
 
 	Reset();
 
@@ -31,10 +31,10 @@ CTimer::~CTimer()
 	delete [] m_Queries;
 	delete [] m_TimesStartGPU;
 	delete [] m_TimesEndGPU;
-	delete [] m_TimesStartCPU;
-	delete [] m_TimesEndCPU;
+	delete [] m_ClocksStartCPU;
+	delete [] m_ClocksEndCPU;
 	delete [] m_NumberOfStartStops;
-	delete [] m_TotalTime;
+	delete [] m_TotalClocks;
 }
 
 void CTimer::RegisterEvent(std::string eventName, TIMERTYPE type)
@@ -67,7 +67,7 @@ void CTimer::StartEvent(std::string eventName)
 		}
 		else
 		{
-			m_TimesStartCPU[index] = time(NULL);
+			m_ClocksStartCPU[index] = clock();
 			m_NumberOfStartStops[index]++;
 		}
 	}	
@@ -94,42 +94,49 @@ void CTimer::StopEvent(std::string eventName)
 			if (time < 0) {
 				std::cout << "Measured time <0 !" << std::endl;
 			}
-			unsigned long temp = m_TotalTime[index];
+			/*
+			// does not work
+			double temp = m_TotalTime[index];
 			m_TotalTime[index] += time;
 			if(m_TotalTime[index] < temp){
 				std::cout << "total time overflow!" << std::endl;
 			}
+			*/
 		}
 		else
 		{
-			m_TimesEndCPU[index] = time(NULL);
-			double diff = difftime(m_TimesEndCPU[index], m_TimesStartCPU[index]);
-			GLuint time = GLuint(diff * 1000 * 1000);
-			if (time < 0) {
-				std::cout << "Measured time <0 !" << std::endl;
+			m_ClocksEndCPU[index] = clock();
+			clock_t diff = m_ClocksEndCPU[index] - m_ClocksStartCPU[index];
+			if (diff < 0) {
+				std::cout << "Measured #clocks <0 !" << std::endl;
 			}
-			unsigned long temp = m_TotalTime[index];
-			m_TotalTime[index] += time;
-			if(m_TotalTime[index] < temp){
-				std::cout << "total time overflow!" << std::endl;
+			clock_t temp = m_TotalClocks[index];
+			m_TotalClocks[index] += diff;
+			if(m_TotalClocks[index] < temp) {
+				std::cout << "total #clocks overflow!" << std::endl;
 			}
 		}
 	}	
 }
 
-float CTimer::GetTime(std::string eventName)
+double CTimer::GetTime(std::string eventName)
 {
 	float time = 0;
 	GLuint index = m_mapEventNameToIndex[eventName];
 	if (index == NULL) {
 		std::cout << "Event " << eventName << " not registered." << std::endl;
 	}
-	else {
-		// convert to ms
-		time = ((float)m_TotalTime[index] / (1000*(float)m_NumberOfStartStops[index])); 
-	}
-	
-	return time;
+	return GetTime(index);
+}
+
+double CTimer::GetTime(int eventIndex)
+{
+	clock_t numClocks = m_TotalClocks[eventIndex];
+	double time_total = double(numClocks) / double(CLOCKS_PER_SEC);
+	double time_avg = time_total / m_NumberOfStartStops[eventIndex];
+
+	// convert to ms
+	return time_avg * 1000; 
 }
 
 void CTimer::PrintStats()
@@ -137,12 +144,10 @@ void CTimer::PrintStats()
 	std::cout << "Print timer stats:" << std::endl;
 	for(int i = 1; i < m_Index; ++i)
 	{
-		// convert to ms
-		std::cout << "\t event: " << m_mapEventIndexToName[i]; // << std::endl;
-		//std::cout << "\t \t total time: " << m_TotalTime[i] << std::endl;
-		//std::cout << "\t \t # of measures: " << m_NumberOfStartStops[i] << std::endl;
-		float time = ((float)m_TotalTime[i] / (1000*(float)m_NumberOfStartStops[i])); 
-		std::cout << "\t \t time: " << time << " ms." << std::endl;
+		std::cout << "\t event: " << m_mapEventIndexToName[i] << std::endl;
+		std::cout << "\t \t total time: " << double(m_TotalClocks[i]) / double(CLOCKS_PER_SEC) << std::endl;
+		std::cout << "\t \t # of measures: " << m_NumberOfStartStops[i] << std::endl;
+		std::cout << "\t \t time: " << GetTime(i) << " ms." << std::endl;
 	}
 }
 
@@ -150,7 +155,7 @@ void CTimer::Reset()
 {
 	for (int i = 0; i < m_MaxEvents; ++i) {
 		m_NumberOfStartStops[i] = 0;
-		m_TotalTime[i] = 0;
+		m_TotalClocks[i] = 0;
 	}
 }
 

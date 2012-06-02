@@ -122,7 +122,7 @@ void CObjFileLoader::CreateMeshGeometry(CTempMesh* pTempMesh, CMeshGeometry* pMe
 				std::cout << "normal data index out of range" << std::endl;
 				return;
 			}
-			pGLNormals[index]		= m_Normals[vertex.normalDataIndex - 1];
+			pGLNormals[index] = m_Normals[vertex.normalDataIndex - 1];
 		}
 		if(m_TexCoords.size() > 0 && vertex.texCoordDataIndex != 0)
 		{
@@ -154,10 +154,39 @@ void CObjFileLoader::CreateMeshGeometry(CTempMesh* pTempMesh, CMeshGeometry* pMe
 	pMeshGeometry->SetNumberOfFaces(pTempMesh->m_Triangles.size());
 	pMeshGeometry->SetMeshMaterial(pTempMesh->m_Material);
 	pMeshGeometry->SetIndexData(pGLIndexData);
+	
 	if(pGLPositions)
 		pMeshGeometry->SetPositionData(pGLPositions);
-	if(pGLNormals)
+	
+	if(pGLNormals) {
 		pMeshGeometry->SetNormalData(pGLNormals);
+	}
+	else {
+		// create flat normals
+		pGLNormals = new glm::vec3[nGLVertices];
+		for(uint face_index = 0; face_index < pTempMesh->m_Triangles.size(); face_index++)
+		{
+			ushort index0 = pGLIndexData[3 * face_index + 0];
+			ushort index1 = pGLIndexData[3 * face_index + 1];
+			ushort index2 = pGLIndexData[3 * face_index + 2];
+
+			glm::vec4 vertex0 = pGLPositions[index0];
+			glm::vec4 vertex1 = pGLPositions[index1];
+			glm::vec4 vertex2 = pGLPositions[index2];
+			
+			glm::vec3 u = glm::normalize(glm::vec3(vertex1 - vertex0));
+			glm::vec3 v = glm::normalize(glm::vec3(vertex2 - vertex0));
+
+			glm::vec3 normal = -glm::normalize(glm::cross(u, v));
+
+			pGLNormals[index0] = normal;
+			pGLNormals[index1] = normal;
+			pGLNormals[index2] = normal;
+		}
+
+		pMeshGeometry->SetNormalData(pGLNormals);
+	}
+	
 	if(pGLTexCoords)
 		pMeshGeometry->SetTexCoordData(pGLTexCoords);	
 }

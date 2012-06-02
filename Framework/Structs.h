@@ -20,30 +20,27 @@ struct MATERIAL
 	glm::vec4 diffuseColor;
 };
 
-struct LIGHT
+struct AVPL_STRUCT
 {
-	glm::vec4 Position;
-	glm::vec4 Orientation;
-	glm::vec4 Contrib;
-	glm::vec4 SrcPosition;
-	glm::vec4 SrcOrientation;
-	glm::vec4 SrcContrib;
+	glm::vec4 I;	//Intensity;
+	glm::vec4 A;	//Antiintensity;
+	glm::vec4 pos;	// Position
+	glm::vec4 norm;	//Orientation;
+	glm::vec3 w_A;	//AntiintensityDirection;
+	int Bounce;
 	glm::vec4 DebugColor;
 	glm::mat4 ViewMatrix;
 	glm::mat4 ProjectionMatrix;
-	int Bounce;
 };
 
-struct LIGHT_BUFFER
+struct AVPL_BUFFER
 {
-	glm::vec4 Position;			// 0 - 3
-	glm::vec4 Orientation;		// 4- 7
-	glm::vec4 Contrib;			// 8 - 11
-	glm::vec4 SrcPosition;		// 12 - 15
-	glm::vec4 SrcOrientation;	// 16 - 19
-	glm::vec4 SrcContrib;		// 20 - 23
-	glm::vec4 padd0;
-	glm::vec4 padd1;
+	glm::vec4 I;	//Intensity;
+	glm::vec4 A;	//Antiintensity;
+	glm::vec4 pos;	// Position
+	glm::vec4 norm;	//Orientation;
+	glm::vec3 w_A;	//AntiintensityDirection;
+	int Bounce;		
 };
 
 struct CONFIG
@@ -77,6 +74,11 @@ struct INFO
 	float debugColorR;
 	float debugColorG;
 	float debugColorB;
+};
+
+struct AREA_LIGHT
+{
+	glm::vec4 radiance;
 };
 
 #endif // _STRUCTS_H_

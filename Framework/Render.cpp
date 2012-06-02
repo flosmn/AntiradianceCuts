@@ -5,16 +5,15 @@
 #include "Macros.h"
 #include "Structs.h"
 
-#include "CAccumulationBuffer.h"
 #include "CGBuffer.h"
 #include "CTimer.h"
 #include "CProgram.h"
 #include "CPointCloud.h"
 #include "CExport.h"
 
+#include "AVPL.h"
 #include "Scene.h"
 #include "Camera.h"
-#include "Light.h"
 #include "CShadowMap.h"
 #include "CPostprocess.h"
 #include "CRenderTarget.h"
@@ -36,6 +35,7 @@
 #include <memory>
 #include <string>
 #include <sstream>
+#include <time.h>
 
 std::vector<Light*> initialLights;
 
@@ -48,16 +48,12 @@ Renderer::Renderer(Camera* _camera) {
 	m_PartialSum = true;
 
 	m_Export = new CExport();
-	
+	m_Timer = new CTimer(1000);
+
 	m_pDepthBuffer = new CGLTexture2D("Renderer.m_pDepthBuffer");
 	
 	m_pGBuffer = new CGBuffer();
-	m_pAccumulationRadiance = new CAccumulationBuffer();
-	m_pAccumulationAntiradiance = new CAccumulationBuffer();
-	m_pNormalizedRadiance = new CAccumulationBuffer();
-	m_pNormalizedAntiradiance = new CAccumulationBuffer();
-	m_pFinalResult = new CAccumulationBuffer();
-	
+		
 	m_pLightDebugRenderTarget = new CRenderTarget();
 	m_pPostProcessRenderTarget = new CRenderTarget();
 	m_pPostProcess = new CPostprocess();
@@ -70,36 +66,32 @@ Renderer::Renderer(Camera* _camera) {
 	m_pUBConfig = new CGLUniformBuffer("Renderer.m_pUBConfig");
 	m_pUBCamera = new CGLUniformBuffer("Renderer.m_pUBCamera");
 	m_pUBInfo = new CGLUniformBuffer("Renderer.m_pUBInfo");
+	m_pUBAreaLight = new CGLUniformBuffer("Renderer.m_pUBAreaLight");
 
 	m_pGLPointSampler = new CGLSampler("Renderer.m_pGLPointSampler");
 	m_pGLShadowMapSampler = new CGLSampler("Renderer.m_pGLShadowMapSampler");
 
-	m_pAccumRenderTarget = new CRenderTarget();
+	m_pGatherRenderTarget = new CRenderTarget();
 	m_pNormalizeRenderTarget = new CRenderTarget();
 	m_pShadeRenderTarget = new CRenderTarget();
 
 	m_pGatherProgram = new CProgram("Renderer.m_pGatherProgram", "Shaders\\Gather.vert", "Shaders\\Gather.frag");
-	m_pNormalizeProgram = new CProgram("Renderer.m_pNormalizeRadianceProgram", "Shaders\\Gather.vert", "Shaders\\Normalize.frag");
-	m_pShadeProgram = new CProgram("Renderer.m_pNormalizeRadianceProgram", "Shaders\\Gather.vert", "Shaders\\Shade.frag");
+	m_pNormalizeProgram = new CProgram("Renderer.m_pNormalizeProgram", "Shaders\\Gather.vert", "Shaders\\Normalize.frag");
+	m_pShadeProgram = new CProgram("Renderer.m_pShadeProgram", "Shaders\\Gather.vert", "Shaders\\Shade.frag");
 
 	m_pCreateGBufferProgram = new CProgram("Renderer.m_pCreateGBufferProgram", "Shaders\\CreateGBuffer.vert", "Shaders\\CreateGBuffer.frag");
 	m_pCreateSMProgram = new CProgram("Renderer.m_pCreateSMProgram", "Shaders\\CreateSM.vert", "Shaders\\CreateSM.frag");
 	m_pGatherRadianceWithSMProgram = new CProgram("Renderer.m_pGatherRadianceWithSMProgram", "Shaders\\Gather.vert", "Shaders\\GatherRadianceWithSM.frag");
-	m_pGatherRadianceProgram = new CProgram("Renderer.m_pGatherRadianceProgram", "Shaders\\Gather.vert", "Shaders\\GatherRadiance.frag");
-	m_pGatherAntiradianceProgram = new CProgram("Renderer.m_pGatherAntiradianceProgram", "Shaders\\Gather.vert", "Shaders\\GatherAntiradiance.frag");
-	m_pFinalGatherProgram = new CProgram("Renderer.m_pFinalGatherProgram", "Shaders\\Gather.vert", "Shaders\\FinalGather.frag");
-	m_pNormalizeRadianceProgram = new CProgram("Renderer.m_pNormalizeRadianceProgram", "Shaders\\Gather.vert", "Shaders\\Normalize.frag");
 	m_pPointCloudProgram = new CProgram("Renderer.m_pPointCloudProgram", "Shaders\\PointCloud.vert", "Shaders\\PointCloud.frag");
-		
+	m_pAreaLightProgram = new CProgram("Renderer.m_pAreaLightProgram", "Shaders\\DrawAreaLight.vert", "Shaders\\DrawAreaLight.frag");
+
 	m_pFullScreenQuad = new CFullScreenQuad();
 
 	m_pPointCloud = new CPointCloud();
 
 	m_pLightBuffer = new CGLTextureBuffer("Renderer.m_pLightBuffer");
 
-	m_BlurSigma = .1f;
 	m_RenderBounce = -1;
-
 	m_Frame = 0;
 	m_CurrentPath = 0;
 	m_N = 50;
@@ -117,13 +109,8 @@ Renderer::~Renderer() {
 	SAFE_DELETE(m_Export);
 	SAFE_DELETE(m_pShadowMap);
 	SAFE_DELETE(m_pGBuffer);
-	SAFE_DELETE(m_pAccumulationRadiance);
-	SAFE_DELETE(m_pAccumulationAntiradiance);
-	SAFE_DELETE(m_pNormalizedRadiance);
-	SAFE_DELETE(m_pNormalizedAntiradiance);
-	SAFE_DELETE(m_pFinalResult);
 	
-	SAFE_DELETE(m_pAccumRenderTarget);
+	SAFE_DELETE(m_pGatherRenderTarget);
 	SAFE_DELETE(m_pNormalizeRenderTarget);
 	SAFE_DELETE(m_pShadeProgram);
 		
@@ -145,21 +132,21 @@ Renderer::~Renderer() {
 	SAFE_DELETE(m_pUBConfig);
 	SAFE_DELETE(m_pUBCamera);
 	SAFE_DELETE(m_pUBInfo);
+	SAFE_DELETE(m_pUBAreaLight);
 
 	SAFE_DELETE(m_pCreateGBufferProgram);
 	SAFE_DELETE(m_pCreateSMProgram);
-	SAFE_DELETE(m_pGatherRadianceProgram);
 	SAFE_DELETE(m_pGatherRadianceWithSMProgram);
-	SAFE_DELETE(m_pGatherAntiradianceProgram);
-	SAFE_DELETE(m_pFinalGatherProgram);
-	SAFE_DELETE(m_pNormalizeRadianceProgram);
 	SAFE_DELETE(m_pPointCloudProgram);
+	SAFE_DELETE(m_pAreaLightProgram);
 
 	SAFE_DELETE(m_pGLPointSampler);
 	SAFE_DELETE(m_pGLShadowMapSampler);
 
 	SAFE_DELETE(m_pDepthBuffer);
 	SAFE_DELETE(m_pLightBuffer);
+
+	SAFE_DELETE(m_Timer);
 }
 
 bool Renderer::Init() 
@@ -168,10 +155,11 @@ bool Renderer::Init()
 
 	V_RET_FOF(m_pUBTransform->Init(sizeof(TRANSFORM), 0, GL_DYNAMIC_DRAW));
 	V_RET_FOF(m_pUBMaterial->Init(sizeof(MATERIAL), 0, GL_DYNAMIC_DRAW));
-	V_RET_FOF(m_pUBLight->Init(sizeof(LIGHT), 0, GL_DYNAMIC_DRAW));
+	V_RET_FOF(m_pUBLight->Init(sizeof(AVPL), 0, GL_DYNAMIC_DRAW));
 	V_RET_FOF(m_pUBConfig->Init(sizeof(CONFIG), 0, GL_DYNAMIC_DRAW));
 	V_RET_FOF(m_pUBCamera->Init(sizeof(CAMERA), 0, GL_DYNAMIC_DRAW));
 	V_RET_FOF(m_pUBInfo->Init(sizeof(INFO), 0, GL_DYNAMIC_DRAW));
+	V_RET_FOF(m_pUBAreaLight->Init(sizeof(AREA_LIGHT), 0, GL_DYNAMIC_DRAW));
 
 	V_RET_FOF(m_pTextureViewer->Init());
 	V_RET_FOF(m_pPointCloud->Init());
@@ -179,24 +167,24 @@ bool Renderer::Init()
 	
 	V_RET_FOF(m_pCreateGBufferProgram->Init());
 	V_RET_FOF(m_pCreateSMProgram->Init());
-	V_RET_FOF(m_pGatherRadianceProgram->Init());
 	V_RET_FOF(m_pGatherRadianceWithSMProgram->Init());
-	V_RET_FOF(m_pGatherAntiradianceProgram->Init());
-	V_RET_FOF(m_pFinalGatherProgram->Init());
-	V_RET_FOF(m_pNormalizeRadianceProgram->Init());
 	V_RET_FOF(m_pPointCloudProgram->Init());
 
 	V_RET_FOF(m_pGatherProgram->Init());
 	V_RET_FOF(m_pNormalizeProgram->Init());
 	V_RET_FOF(m_pShadeProgram->Init());
-	
-	V_RET_FOF(m_pAccumRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 3, 0));
+	V_RET_FOF(m_pAreaLightProgram->Init());
+
+	V_RET_FOF(m_pGatherRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 3, 0));
 	V_RET_FOF(m_pNormalizeRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 3, 0));
-	V_RET_FOF(m_pShadeRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 1, 0));
+	V_RET_FOF(m_pShadeRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 1, m_pDepthBuffer));
 
 	V_RET_FOF(m_pPostProcess->Init());
 	V_RET_FOF(m_pPostProcessRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 1, 0));
 	V_RET_FOF(m_pLightDebugRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 1, m_pDepthBuffer));
+
+	m_pAreaLightProgram->BindUniformBuffer(m_pUBTransform, "transform");
+	m_pAreaLightProgram->BindUniformBuffer(m_pUBAreaLight, "arealight");
 
 	m_pCreateGBufferProgram->BindUniformBuffer(m_pUBTransform, "transform");
 	m_pCreateGBufferProgram->BindUniformBuffer(m_pUBMaterial, "material");
@@ -205,37 +193,12 @@ bool Renderer::Init()
 	m_pGatherRadianceWithSMProgram->BindUniformBuffer(m_pUBConfig, "config");
 	m_pGatherRadianceWithSMProgram->BindUniformBuffer(m_pUBCamera, "camera");
 
-	m_pGatherRadianceProgram->BindUniformBuffer(m_pUBInfo, "info_block");
-	m_pGatherRadianceProgram->BindUniformBuffer(m_pUBConfig, "config");
-	m_pGatherRadianceProgram->BindUniformBuffer(m_pUBCamera, "camera");
-	
-	m_pGatherAntiradianceProgram->BindUniformBuffer(m_pUBInfo, "info_block");
-	m_pGatherAntiradianceProgram->BindUniformBuffer(m_pUBConfig, "config");
-	m_pGatherAntiradianceProgram->BindUniformBuffer(m_pUBCamera, "camera");
-	
-	m_pFinalGatherProgram->BindUniformBuffer(m_pUBCamera, "camera");	
-
-	m_pNormalizeRadianceProgram->BindUniformBuffer(m_pUBConfig, "config");
-	m_pNormalizeRadianceProgram->BindUniformBuffer(m_pUBCamera, "camera");
-
 	V_RET_FOF(m_pGLPointSampler->Init(GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT));
 	V_RET_FOF(m_pGLShadowMapSampler->Init(GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER));
 	
 	m_pGatherRadianceWithSMProgram->BindSampler(0, m_pGLShadowMapSampler);
 	m_pGatherRadianceWithSMProgram->BindSampler(1, m_pGLPointSampler);
 	m_pGatherRadianceWithSMProgram->BindSampler(2, m_pGLPointSampler);
-
-	m_pGatherRadianceProgram->BindSampler(0, m_pGLPointSampler);
-	m_pGatherRadianceProgram->BindSampler(1, m_pGLPointSampler);
-	m_pGatherRadianceProgram->BindSampler(2, m_pGLPointSampler);
-
-	m_pGatherAntiradianceProgram->BindSampler(0, m_pGLPointSampler);
-	m_pGatherAntiradianceProgram->BindSampler(1, m_pGLPointSampler);
-	m_pGatherAntiradianceProgram->BindSampler(2, m_pGLPointSampler);
-
-	m_pFinalGatherProgram->BindSampler(0, m_pGLPointSampler);
-	m_pFinalGatherProgram->BindSampler(1, m_pGLPointSampler);
-	m_pFinalGatherProgram->BindSampler(2, m_pGLPointSampler);
 
 	m_pGatherProgram->BindSampler(0, m_pGLPointSampler);
 	m_pGatherProgram->BindSampler(1, m_pGLPointSampler);
@@ -257,19 +220,11 @@ bool Renderer::Init()
 
 	m_pShadeProgram->BindUniformBuffer(m_pUBCamera, "camera");
 
-	m_pNormalizeRadianceProgram->BindSampler(0, m_pGLPointSampler);
-
 	V_RET_FOF(m_pFullScreenQuad->Init());
 
 	V_RET_FOF(m_pShadowMap->Init(512));
 	
 	V_RET_FOF(m_pGBuffer->Init(camera->GetWidth(), camera->GetHeight(), m_pDepthBuffer));
-
-	V_RET_FOF(m_pAccumulationRadiance->Init(camera->GetWidth(), camera->GetHeight(), 0));
-	V_RET_FOF(m_pAccumulationAntiradiance->Init(camera->GetWidth(), camera->GetHeight(), 0));
-	V_RET_FOF(m_pNormalizedRadiance->Init(camera->GetWidth(), camera->GetHeight(), 0));
-	V_RET_FOF(m_pNormalizedAntiradiance->Init(camera->GetWidth(), camera->GetHeight(), 0));
-	V_RET_FOF(m_pFinalResult->Init(camera->GetWidth(), camera->GetHeight(), m_pDepthBuffer));
 
 	ClearAccumulationBuffer();
 
@@ -281,16 +236,17 @@ bool Renderer::Init()
 
 	drawLight = false;
 	drawTexture = false;
-	m_PrintTimes = false;
-	m_DrawOnlyDirectLight = false;
-	m_DrawOnlyIndirectLight = false;
 	
 	m_UseAntiradiance = true;
-	m_DrawAntiradiance = false;
 	m_GeoTermLimit = 0.05f;
-	m_CosBlurFactor = 0.1f;
+	m_ToneMapping = true;
 
 	ConfigureLighting();
+
+	time(&m_StartTime);
+
+	m_Timer->Init();
+	m_Timer->RegisterEvent("Create Paths", CTimer::CPU);
 
 	return true;
 }
@@ -302,11 +258,6 @@ void Renderer::Release()
 	m_pDepthBuffer->Release();
 
 	m_pGBuffer->Release();
-	m_pAccumulationRadiance->Release();
-	m_pAccumulationAntiradiance->Release();
-	m_pNormalizedRadiance->Release();
-	m_pNormalizedAntiradiance->Release();
-	m_pFinalResult->Release();
 	m_pTextureViewer->Release();
 	m_pFullScreenQuad->Release();
 	m_pPointCloud->Release();
@@ -323,13 +274,10 @@ void Renderer::Release()
 	m_pCreateGBufferProgram->Release();
 	m_pCreateSMProgram->Release();
 	m_pGatherRadianceWithSMProgram->Release();
-	m_pGatherRadianceProgram->Release();
-	m_pGatherAntiradianceProgram->Release();
-	m_pFinalGatherProgram->Release();
-	m_pNormalizeRadianceProgram->Release();
 	m_pPointCloudProgram->Release();
+	m_pAreaLightProgram->Release();
 
-	m_pAccumRenderTarget->Release();
+	m_pGatherRenderTarget->Release();
 	m_pNormalizeRenderTarget->Release();
 	m_pShadeRenderTarget->Release();
 
@@ -346,6 +294,7 @@ void Renderer::Release()
 	m_pUBConfig->Release();
 	m_pUBCamera->Release();
 	m_pUBInfo->Release();
+	m_pUBAreaLight->Release();
 }
 
 void Renderer::Render() 
@@ -353,34 +302,31 @@ void Renderer::Render()
 	SetUpRender();
 		
 	CreateGBuffer();
-		
+	
 	if(m_UseAntiradiance)
 	{
 		if(m_CurrentPath < m_NumPaths)
 		{
-			std::vector<Light*> lights;
+			m_Timer->StartEvent("Create Paths");
+			std::vector<AVPL*> avpls;
 			int remaining = m_NumPaths - m_CurrentPath;
 			if(remaining >= m_NumPathsPerFrame)
 			{
-				lights = scene->CreatePaths(m_NumPathsPerFrame, m_N, m_NumAdditionalAVPLs, m_UseHammersley);
+				avpls = scene->CreatePaths(m_NumPathsPerFrame, m_N, m_NumAdditionalAVPLs, m_UseHammersley);
 				m_CurrentPath += m_NumPathsPerFrame;
 			}
 			else
 			{
-				 lights = scene->CreatePaths(remaining, m_N, m_NumAdditionalAVPLs, m_UseHammersley);
+				 avpls = scene->CreatePaths(remaining, m_N, m_NumAdditionalAVPLs, m_UseHammersley);
 				 m_CurrentPath += remaining;
 			}
+			m_Timer->StopEvent("Create Paths");
 
-			Gather(lights);
+			Gather(avpls);
 
-			GatherAntiradiance(lights);
-			GatherRadiance(lights);
-			
-			DrawLights(lights);
-			
-			for(uint i = 0; i < lights.size(); ++i)
+			for(uint i = 0; i < avpls.size(); ++i)
 			{
-				delete lights[i];
+				delete avpls[i];
 			}
 
 			if(m_CurrentPath >= m_NumPaths && !m_Finished)
@@ -394,10 +340,12 @@ void Renderer::Render()
 	{
 		if(m_CurrentPath < m_NumPaths)
 		{
-			std::vector<Light*> path = scene->CreatePath(m_N, m_NumAdditionalAVPLs, m_UseHammersley);
+			std::vector<AVPL*> path = scene->CreatePath(m_N, m_NumAdditionalAVPLs, m_UseHammersley);
 
 			GatherRadianceWithShadowMap(path);
 	
+			DrawLights(path);
+
 			m_CurrentPath++;
 		}
 		else{
@@ -407,47 +355,33 @@ void Renderer::Render()
 			m_Finished = true;
 		}
 	}
-		
+
 	Normalize();
 	
-	GLenum buffers[1] = { GL_COLOR_ATTACHMENT0 };
-	{
-		CGLRenderTargetLock lock(m_pFinalResult->GetRenderTarget(), 1, buffers);
-	
-		glDisable(GL_DEPTH_TEST);
-		glDepthMask(GL_FALSE);
-		
-		FinalGather();
-		
-		glEnable(GL_DEPTH_TEST);
-		glDepthMask(GL_TRUE);
-		
-		DrawAreaLight();
-		
-		DebugRender();		
-	}
-
 	Shade();
-		
-	glViewport(0, 0, (GLsizei)scene->GetCamera()->GetWidth(), (GLsizei)scene->GetCamera()->GetHeight());
 	
-	if(m_PartialSum)
+	if(m_ToneMapping)
 	{
 		m_pPostProcess->Postprocess(m_pShadeRenderTarget->GetBuffer(0), m_pPostProcessRenderTarget);
 		m_pTextureViewer->DrawTexture(m_pPostProcessRenderTarget->GetBuffer(0), 0, 0, camera->GetWidth(), camera->GetHeight());
 	}
 	else
 	{
-		m_pPostProcess->Postprocess(m_pFinalResult->GetTexture(), m_pPostProcessRenderTarget);
-		m_pTextureViewer->DrawTexture(m_pPostProcessRenderTarget->GetBuffer(0), 0, 0, camera->GetWidth(), camera->GetHeight());
+		m_pTextureViewer->DrawTexture(m_pShadeRenderTarget->GetBuffer(0), 0, 0, camera->GetWidth(), camera->GetHeight());
 	}
+	
 	m_Frame++;
-
-	if(m_Frame % 100 == 0)
+	
+	if(m_Frame % 10 == 0)
 	{
-		std::stringstream ss;
-		ss << "result" << m_Frame << "frames.pfm";
-		m_Export->ExportPFM(m_pNormalizeRenderTarget->GetBuffer(0), ss.str());
+		m_Timer->PrintStats();
+		m_Timer->Reset();
+	}
+
+	if(m_Frame % 1000 == 0)
+	{
+		ExportPartialResult();
+		std::cout << "#Paths: " << m_CurrentPath << std::endl;
 	}
 }
 
@@ -481,9 +415,9 @@ void Renderer::CreateGBuffer()
 	scene->DrawScene(m_pUBTransform, m_pUBMaterial);
 }
 
-void Renderer::GatherRadianceWithShadowMap(std::vector<Light*> path)
+void Renderer::GatherRadianceWithShadowMap(std::vector<AVPL*> path)
 {
-	std::vector<Light*>::iterator it;
+	std::vector<AVPL*>::iterator it;
 	for(it = path.begin(); it < path.end(); ++it)
 	{
 		GatherRadianceFromLightWithShadowMap(*it);
@@ -494,31 +428,6 @@ void Renderer::Normalize()
 {
 	ConfigureLighting();
 	
-	GLenum buffers[1] = { GL_COLOR_ATTACHMENT0 };
-	{
-		CGLRenderTargetLock lock(m_pNormalizedRadiance->GetRenderTarget(), 1, buffers);
-
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		CGLBindLock lockProgram(m_pNormalizeRadianceProgram->GetGLProgram(), CGL_PROGRAM_SLOT);
-
-		CGLBindLock lock0(m_pAccumulationRadiance->GetTexture(), CGL_TEXTURE0_SLOT);
-
-		m_pFullScreenQuad->Draw();
-	}
-
-	{
-		CGLRenderTargetLock lock(m_pNormalizedAntiradiance->GetRenderTarget(), 1, buffers);
-
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		CGLBindLock lockProgram(m_pNormalizeRadianceProgram->GetGLProgram(), CGL_PROGRAM_SLOT);
-
-		CGLBindLock lock0(m_pAccumulationAntiradiance->GetTexture(), CGL_TEXTURE0_SLOT);
-
-		m_pFullScreenQuad->Draw();
-	}
-
 	{
 		CRenderTargetLock lock(m_pNormalizeRenderTarget);
 
@@ -526,22 +435,22 @@ void Renderer::Normalize()
 
 		CGLBindLock lockProgram(m_pNormalizeProgram->GetGLProgram(), CGL_PROGRAM_SLOT);
 
-		CGLBindLock lock0(m_pAccumRenderTarget->GetBuffer(0), CGL_TEXTURE0_SLOT);
-		CGLBindLock lock1(m_pAccumRenderTarget->GetBuffer(1), CGL_TEXTURE1_SLOT);
-		CGLBindLock lock2(m_pAccumRenderTarget->GetBuffer(2), CGL_TEXTURE2_SLOT);
+		CGLBindLock lock0(m_pGatherRenderTarget->GetBuffer(0), CGL_TEXTURE0_SLOT);
+		CGLBindLock lock1(m_pGatherRenderTarget->GetBuffer(1), CGL_TEXTURE1_SLOT);
+		CGLBindLock lock2(m_pGatherRenderTarget->GetBuffer(2), CGL_TEXTURE2_SLOT);
 
 		m_pFullScreenQuad->Draw();
 	}
 }
 
-void Renderer::GatherRadianceFromLightWithShadowMap(Light* light)
+void Renderer::GatherRadianceFromLightWithShadowMap(AVPL* avpl)
 {
-	FillShadowMap(light);
+	FillShadowMap(avpl);
 	
-	if(light->GetContrib().length() == 0.f)
+	if(avpl->GetIntensity().length() == 0.f)
 		return;
 	
-	if(light->GetBounce() != m_RenderBounce && m_RenderBounce != -1)
+	if(avpl->GetBounce() != m_RenderBounce && m_RenderBounce != -1)
 		return;
 	
 	glDisable(GL_DEPTH_TEST);
@@ -549,13 +458,12 @@ void Renderer::GatherRadianceFromLightWithShadowMap(Light* light)
 	glBlendFunc(GL_ONE, GL_ONE);
 	glViewport(0, 0, camera->GetWidth(), camera->GetHeight());
 	
-	GLenum buffers[1] = { GL_COLOR_ATTACHMENT0 };
-	CGLRenderTargetLock lock(m_pAccumulationRadiance->GetRenderTarget(), 1, buffers);
+	CRenderTargetLock lock(m_pGatherRenderTarget);
 
 	CGLBindLock lockProgram(m_pGatherRadianceWithSMProgram->GetGLProgram(), CGL_PROGRAM_SLOT);
 
-	LIGHT light_info;
-	light->Fill(light_info);
+	AVPL_STRUCT light_info;
+	avpl->Fill(light_info);
 	m_pUBLight->UpdateData(&light_info);
 
 	CGLBindLock lock0(m_pShadowMap->GetShadowMapTexture(), CGL_TEXTURE0_SLOT);
@@ -568,93 +476,46 @@ void Renderer::GatherRadianceFromLightWithShadowMap(Light* light)
 	glDisable(GL_BLEND);
 }
 
-void Renderer::GatherRadiance(std::vector<Light*> lights)
+void Renderer::Gather(std::vector<AVPL*> avpls)
 {
-	std::vector<Light*> useLights;
-	for(uint i = 0; i < lights.size(); ++i)
+	std::vector<AVPL*> useAVPLs;
+	if(m_RenderBounce == -1)
 	{
-		Light* light = lights[i];
-		if(light->GetContrib().length() == 0.f)
-			continue;
-
-		if(light->GetBounce() != m_RenderBounce && m_RenderBounce != -1)
-			continue;
-	
-		useLights.push_back(light);
+		// use all avpls
+		useAVPLs = avpls;
+	}
+	else
+	{
+		// collect all avpls contributing to the illumination
+		for(uint i = 0; i < avpls.size(); ++i)
+		{
+			AVPL* avpl = avpls[i];
+			if(avpl->GetBounce() != m_RenderBounce + 1) avpl->SetAntiintensity(glm::vec3(0.f));
+			if(avpl->GetBounce() != m_RenderBounce) avpl->SetIntensity(glm::vec3(0.f));
+			useAVPLs.push_back(avpl);
+		}
 	}
 
-	LIGHT_BUFFER* lightBuffer = new LIGHT_BUFFER[useLights.size() + 1];
-	memset(lightBuffer, 0, sizeof(LIGHT_BUFFER) * useLights.size() + 1);
-	for(uint i = 0; i < useLights.size(); ++i)
+	AVPL_BUFFER* avplBuffer = new AVPL_BUFFER[useAVPLs.size() + 1];
+	memset(avplBuffer, 0, sizeof(AVPL_BUFFER) * useAVPLs.size() + 1);
+	for(uint i = 0; i < useAVPLs.size(); ++i)
 	{
-		LIGHT_BUFFER l;
-		useLights[i]->Fill(l);
-		lightBuffer[i] = l;
+		AVPL_BUFFER buffer;
+		useAVPLs[i]->Fill(buffer);
+		avplBuffer[i] = buffer;
 	}
-	m_pLightBuffer->SetContent(sizeof(LIGHT_BUFFER), useLights.size() + 1, lightBuffer, GL_STATIC_DRAW);
-	delete [] lightBuffer;
+	m_pLightBuffer->SetContent(sizeof(AVPL_BUFFER), useAVPLs.size() + 1, avplBuffer, GL_STATIC_DRAW);
+	delete [] avplBuffer;
 
 	INFO i;
-	i.numLights = useLights.size();
+	i.numLights = useAVPLs.size();
 	m_pUBInfo->UpdateData(&i);
 
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);	
 	glBlendFunc(GL_ONE, GL_ONE);
-	glViewport(0, 0, camera->GetWidth(), camera->GetHeight());
 	
-	GLenum buffers[1] = { GL_COLOR_ATTACHMENT0 };
-	CGLRenderTargetLock lock(m_pAccumulationRadiance->GetRenderTarget(), 1, buffers);
-
-	CGLBindLock lockProgram(m_pGatherRadianceProgram->GetGLProgram(), CGL_PROGRAM_SLOT);
-
-	CGLBindLock lock0(m_pGBuffer->GetPositionTextureWS(), CGL_TEXTURE0_SLOT);
-	CGLBindLock lock1(m_pGBuffer->GetNormalTexture(), CGL_TEXTURE1_SLOT);
-	CGLBindLock lock2(m_pLightBuffer, CGL_TEXTURE2_SLOT);
-
-	m_pFullScreenQuad->Draw();
-	
-	glEnable(GL_DEPTH_TEST);
-	glDisable(GL_BLEND);
-}
-
-void Renderer::Gather(std::vector<Light*> lights)
-{
-	std::vector<Light*> useLights;
-	for(uint i = 0; i < lights.size(); ++i)
-	{
-		Light* light = lights[i];
-		
-		if(light->GetBounce() != m_RenderBounce + 1 && m_RenderBounce != -1)
-			light->SetSrcContrib(glm::vec3(0.f));
-	
-		if(light->GetBounce() != m_RenderBounce && m_RenderBounce != -1)
-			light->SetContrib(glm::vec3(0.f));
-
-		useLights.push_back(light);
-	}
-
-	LIGHT_BUFFER* lightBuffer = new LIGHT_BUFFER[useLights.size() + 1];
-	memset(lightBuffer, 0, sizeof(LIGHT_BUFFER) * useLights.size() + 1);
-	for(uint i = 0; i < useLights.size(); ++i)
-	{
-		LIGHT_BUFFER l;
-		useLights[i]->Fill(l);
-		lightBuffer[i] = l;
-	}
-	m_pLightBuffer->SetContent(sizeof(LIGHT_BUFFER), useLights.size() + 1, lightBuffer, GL_STATIC_DRAW);
-	delete [] lightBuffer;
-
-	INFO i;
-	i.numLights = useLights.size();
-	m_pUBInfo->UpdateData(&i);
-
-	glDisable(GL_DEPTH_TEST);
-	glEnable(GL_BLEND);	
-	glBlendFunc(GL_ONE, GL_ONE);
-	glViewport(0, 0, camera->GetWidth(), camera->GetHeight());
-	
-	CRenderTargetLock lockRenderTarget(m_pAccumRenderTarget);
+	CRenderTargetLock lockRenderTarget(m_pGatherRenderTarget);
 
 	CGLBindLock lockProgram(m_pGatherProgram->GetGLProgram(), CGL_PROGRAM_SLOT);
 
@@ -668,57 +529,7 @@ void Renderer::Gather(std::vector<Light*> lights)
 	glDisable(GL_BLEND);
 }
 
-void Renderer::GatherAntiradiance(std::vector<Light*> lights)
-{
-	std::vector<Light*> useLights;
-	for(uint i = 0; i < lights.size(); ++i)
-	{
-		Light* light = lights[i];
-		if(glm::length(light->GetSrcContrib()) <= 0.01f)
-			continue;
-
-		if(light->GetBounce() != m_RenderBounce + 1 && m_RenderBounce != -1)
-			continue;
-	
-		useLights.push_back(light);
-	}
-
-	LIGHT_BUFFER* lightBuffer = new LIGHT_BUFFER[useLights.size() + 1];
-	memset(lightBuffer, 0, sizeof(LIGHT_BUFFER) * useLights.size() + 1);
-	for(uint i = 0; i < useLights.size(); ++i)
-	{
-		LIGHT_BUFFER l;
-		useLights[i]->Fill(l);
-		lightBuffer[i] = l;
-	}
-	m_pLightBuffer->SetContent(sizeof(LIGHT_BUFFER), useLights.size() + 1, lightBuffer, GL_STATIC_DRAW);
-	delete [] lightBuffer;
-
-	INFO i;
-	i.numLights = useLights.size();
-	m_pUBInfo->UpdateData(&i);
-	
-	glDisable(GL_DEPTH_TEST);
-	glEnable(GL_BLEND);	
-	glBlendFunc(GL_ONE, GL_ONE);
-	glViewport(0, 0, camera->GetWidth(), camera->GetHeight());
-	
-	GLenum buffers[1] = { GL_COLOR_ATTACHMENT0 };
-	CGLRenderTargetLock lock(m_pAccumulationAntiradiance->GetRenderTarget(), 1, buffers);
-
-	CGLBindLock lockProgram(m_pGatherAntiradianceProgram->GetGLProgram(), CGL_PROGRAM_SLOT);
-	
-	CGLBindLock lock0(m_pGBuffer->GetPositionTextureWS(), CGL_TEXTURE0_SLOT);
-	CGLBindLock lock1(m_pGBuffer->GetNormalTexture(), CGL_TEXTURE1_SLOT);
-	CGLBindLock lock2(m_pLightBuffer, CGL_TEXTURE2_SLOT);
-	
-	m_pFullScreenQuad->Draw();
-	
-	glEnable(GL_DEPTH_TEST);
-	glDisable(GL_BLEND);
-}
-
-void Renderer::FillShadowMap(Light* light)
+void Renderer::FillShadowMap(AVPL* avpl)
 {
 	glEnable(GL_DEPTH_TEST);
 
@@ -734,40 +545,31 @@ void Renderer::FillShadowMap(Light* light)
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-	scene->DrawScene(light->GetViewMatrix(), light->GetProjectionMatrix(), m_pUBTransform);
+	scene->DrawScene(avpl->GetViewMatrix(), avpl->GetProjectionMatrix(), m_pUBTransform);
 
 	glViewport(0, 0, camera->GetWidth(), camera->GetHeight());
 	glDisable(GL_POLYGON_OFFSET_FILL);
-}
-
-void Renderer::FinalGather()
-{
-	CGLBindLock lockProgram(m_pFinalGatherProgram->GetGLProgram(), CGL_PROGRAM_SLOT);
-
-	CGLBindLock lock0(m_pNormalizedRadiance->GetTexture(), CGL_TEXTURE0_SLOT);
-	CGLBindLock lock1(m_pNormalizedAntiradiance->GetTexture(), CGL_TEXTURE1_SLOT);
-	CGLBindLock lock2(m_pGBuffer->GetMaterialTexture(), CGL_TEXTURE2_SLOT);
-
-	m_pFullScreenQuad->Draw();
 }
 
 void Renderer::Shade()
 {
 	CRenderTargetLock lock(m_pShadeRenderTarget);
 	
-	glDisable(GL_DEPTH_TEST);
-	glDepthMask(GL_FALSE);
-	
-	CGLBindLock lockProgram(m_pShadeProgram->GetGLProgram(), CGL_PROGRAM_SLOT);
+	{
+		glDisable(GL_DEPTH_TEST);
+		glDepthMask(GL_FALSE);
 
-	CGLBindLock lock0(m_pNormalizeRenderTarget->GetBuffer(0), CGL_TEXTURE0_SLOT);
-	CGLBindLock lock2(m_pGBuffer->GetMaterialTexture(), CGL_TEXTURE2_SLOT);
+		CGLBindLock lockProgram(m_pShadeProgram->GetGLProgram(), CGL_PROGRAM_SLOT);
 
-	m_pFullScreenQuad->Draw();
+		CGLBindLock lock0(m_pNormalizeRenderTarget->GetBuffer(0), CGL_TEXTURE0_SLOT);
+		CGLBindLock lock2(m_pGBuffer->GetMaterialTexture(), CGL_TEXTURE1_SLOT);
+
+		m_pFullScreenQuad->Draw();
 		
-	glEnable(GL_DEPTH_TEST);
-	glDepthMask(GL_TRUE);
-		
+		glEnable(GL_DEPTH_TEST);
+		glDepthMask(GL_TRUE);
+	}
+
 	DrawAreaLight();
 		
 	DebugRender();
@@ -775,34 +577,35 @@ void Renderer::Shade()
 
 void Renderer::DrawAreaLight()
 {
+	CGLBindLock lock(m_pAreaLightProgram->GetGLProgram(), CGL_PROGRAM_SLOT);
+	
 	// avoid z-fighting
+	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(-1.0f, 1.0f);
 	glDepthFunc(GL_LEQUAL);
-	
-	scene->DrawAreaLight(m_pUBTransform);
+
+	scene->DrawAreaLight(m_pUBTransform, m_pUBAreaLight);
+	glDisable(GL_POLYGON_OFFSET_FILL);
 }
 
-void Renderer::DrawLights(std::vector<Light*> lights)
+void Renderer::DrawLights(std::vector<AVPL*> avpls)
 {	
 	std::vector<POINT_CLOUD_POINT> pcp;
-	for(int i = 0; i < m_CurrentPath; ++i)
-	{
-		std::vector<Light*>::iterator it;
+	std::vector<AVPL*>::iterator it;
 
-		for ( it=lights.begin() ; it < lights.end(); it++ )
+	for ( it=avpls.begin() ; it < avpls.end(); it++ )
+	{
+		AVPL* avpl = *it;
+		if(m_RenderBounce == -1 || (avpl->GetBounce() == m_RenderBounce || avpl->GetBounce() == m_RenderBounce + 1))
 		{
-			Light* light = *it;
-			if(m_RenderBounce == -1 || (light->GetBounce() == m_RenderBounce || light->GetBounce() == m_RenderBounce + 1))
-			{
-				POINT_CLOUD_POINT p;
-				glm::vec3 pos = light->GetPosition() + 0.05f * light->GetOrientation();
-				p.position = glm::vec4(pos, 1.0f);
-				p.color = ColorForLight(light);
-				pcp.push_back(p);
-			}
+			POINT_CLOUD_POINT p;
+			glm::vec3 pos = avpl->GetPosition() + 0.05f * avpl->GetOrientation();
+			p.position = glm::vec4(pos, 1.0f);
+			p.color = ColorForLight(avpl);
+			pcp.push_back(p);
 		}
 	}
-	
+		
 	glm::vec4* positionData = new glm::vec4[pcp.size()];
 	glm::vec4* colorData = new glm::vec4[pcp.size()];
 	for(uint i = 0; i < pcp.size(); ++i)
@@ -859,49 +662,20 @@ void Renderer::WindowChanged()
 	m_pGBuffer->Release();
 	m_pGBuffer->Init(camera->GetWidth(), camera->GetHeight(), m_pDepthBuffer);
 	
-	m_pAccumulationRadiance->Release();
-	m_pAccumulationAntiradiance->Release();
-	m_pNormalizedRadiance->Release();
-	m_pAccumulationRadiance->Init(camera->GetWidth(), camera->GetHeight(), 0);
-	m_pAccumulationAntiradiance->Init(camera->GetWidth(), camera->GetHeight(), 0);
-	m_pNormalizedRadiance->Init(camera->GetWidth(), camera->GetHeight(), 0);
-	m_pFinalResult->Init(camera->GetWidth(), camera->GetHeight(), m_pDepthBuffer);
-
 	ClearAccumulationBuffer();
 }
 
 void Renderer::ClearAccumulationBuffer()
 {
-	GLenum buffers[1] = { GL_COLOR_ATTACHMENT0 };
 	glClearColor(0, 0, 0, 0);
-	{
-		CGLRenderTargetLock lock(m_pAccumulationRadiance->GetRenderTarget(), 1, buffers);
-		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	}
-	{
-		CGLRenderTargetLock lock(m_pAccumulationAntiradiance->GetRenderTarget(), 1, buffers);
-		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	}
-	{
-		CGLRenderTargetLock lock(m_pNormalizedRadiance->GetRenderTarget(), 1, buffers);
-		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	}
-	{
-		CGLRenderTargetLock lock(m_pNormalizedAntiradiance->GetRenderTarget(), 1, buffers);
-		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	}
-	{
-		CGLRenderTargetLock lock(m_pFinalResult->GetRenderTarget(), 1, buffers);
-		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	}
-
+	
 	{
 		CRenderTargetLock lock(m_pLightDebugRenderTarget);
 		glClear(GL_COLOR_BUFFER_BIT);
 	}
 
 	{
-		CRenderTargetLock lock(m_pAccumRenderTarget);
+		CRenderTargetLock lock(m_pGatherRenderTarget);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 
@@ -919,23 +693,18 @@ void Renderer::ClearLighting()
 	scene->ClearLighting();
 	m_CurrentPath = 0;
 	m_Finished = false;
-	m_Frame = 0;
-	
+		
 	ClearAccumulationBuffer();
 }
 
 void Renderer::Stats() 
 {
-	scene->Stats();
 }
 
 void Renderer::ConfigureLighting()
 {
 	CONFIG conf;
 	conf.GeoTermLimit = m_GeoTermLimit;
-	conf.BlurSigma = m_BlurSigma;
-	conf.BlurK = CalcBlurNormalizationFactor(m_BlurSigma);
-	conf.DrawAntiradiance =  m_DrawAntiradiance ? 1 : 0;
 	conf.UseAntiradiance = m_UseAntiradiance ? 1 : 0;
 	conf.nPaths = std::min(m_CurrentPath, m_NumPaths);
 	conf.N = m_N;
@@ -951,62 +720,10 @@ void Renderer::PrintCameraConfig()
 		<< scene->GetCamera()->GetPosition().z << ")" << std::endl;
 }
 
-float Renderer::CalcBlurNormalizationFactor(float sigma)
-{
-	int numSteps = 1000;
-	float delta = PI / float(numSteps);
-	float integralVal = 0.f;
-
-	for(int i = 0; i < numSteps; ++i)
-	{
-		float sample = i * delta + delta / 2.f;
-		float val = 1 / (sqrt(2*PI)*sigma) * exp(-(pow(sample,2)/(2*pow(sigma,2))));
-		integralVal += val * delta;
-	}
-
-	return 1/(2*PI*integralVal);
-}
-
-void Renderer::Debug(std::vector<Light*> path)
-{
-	std::cout << "Path:" << std::endl;
-
-	for(uint i = 0; i < path.size(); ++i)
-	{
-		Light* light = path[i];
-		std::cout << "Light:" << i << std::endl;
-		Debug(light);
-	}
-}
-
-void Renderer::Debug(Light* light)
-{
-	std::cout << "Position: " << AsString(light->GetPosition()) << std::endl;
-	std::cout << "Orientation: " << AsString(light->GetOrientation()) << std::endl;
-	std::cout << "Contribution: " << AsString(light->GetContrib()) << std::endl;
-	std::cout << "Src-Position: " << AsString(light->GetSrcPosition()) << std::endl;
-	std::cout << "Src-Orientation: " << AsString(light->GetSrcOrientation()) << std::endl;
-	std::cout << "Src-Contribution: " << AsString(light->GetSrcContrib()) << std::endl;
-}
-
-std::string Renderer::Debug(glm::vec3 v)
-{
-	std::stringstream ss("");
-	ss << "(" << v.x << ", " << v.y << ", " << v.z << ")";
-	return ss.str();
-}
-
-std::string Renderer::Debug(glm::vec4 v)
-{
-	std::stringstream ss("");
-	ss << "(" << v.x << ", " << v.y << ", " << v.z << ", " << v.w << ")";
-	return ss.str();
-}
-
-glm::vec4 Renderer::ColorForLight(Light* light)
+glm::vec4 Renderer::ColorForLight(AVPL* avpl)
 {
 	glm::vec4 color;
-	switch(light->GetBounce()){
+	switch(avpl->GetBounce()){
 		case 0: color = glm::vec4(0.8f, 0.8f, 0.8f, 1.f); break;
 		case 1: color = glm::vec4(0.8f, 0.0f, 0.0f, 1.f); break;
 		case 2: color = glm::vec4(0.0f, 0.8f, 0.0f, 1.f); break;
@@ -1029,6 +746,20 @@ void Renderer::Export()
 	m_Export->ExportPFM(m_pNormalizeRenderTarget->GetBuffer(0), "result.pfm");
 	m_Export->ExportPFM(m_pNormalizeRenderTarget->GetBuffer(1), "radiance.pfm");
 	m_Export->ExportPFM(m_pNormalizeRenderTarget->GetBuffer(2), "antiradiance.pfm");
+	m_Export->ExportPFM(m_pShadeRenderTarget->GetBuffer(0), "shade_result.pfm");
+	m_Export->ExportPFM(m_pLightDebugRenderTarget->GetBuffer(0), "lights.pfm");
+	m_Export->ExportPFM(m_pPostProcessRenderTarget->GetBuffer(0), "pp_result.pfm");
+}
+
+void Renderer::ExportPartialResult()
+{
+	time_t end;
+	time(&end);
+	double diff = difftime(end, m_StartTime);
+	int seconds = (int)diff;
+	std::stringstream ss;
+	ss << "result" << m_Frame << "frames-" << seconds <<" sec " << "-paths-" << m_CurrentPath << ".pfm";
+	m_Export->ExportPFM(m_pShadeRenderTarget->GetBuffer(0), ss.str());
 }
 
 void Renderer::SetGamma(float gamma)

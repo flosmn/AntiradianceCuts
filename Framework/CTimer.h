@@ -6,6 +6,7 @@
 #include <map>
 #include <string>
 #include <iostream>
+#include <time.h>
 
 /*
 	this class implement simple OpenGL timing queries. Every StartEvent pushes a new event onto
@@ -27,7 +28,8 @@ public:
 	void StopEvent(std::string eventName);		// stops the timer for an event. can be started again
 	void Reset();								// resets all times mesuared by the timer. registerd events are not lost
 
-	float GetTime(std::string eventName);		// returns the time in milliseconds.
+	double GetTime(std::string eventName);		// returns the time in milliseconds.
+	double GetTime(int eventIndex);
 	void PrintStats();
 private:
 	void WaitTillAvailable(GLuint query);
@@ -37,11 +39,11 @@ private:
 	GLuint* m_TimesStartGPU;
 	GLuint* m_TimesEndGPU;
 
-	time_t* m_TimesStartCPU;
-	time_t* m_TimesEndCPU;
+	clock_t* m_ClocksStartCPU;
+	clock_t* m_ClocksEndCPU;
 
 	GLuint* m_NumberOfStartStops;		// tracks the number of times a start-stop sequence has been called for an event
-	unsigned long* m_TotalTime;			// tracks the total time for a registered event
+	clock_t* m_TotalClocks;			// tracks the total time for a registered event
 	
 	int m_MaxEvents;
 	int m_Index;
