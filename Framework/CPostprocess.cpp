@@ -6,14 +6,14 @@
 #include "CRenderTarget.h"
 #include "CRenderTargetLock.h"
 
-#include "CUtils\ShaderUtil.h"
+#include "Utils\ShaderUtil.h"
 
-#include "CGLResources\CGLProgram.h"
-#include "CGLResources\CGLTexture2D.h"
-#include "CGLResources\CGLSampler.h"
-#include "CGLResources\CGLUniformBuffer.h"
+#include "OGLResources\COGLProgram.h"
+#include "OGLResources\COGLTexture2D.h"
+#include "OGLResources\COGLSampler.h"
+#include "OGLResources\COGLUniformBuffer.h"
 
-#include "CMeshResources\CFullScreenQuad.h"
+#include "MeshResources\CFullScreenQuad.h"
 
 struct POST_PROCESS
 {
@@ -28,8 +28,8 @@ CPostprocess::CPostprocess()
 
 	m_pFullScreenQuad = new CFullScreenQuad();
 	m_pPostProcessProgram = new CProgram("CPostProcess", "Shaders\\PostProcess.vert", "Shaders\\PostProcess.frag");
-	m_pPointSampler = new CGLSampler("CPostProcess.m_pPointSampler");
-	m_pUniformBuffer = new CGLUniformBuffer("CPostProcess.m_pUniformBuffer");
+	m_pPointSampler = new COGLSampler("CPostProcess.m_pPointSampler");
+	m_pUniformBuffer = new COGLUniformBuffer("CPostProcess.m_pUniformBuffer");
 }
 
 CPostprocess::~CPostprocess() 
@@ -65,13 +65,13 @@ void CPostprocess::Release()
 	m_pPointSampler->Release();
 }
 
-void CPostprocess::Postprocess(CGLTexture2D* pTexture, CRenderTarget* pTarget)
+void CPostprocess::Postprocess(COGLTexture2D* pTexture, CRenderTarget* pTarget)
 {
 	CRenderTargetLock lock(pTarget);
 
-	CGLBindLock lockProgram(m_pPostProcessProgram->GetGLProgram(), CGL_PROGRAM_SLOT);
+	COGLBindLock lockProgram(m_pPostProcessProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
 
-	CGLBindLock lockTexture(pTexture, CGL_TEXTURE0_SLOT);
+	COGLBindLock lockTexture(pTexture, COGL_TEXTURE0_SLOT);
 	
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

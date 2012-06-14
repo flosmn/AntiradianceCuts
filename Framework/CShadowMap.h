@@ -5,8 +5,8 @@ typedef unsigned int uint;
 
 #include "GL/glew.h"
 
-class CGLTexture2D;
-class CGLFrameBuffer;
+class COGLTexture2D;
+class COGLFrameBuffer;
 
 class CShadowMap 
 {
@@ -17,14 +17,14 @@ public:
 	bool Init(uint size);
 	void Release();
 
-	CGLTexture2D* GetShadowMapTexture() { return m_pShadowMapTexture; }
-	CGLFrameBuffer* GetRenderTarget() { return m_pRenderTarget; }
+	COGLTexture2D* GetShadowMapTexture() { return m_pShadowMapTexture; }
+	COGLFrameBuffer* GetRenderTarget() { return m_pRenderTarget; }
 
 	uint GetShadowMapSize() { return m_ShadowMapSize; }
 
 private:
-	CGLFrameBuffer* m_pRenderTarget;
-	CGLTexture2D* m_pShadowMapTexture;
+	COGLFrameBuffer* m_pRenderTarget;
+	COGLTexture2D* m_pShadowMapTexture;
 
 	uint m_ShadowMapSize;
 };

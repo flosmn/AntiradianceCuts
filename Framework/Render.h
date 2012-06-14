@@ -10,6 +10,7 @@
 
 class Scene;
 class Camera;
+class CConfigManager;
 class CShadowMap;
 class CPostprocess;
 class AVPL;
@@ -24,11 +25,21 @@ class CFullScreenQuad;
 class CPointCloud;
 class CExport;
 class CRenderTarget;
+class COctahedronMap;
+class COctahedronAtlas;
+class CModel;
 
-class CGLUniformBuffer;
-class CGLSampler;
-class CGLTexture2D;
-class CGLTextureBuffer;
+class COGLUniformBuffer;
+class COGLSampler;
+class COGLTexture2D;
+class COGLTextureBuffer;
+class COGLContext;
+
+class COCLContext;
+class COCLProgram;
+class COCLKernel;
+class COCLBuffer;
+class COCLTexture2D;
 
 class Renderer {
 public:
@@ -40,40 +51,24 @@ public:
 
 	void Render();
 
+	void SetOGLContext(COGLContext* pOGLContext) { m_pOGLContext = pOGLContext; }
+
 	void WindowChanged();
 
-	void SetDrawTexture(bool b) { drawTexture = b; }
-	bool GetDrawTexture() { return drawTexture; } 
-
-	void SetDrawLight(bool b) { drawLight = b; }
-	bool GetDrawLight() { return drawLight; } 
-	
 	void ClearAccumulationBuffer();
 	void ClearLighting();
 
 	void PrintCameraConfig();
-		
-	void UseAntiradiance(bool b) { if(m_UseAntiradiance == b) return; m_UseAntiradiance = b; ConfigureLighting(); ClearLighting(); }
-	bool GetUseAntiradiance() { return m_UseAntiradiance; }
-	
-	void SetGeoTermLimit(float f) { if(m_GeoTermLimit == f) return; m_GeoTermLimit = f; ConfigureLighting(); ClearLighting();}
-	void SetNumPaths(int i) {if(m_NumPaths == i) return; m_NumPaths = i; ConfigureLighting(); ClearLighting(); }
-	void SetNumPathsPerFrame(int i) {if(m_NumPathsPerFrame == i) return; m_NumPathsPerFrame = i; ConfigureLighting(); ClearLighting(); }
-	void SetNumOfAdditionalAVPLs(int i) { if(m_NumAdditionalAVPLs == i) return; m_NumAdditionalAVPLs = i; CreatePlaneHammersleySamples(m_NumAdditionalAVPLs); ClearLighting(); }
-	void SetRenderBounce(int i) { if(m_RenderBounce == i) return; m_RenderBounce = i; ConfigureLighting(); ClearLighting(); }
-	void SetN(int n) { if(m_N == n) return; m_N = n; ConfigureLighting(); ClearLighting(); }
-	void SetBias(float b) { if(m_Bias == b) return; m_Bias = b; ConfigureLighting(); ClearAccumulationBuffer(); }
-	void SetUseHammersley(bool useHamm) { if(m_UseHammersley == useHamm) return; m_UseHammersley = useHamm; ConfigureLighting(); ClearAccumulationBuffer(); }
-	void SetToneMapping(bool b) { m_ToneMapping = b; }
-
-	void SetGamma(float gamma);
-	void SetExposure(float exposure);
-
+			
 	void ConfigureLighting();
+
+	void SetConfigManager(CConfigManager* pConfManager);
 
 	void Stats();
 
 	void Export();
+
+	void NewDebugLights();
 	
 private:
 	// functions of the render phase
@@ -81,8 +76,11 @@ private:
 	void CreateGBuffer();
 	
 	void Gather(std::vector<AVPL*> path);
+	void GatherWithAtlas(std::vector<AVPL*> path);
 	void Normalize();
 	void Shade();	
+
+	std::vector<AVPL*> DetermineUsedAvpls(std::vector<AVPL*> path);
 	
 	void GatherRadianceWithShadowMap(std::vector<AVPL*> path);	
 	void DebugRender();
@@ -102,12 +100,14 @@ private:
 	Scene* scene;
 	CShadowMap* m_pShadowMap;
 	CGBuffer* m_pGBuffer;
+	CConfigManager* m_pConfManager;
 	
 	CRenderTarget* m_pGatherRenderTarget;
 	CRenderTarget* m_pNormalizeRenderTarget;
 	CRenderTarget* m_pShadeRenderTarget;
 		
 	CProgram* m_pGatherProgram;
+	CProgram* m_pGatherWithAtlas;
 	CProgram* m_pNormalizeProgram;
 	CProgram* m_pShadeProgram;
 		
@@ -115,7 +115,8 @@ private:
 	CRenderTarget* m_pPostProcessRenderTarget;
 	CPostprocess* m_pPostProcess;
 
-	CGLTextureBuffer* m_pLightBuffer;
+	COGLTextureBuffer* m_pLightBuffer;
+	COGLTextureBuffer* m_pAVPLPositions;
 
 	CPointCloud* m_pPointCloud;
 	CExport* m_Export;
@@ -123,48 +124,53 @@ private:
 	CTimer* m_Timer;
 	CTextureViewer* m_pTextureViewer;
 
-	CGLUniformBuffer* m_pUBTransform;
-	CGLUniformBuffer* m_pUBMaterial;
-	CGLUniformBuffer* m_pUBLight;
-	CGLUniformBuffer* m_pUBConfig;
-	CGLUniformBuffer* m_pUBCamera;
-	CGLUniformBuffer* m_pUBInfo;
-	CGLUniformBuffer* m_pUBAreaLight;
+	COctahedronAtlas* m_pOctahedronAtlas;
+	COctahedronMap* m_pOctahedronMap;
 
-	CGLTexture2D* m_pDepthBuffer;
+	COGLUniformBuffer* m_pUBTransform;
+	COGLUniformBuffer* m_pUBMaterial;
+	COGLUniformBuffer* m_pUBLight;
+	COGLUniformBuffer* m_pUBConfig;
+	COGLUniformBuffer* m_pUBCamera;
+	COGLUniformBuffer* m_pUBInfo;
+	COGLUniformBuffer* m_pUBAreaLight;
+	COGLUniformBuffer* m_pUBModel;
+	COGLUniformBuffer* m_pUBAtlasInfo;
+
+	COGLTexture2D* m_pDepthBuffer;
+
+	COGLContext* m_pOGLContext;
 
 	CProgram* m_pCreateGBufferProgram;
 	CProgram* m_pCreateSMProgram;
 	CProgram* m_pGatherRadianceWithSMProgram;
 	CProgram* m_pPointCloudProgram;
 	CProgram* m_pAreaLightProgram;
+	CProgram* m_pDrawOctahedronProgram;
 
-	CGLSampler* m_pGLPointSampler;
-	CGLSampler* m_pGLShadowMapSampler;
+	COGLSampler* m_pGLLinearSampler;
+	COGLSampler* m_pGLPointSampler;
+	COGLSampler* m_pGLShadowMapSampler;
 
 	CFullScreenQuad* m_pFullScreenQuad;
 
-	bool drawTexture;
-	bool drawLight;
-	bool m_UseAntiradiance;
-	float m_GeoTermLimit;
-	float m_CosBlurFactor;
-	int m_RenderBounce;
+	COCLContext* m_pCLContext;
+	COCLProgram* m_pCLProgram;
+	COCLKernel* m_pCLKernel;
 
+	COGLTexture2D* m_pGLTexture2D;
+	COCLTexture2D* m_pCLTexture2D;
+
+	CModel* m_pOctahedron;
+	
 	int m_Frame;
-	int m_NumPaths;
-	int m_NumPathsPerFrame;
-	int m_NumAdditionalAVPLs;
 	int m_CurrentPath;
-	int m_N;
-	float m_Bias;
-	bool m_UseHammersley;
-	bool m_PartialSum;
-	bool m_ToneMapping;
-
+		
 	bool m_Finished;
 
 	time_t m_StartTime;
+
+	std::vector<AVPL*> m_DebugAVPLs;
 };
 
 #endif

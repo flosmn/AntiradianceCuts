@@ -20,6 +20,11 @@ struct MATERIAL
 	glm::vec4 diffuseColor;
 };
 
+struct MODEL
+{
+	glm::vec3 positionWS;
+};
+
 struct AVPL_STRUCT
 {
 	glm::vec4 I;	//Intensity;
@@ -71,14 +76,25 @@ struct POINT_CLOUD_POINT
 struct INFO
 {
 	int numLights;
-	float debugColorR;
-	float debugColorG;
+	int drawLightingOfLight;
+	bool filterAVPLAtlas;
 	float debugColorB;
 };
 
 struct AREA_LIGHT
 {
 	glm::vec4 radiance;
+};
+
+struct AVPL_POSITION
+{
+	glm::vec4 positionWS;
+};
+
+struct ATLAS_INFO
+{
+	int dim_atlas;
+	int dim_tile;
 };
 
 #endif // _STRUCTS_H_

@@ -114,7 +114,7 @@ void main()
 					vec4 A_in = (cos_theta_xz) / (d_xz * d_xz) * A;
 												
 					// blur			
-					vec4 A = K * (1 - theta / PI_OVER_N) * A_in;
+					//vec4 A = K * (1 - theta / PI_OVER_N) * A_in;
 					
 					antiradiance = A_in;
 				}

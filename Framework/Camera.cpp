@@ -52,12 +52,12 @@ glm::vec3 Camera::GetPosition()
 
 void Camera::ZoomOut(float t) 
 {
-		coord.r += t * speed;
+		coord.r += 50 *t * speed;
 }
 
 void Camera::ZoomIn(float t) 
 {
-		coord.r -= t * speed;
+		coord.r -= 50 * t * speed;
 		coord.r = std::max(coord.r, 1.0f);
 }
 

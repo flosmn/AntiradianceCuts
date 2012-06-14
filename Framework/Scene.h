@@ -8,7 +8,7 @@ typedef unsigned int uint;
 #include "Ray.h"
 #include "Intersection.h"
 
-#include "CUtils\mtrand.h"
+#include "Utils\mtrand.h"
 
 #include <vector>
 
@@ -16,7 +16,7 @@ class Camera;
 class AVPL;
 class AreaLight;
 
-class CGLUniformBuffer;
+class COGLUniformBuffer;
 
 class CModel;
 
@@ -31,12 +31,12 @@ public:
 
 	void ClearScene();
 	
-	void DrawScene(CGLUniformBuffer* pUBTransform, CGLUniformBuffer* pUBMaterial);
-	void DrawScene(CGLUniformBuffer* pUBTransform);
+	void DrawScene(COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBMaterial);
+	void DrawScene(COGLUniformBuffer* pUBTransform);
 
-	void DrawScene(const glm::mat4& mView, const glm::mat4& mProj, CGLUniformBuffer* pUBTransform);
+	void DrawScene(const glm::mat4& mView, const glm::mat4& mProj, COGLUniformBuffer* pUBTransform);
 
-	void DrawAreaLight(CGLUniformBuffer* pUBTransform, CGLUniformBuffer* pUBAreaLight);
+	void DrawAreaLight(COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBAreaLight);
 
 	void LoadCornellBox();
 	void LoadSimpleScene();
@@ -49,22 +49,18 @@ public:
 
 	bool IntersectRayScene(Ray ray, Intersection &intersection);
 		
-	std::vector<AVPL*> CreatePaths(uint numPaths, int N, int nAdditionalAVPLs, bool useHammersley);
-	std::vector<AVPL*> CreatePath(int N, int nAdditionalAVPLs, bool useHammersley);
-	
-	void CreatePlaneHammersleySamples(int i);
-		
+	std::vector<AVPL*> CreatePaths(uint numPaths, int N, int nAdditionalAVPLs);
+	std::vector<AVPL*> CreatePath(int N, int nAdditionalAVPLs);
+			
 private:
 	void ClearPath();
 
-	AVPL* CreateAVPL(AVPL* pred, int N, int nAdditionalAVPLs, bool useHammersley);
-	AVPL* ContinueAVPLPath(AVPL* pred, glm::vec3 direction, float pdf, int N, int nAdditionalAVPLs, bool useHammersley);
-	void CreateAVPLs(AVPL* pred, std::vector<AVPL*>& path, int N, int nAVPLs, bool useHammersley);
+	AVPL* CreateAVPL(AVPL* pred, int N, int nAdditionalAVPLs);
+	AVPL* ContinueAVPLPath(AVPL* pred, glm::vec3 direction, float pdf, int N, int nAdditionalAVPLs);
+	void CreateAVPLs(AVPL* pred, std::vector<AVPL*>& path, int N, int nAVPLs);
 
 	std::vector<CModel*> m_Models;
 		
-	float* m_pPlaneHammersleySamples;
-
 	int m_CurrentBounce;
 	int m_NumLightPaths;
 

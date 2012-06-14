@@ -17,13 +17,16 @@ public:
 
 	glm::vec3 GetPosition() { return m_Position; }
 	glm::vec3 GetOrientation() { return m_Orientation; }
-	glm::vec3 GetIntensity() { return m_Intensity; }
+	glm::vec3 GetIntensity(glm::vec3 w);
+	glm::vec3 GetAntiintensity(glm::vec3 w, const float& N);
 	glm::vec3 GetAntiintensity() { return m_Antiintensity; }
 	glm::vec3 GetAntiradianceDirection() { return m_AntiradianceDirection; }	
 	
 	void SetIntensity(glm::vec3 i) { m_Intensity = i; }
 	void SetAntiintensity(glm::vec3 a) { m_Antiintensity = a; }
 	
+	glm::vec3 SampleAntiradianceDirection(const float& N);
+
 	int GetBounce() { return m_Bounce; } 
 	
 	void Fill(AVPL_STRUCT& avpl);

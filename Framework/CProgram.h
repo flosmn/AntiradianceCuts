@@ -5,9 +5,9 @@ typedef unsigned int uint;
 
 #include <string>
 
-class CGLProgram;
-class CGLUniformBuffer;
-class CGLSampler;
+class COGLProgram;
+class COGLUniformBuffer;
+class COGLSampler;
 
 class CProgram
 {
@@ -18,13 +18,13 @@ public:
 	bool Init();
 	void Release();
 
-	void BindUniformBuffer(CGLUniformBuffer* pGLUniformBuffer, std::string strUniformBlockNam);
-	void BindSampler(uint samplerSlot, CGLSampler* pGLSampler);
+	void BindUniformBuffer(COGLUniformBuffer* pGLUniformBuffer, std::string strUniformBlockNam);
+	void BindSampler(uint samplerSlot, COGLSampler* pGLSampler);
 
-	CGLProgram* GetGLProgram();
+	COGLProgram* GetGLProgram();
 
 private:
-	CGLProgram* m_pGLProgram;
+	COGLProgram* m_pGLProgram;
 };
 
 #endif // _C_PROGRAM_H_

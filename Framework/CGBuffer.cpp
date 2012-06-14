@@ -9,26 +9,26 @@
 #include "CProgram.h"
 #include "CShadowMap.h"
 
-#include "CGLResources\CGLFrameBuffer.h"
-#include "CGLResources\CGLTexture2D.h"
-#include "CGLResources\CGLBindLock.h"
-#include "CGLResources\CGLProgram.h"
-#include "CGLResources\CGLSampler.h"
+#include "OGLResources\COGLFrameBuffer.h"
+#include "OGLResources\COGLTexture2D.h"
+#include "OGLResources\COGLBindLock.h"
+#include "OGLResources\COGLProgram.h"
+#include "OGLResources\COGLSampler.h"
 
-#include "CUtils\ShaderUtil.h"
+#include "Utils\ShaderUtil.h"
 
-#include "CMeshResources\CFullScreenQuad.h"
+#include "MeshResources\CFullScreenQuad.h"
 
 
 CGBuffer::CGBuffer()
 	: m_Width(0), m_Height(0), m_pGLFBRenderTarget(0),
 	  m_pGLTTexturePositionWS(0), m_pGLTTextureNormalWS(0), m_pGLTTextureMaterials(0)
 {
-	m_pGLFBRenderTarget = new CGLFrameBuffer("CGBuffer.m_pGLFBRenderTarget");
-	m_pGLTTexturePositionWS = new CGLTexture2D("CGBuffer.m_pGLTTexturePositionWS");
-	m_pGLTTextureNormalWS = new CGLTexture2D("CGBuffer.m_pGLTTextureNormalWS");
-	m_pGLTTextureMaterials = new CGLTexture2D("CGBuffer.m_pGLTTextureMaterials");
-	m_pGLPointSampler = new CGLSampler("CGBuffer.m_pGLPointSampler");
+	m_pGLFBRenderTarget = new COGLFrameBuffer("CGBuffer.m_pGLFBRenderTarget");
+	m_pGLTTexturePositionWS = new COGLTexture2D("CGBuffer.m_pGLTTexturePositionWS");
+	m_pGLTTextureNormalWS = new COGLTexture2D("CGBuffer.m_pGLTTextureNormalWS");
+	m_pGLTTextureMaterials = new COGLTexture2D("CGBuffer.m_pGLTTextureMaterials");
+	m_pGLPointSampler = new COGLSampler("CGBuffer.m_pGLPointSampler");
 
 	m_pCreateGBufferProgram = new CProgram("GBuffer.m_pCreateGBufferProgram", 
 		"Shaders\\CreateGBuffer.vert", "Shaders\\CreateGBuffer.frag");
@@ -47,7 +47,7 @@ CGBuffer::~CGBuffer()
 	SAFE_DELETE(m_pCreateGBufferProgram);
 }
 
-bool CGBuffer::Init(uint width, uint height, CGLTexture2D* pDepthBuffer)
+bool CGBuffer::Init(uint width, uint height, COGLTexture2D* pDepthBuffer)
 {
 	m_Width = width;
 	m_Height = height;

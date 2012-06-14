@@ -1,15 +1,21 @@
 #include "Render.h"
 
+#include "CL/cl.h"
+
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "Macros.h"
 #include "Structs.h"
 
+#include "CConfigManager.h"
 #include "CGBuffer.h"
 #include "CTimer.h"
 #include "CProgram.h"
 #include "CPointCloud.h"
-#include "CExport.h"
+#include "COctahedronMap.h"
+#include "COctahedronAtlas.h"
 
 #include "AVPL.h"
 #include "Scene.h"
@@ -18,19 +24,27 @@
 #include "CPostprocess.h"
 #include "CRenderTarget.h"
 
-#include "CUtils\Util.h"
-#include "CUtils\GLErrorUtil.h"
-#include "CUtils\ShaderUtil.h"
-#include "CUtils\CTextureViewer.h"
+#include "Utils\Util.h"
+#include "Utils\GLErrorUtil.h"
+#include "Utils\ShaderUtil.h"
+#include "Utils\CTextureViewer.h"
+#include "Utils\CExport.h"
 
-#include "CMeshResources\CFullScreenQuad.h"
+#include "MeshResources\CFullScreenQuad.h"
+#include "MeshResources\CModel.h"
 
-#include "CGLResources\CGLUniformBuffer.h"
-#include "CGLResources\CGLTexture2D.h"
-#include "CGLResources\CGLFrameBuffer.h"
-#include "CGLResources\CGLProgram.h"
-#include "CGLResources\CGLSampler.h"
-#include "CGLResources\CGLTextureBuffer.h"
+#include "OGLResources\COGLUniformBuffer.h"
+#include "OGLResources\COGLTexture2D.h"
+#include "OGLResources\COGLFrameBuffer.h"
+#include "OGLResources\COGLProgram.h"
+#include "OGLResources\COGLSampler.h"
+#include "OGLResources\COGLTextureBuffer.h"
+
+#include "OCLResources\COCLContext.h"
+#include "OCLResources\COCLProgram.h"
+#include "OCLResources\COCLKernel.h"
+#include "OCLResources\COCLBuffer.h"
+#include "OCLResources\COCLTexture2D.h"
 
 #include <memory>
 #include <string>
@@ -41,16 +55,18 @@ std::vector<Light*> initialLights;
 
 Renderer::Renderer(Camera* _camera) {
 	camera = _camera;
-
-	m_pShadowMap = new CShadowMap();
+	
 	scene = 0;
-
-	m_PartialSum = true;
+	
+	m_pShadowMap = new CShadowMap();
+	
+	m_pOctahedronAtlas = new COctahedronAtlas();
+	m_pOctahedronMap = new COctahedronMap();
 
 	m_Export = new CExport();
 	m_Timer = new CTimer(1000);
 
-	m_pDepthBuffer = new CGLTexture2D("Renderer.m_pDepthBuffer");
+	m_pDepthBuffer = new COGLTexture2D("Renderer.m_pDepthBuffer");
 	
 	m_pGBuffer = new CGBuffer();
 		
@@ -60,22 +76,26 @@ Renderer::Renderer(Camera* _camera) {
 	
 	m_pTextureViewer = new CTextureViewer();
 
-	m_pUBTransform = new CGLUniformBuffer("Renderer.m_pUBTransform");
-	m_pUBMaterial = new CGLUniformBuffer("Renderer.m_pUBMaterial");
-	m_pUBLight = new CGLUniformBuffer("Renderer.m_pUBLight");
-	m_pUBConfig = new CGLUniformBuffer("Renderer.m_pUBConfig");
-	m_pUBCamera = new CGLUniformBuffer("Renderer.m_pUBCamera");
-	m_pUBInfo = new CGLUniformBuffer("Renderer.m_pUBInfo");
-	m_pUBAreaLight = new CGLUniformBuffer("Renderer.m_pUBAreaLight");
+	m_pUBTransform = new COGLUniformBuffer("Renderer.m_pUBTransform");
+	m_pUBMaterial = new COGLUniformBuffer("Renderer.m_pUBMaterial");
+	m_pUBLight = new COGLUniformBuffer("Renderer.m_pUBLight");
+	m_pUBConfig = new COGLUniformBuffer("Renderer.m_pUBConfig");
+	m_pUBCamera = new COGLUniformBuffer("Renderer.m_pUBCamera");
+	m_pUBInfo = new COGLUniformBuffer("Renderer.m_pUBInfo");
+	m_pUBAreaLight = new COGLUniformBuffer("Renderer.m_pUBAreaLight");
+	m_pUBModel = new COGLUniformBuffer("Renderer.m_pUBModel");
+	m_pUBAtlasInfo = new COGLUniformBuffer("Renderer.m_pUBAtlasInfo");
 
-	m_pGLPointSampler = new CGLSampler("Renderer.m_pGLPointSampler");
-	m_pGLShadowMapSampler = new CGLSampler("Renderer.m_pGLShadowMapSampler");
+	m_pGLLinearSampler = new COGLSampler("Renderer.m_pGLLinearSampler");
+	m_pGLPointSampler = new COGLSampler("Renderer.m_pGLPointSampler");
+	m_pGLShadowMapSampler = new COGLSampler("Renderer.m_pGLShadowMapSampler");
 
 	m_pGatherRenderTarget = new CRenderTarget();
 	m_pNormalizeRenderTarget = new CRenderTarget();
 	m_pShadeRenderTarget = new CRenderTarget();
 
 	m_pGatherProgram = new CProgram("Renderer.m_pGatherProgram", "Shaders\\Gather.vert", "Shaders\\Gather.frag");
+	m_pGatherWithAtlas = new CProgram("Renderer.m_pGatherProgram", "Shaders\\Gather.vert", "Shaders\\GatherWithAtlas.frag");
 	m_pNormalizeProgram = new CProgram("Renderer.m_pNormalizeProgram", "Shaders\\Gather.vert", "Shaders\\Normalize.frag");
 	m_pShadeProgram = new CProgram("Renderer.m_pShadeProgram", "Shaders\\Gather.vert", "Shaders\\Shade.frag");
 
@@ -84,22 +104,22 @@ Renderer::Renderer(Camera* _camera) {
 	m_pGatherRadianceWithSMProgram = new CProgram("Renderer.m_pGatherRadianceWithSMProgram", "Shaders\\Gather.vert", "Shaders\\GatherRadianceWithSM.frag");
 	m_pPointCloudProgram = new CProgram("Renderer.m_pPointCloudProgram", "Shaders\\PointCloud.vert", "Shaders\\PointCloud.frag");
 	m_pAreaLightProgram = new CProgram("Renderer.m_pAreaLightProgram", "Shaders\\DrawAreaLight.vert", "Shaders\\DrawAreaLight.frag");
+	m_pDrawOctahedronProgram = new CProgram("Renderer.m_pDrawOctahedronProgram", "Shaders\\DrawOctahedron.vert", "Shaders\\DrawOctahedron.frag");
 
 	m_pFullScreenQuad = new CFullScreenQuad();
+	m_pOctahedron = new CModel();
 
 	m_pPointCloud = new CPointCloud();
 
-	m_pLightBuffer = new CGLTextureBuffer("Renderer.m_pLightBuffer");
+	m_pLightBuffer = new COGLTextureBuffer("Renderer.m_pLightBuffer");
+	m_pAVPLPositions = new COGLTextureBuffer("Renderer.m_pAVPLPositions");
 
-	m_RenderBounce = -1;
-	m_Frame = 0;
-	m_CurrentPath = 0;
-	m_N = 50;
-	m_NumAdditionalAVPLs = 128;
-	m_UseHammersley = false;
+	m_pCLContext = new COCLContext();
+	m_pCLProgram = new COCLProgram(m_pCLContext, "Renderer.m_pCLProgram");
+	m_pCLKernel = new COCLKernel(m_pCLContext, m_pCLProgram, "Renderer.m_pCLKernel");
 
-	m_NumPaths = 1;
-	m_NumPathsPerFrame = 1;
+	m_pGLTexture2D = new COGLTexture2D("Renderer.m_pGLTexture2D");
+	m_pCLTexture2D = new COCLTexture2D(m_pCLContext, "Renderer.m_pCLTexture2D");
 
 	m_Finished = false;
 }
@@ -115,6 +135,7 @@ Renderer::~Renderer() {
 	SAFE_DELETE(m_pShadeProgram);
 		
 	SAFE_DELETE(m_pGatherProgram);
+	SAFE_DELETE(m_pGatherWithAtlas);
 	SAFE_DELETE(m_pNormalizeProgram);
 	SAFE_DELETE(m_pShadeProgram);
 
@@ -124,6 +145,7 @@ Renderer::~Renderer() {
 	
 	SAFE_DELETE(m_pTextureViewer);
 	SAFE_DELETE(m_pFullScreenQuad);
+	SAFE_DELETE(m_pOctahedron);
 	SAFE_DELETE(m_pPointCloud);
 
 	SAFE_DELETE(m_pUBTransform);
@@ -133,24 +155,62 @@ Renderer::~Renderer() {
 	SAFE_DELETE(m_pUBCamera);
 	SAFE_DELETE(m_pUBInfo);
 	SAFE_DELETE(m_pUBAreaLight);
+	SAFE_DELETE(m_pUBModel);
+	SAFE_DELETE(m_pUBAtlasInfo);
 
 	SAFE_DELETE(m_pCreateGBufferProgram);
 	SAFE_DELETE(m_pCreateSMProgram);
 	SAFE_DELETE(m_pGatherRadianceWithSMProgram);
 	SAFE_DELETE(m_pPointCloudProgram);
 	SAFE_DELETE(m_pAreaLightProgram);
+	SAFE_DELETE(m_pDrawOctahedronProgram);
 
 	SAFE_DELETE(m_pGLPointSampler);
+	SAFE_DELETE(m_pGLLinearSampler);
 	SAFE_DELETE(m_pGLShadowMapSampler);
 
 	SAFE_DELETE(m_pDepthBuffer);
 	SAFE_DELETE(m_pLightBuffer);
+	SAFE_DELETE(m_pAVPLPositions);
 
 	SAFE_DELETE(m_Timer);
+
+	SAFE_DELETE(m_pOctahedronAtlas);
+	SAFE_DELETE(m_pOctahedronMap);
+
+	SAFE_DELETE(m_pCLKernel);
+	SAFE_DELETE(m_pCLProgram);
+	SAFE_DELETE(m_pCLContext);
+
+	SAFE_DELETE(m_pGLTexture2D);
+	SAFE_DELETE(m_pCLTexture2D);
 }
 
 bool Renderer::Init() 
 {	
+	V_RET_FOF(m_pCLContext->Init(m_pOGLContext));
+	V_RET_FOF(m_pCLProgram->Init("Kernels\\vec.cl"));
+	V_RET_FOF(m_pCLKernel->Init("TexWriteTest"));
+
+	int width = 32;
+	int height = 32;
+	V_RET_FOF(m_pGLTexture2D->Init(width, height, GL_RGBA32F, GL_RGBA, GL_FLOAT, 1, false));
+	V_RET_FOF(m_pCLTexture2D->Init(m_pGLTexture2D));
+
+	m_pCLKernel->SetKernelArg(0, sizeof(cl_mem), m_pCLTexture2D->GetCLTexture());
+	m_pCLKernel->SetKernelArg(1, sizeof(int), &width);
+	m_pCLKernel->SetKernelArg(2, sizeof(int), &height);
+
+	m_pCLTexture2D->Lock();
+
+	size_t global_work_dim[2];
+	global_work_dim[0] = 32;
+	global_work_dim[1] = 32;
+
+	m_pCLKernel->CallKernel(2, 0, global_work_dim, global_work_dim);
+
+	m_pCLTexture2D->Unlock();
+	
 	V_RET_FOF(m_pDepthBuffer->Init(camera->GetWidth(), camera->GetHeight(), GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, 1, false));
 
 	V_RET_FOF(m_pUBTransform->Init(sizeof(TRANSFORM), 0, GL_DYNAMIC_DRAW));
@@ -160,21 +220,25 @@ bool Renderer::Init()
 	V_RET_FOF(m_pUBCamera->Init(sizeof(CAMERA), 0, GL_DYNAMIC_DRAW));
 	V_RET_FOF(m_pUBInfo->Init(sizeof(INFO), 0, GL_DYNAMIC_DRAW));
 	V_RET_FOF(m_pUBAreaLight->Init(sizeof(AREA_LIGHT), 0, GL_DYNAMIC_DRAW));
+	V_RET_FOF(m_pUBModel->Init(sizeof(MODEL), 0, GL_DYNAMIC_DRAW));
+	V_RET_FOF(m_pUBAtlasInfo->Init(sizeof(ATLAS_INFO), 0, GL_DYNAMIC_DRAW));
 
 	V_RET_FOF(m_pTextureViewer->Init());
 	V_RET_FOF(m_pPointCloud->Init());
 	V_RET_FOF(m_pLightBuffer->Init());
-	
+	V_RET_FOF(m_pAVPLPositions->Init());
+
 	V_RET_FOF(m_pCreateGBufferProgram->Init());
 	V_RET_FOF(m_pCreateSMProgram->Init());
 	V_RET_FOF(m_pGatherRadianceWithSMProgram->Init());
 	V_RET_FOF(m_pPointCloudProgram->Init());
 
 	V_RET_FOF(m_pGatherProgram->Init());
+	V_RET_FOF(m_pGatherWithAtlas->Init());
 	V_RET_FOF(m_pNormalizeProgram->Init());
 	V_RET_FOF(m_pShadeProgram->Init());
 	V_RET_FOF(m_pAreaLightProgram->Init());
-
+	
 	V_RET_FOF(m_pGatherRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 3, 0));
 	V_RET_FOF(m_pNormalizeRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 3, 0));
 	V_RET_FOF(m_pShadeRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 1, m_pDepthBuffer));
@@ -193,6 +257,7 @@ bool Renderer::Init()
 	m_pGatherRadianceWithSMProgram->BindUniformBuffer(m_pUBConfig, "config");
 	m_pGatherRadianceWithSMProgram->BindUniformBuffer(m_pUBCamera, "camera");
 
+	V_RET_FOF(m_pGLLinearSampler->Init(GL_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT));
 	V_RET_FOF(m_pGLPointSampler->Init(GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT));
 	V_RET_FOF(m_pGLShadowMapSampler->Init(GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER));
 	
@@ -203,6 +268,16 @@ bool Renderer::Init()
 	m_pGatherProgram->BindSampler(0, m_pGLPointSampler);
 	m_pGatherProgram->BindSampler(1, m_pGLPointSampler);
 	m_pGatherProgram->BindSampler(2, m_pGLPointSampler);
+
+	m_pGatherWithAtlas->BindSampler(0, m_pGLPointSampler);
+	m_pGatherWithAtlas->BindSampler(1, m_pGLPointSampler);
+	m_pGatherWithAtlas->BindSampler(2, m_pGLPointSampler);
+	m_pGatherWithAtlas->BindSampler(3, m_pGLLinearSampler);
+
+	m_pGatherWithAtlas->BindUniformBuffer(m_pUBInfo, "info_block");
+	m_pGatherWithAtlas->BindUniformBuffer(m_pUBConfig, "config");
+	m_pGatherWithAtlas->BindUniformBuffer(m_pUBCamera, "camera");
+	m_pGatherWithAtlas->BindUniformBuffer(m_pUBAtlasInfo, "atlas_info");
 
 	m_pGatherProgram->BindUniformBuffer(m_pUBInfo, "info_block");
 	m_pGatherProgram->BindUniformBuffer(m_pUBConfig, "config");
@@ -219,9 +294,14 @@ bool Renderer::Init()
 	m_pShadeProgram->BindSampler(1, m_pGLPointSampler);
 
 	m_pShadeProgram->BindUniformBuffer(m_pUBCamera, "camera");
-
+	
+	V_RET_FOF(m_pDrawOctahedronProgram->Init());
+	m_pDrawOctahedronProgram->BindSampler(0, m_pGLPointSampler);
+	m_pDrawOctahedronProgram->BindUniformBuffer(m_pUBTransform, "transform");
+	m_pDrawOctahedronProgram->BindUniformBuffer(m_pUBModel, "model");
+	
 	V_RET_FOF(m_pFullScreenQuad->Init());
-
+	
 	V_RET_FOF(m_pShadowMap->Init(512));
 	
 	V_RET_FOF(m_pGBuffer->Init(camera->GetWidth(), camera->GetHeight(), m_pDepthBuffer));
@@ -231,22 +311,33 @@ bool Renderer::Init()
 	scene = new Scene(camera);
 	scene->Init();
 	scene->LoadCornellBox();
-	
-	scene->CreatePlaneHammersleySamples(m_NumAdditionalAVPLs);
-
-	drawLight = false;
-	drawTexture = false;
-	
-	m_UseAntiradiance = true;
-	m_GeoTermLimit = 0.05f;
-	m_ToneMapping = true;
-
+		
 	ConfigureLighting();
 
 	time(&m_StartTime);
 
 	m_Timer->Init();
 	m_Timer->RegisterEvent("Create Paths", CTimer::CPU);
+
+	int dim_atlas = 1024;
+	int dim_tile = 128;
+	m_pOctahedronAtlas->Init(dim_atlas, dim_tile);
+	ATLAS_INFO atlas_info;
+	atlas_info.dim_atlas = dim_atlas;
+	atlas_info.dim_tile = dim_tile;
+	m_pUBAtlasInfo->UpdateData(&atlas_info);
+
+	m_pOctahedronMap->Init(32);
+	m_pOctahedronMap->FillWithDebugData();
+
+	V_RET_FOF(m_pOctahedron->Init("octahedron"));
+		
+	glm::mat4 scale = glm::scale(IdentityMatrix(), glm::vec3(70.f, 70.f, 70.f));
+	glm::mat4 trans = glm::translate(IdentityMatrix(), glm::vec3(278.f, 273.f, 270.f));
+	m_pOctahedron->SetWorldTransform(trans * scale);
+
+	m_DebugAVPLs = scene->CreatePaths(m_pConfManager->GetConfVars()->NumPathsPerFrame, 
+		m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
 
 	return true;
 }
@@ -262,6 +353,7 @@ void Renderer::Release()
 	m_pFullScreenQuad->Release();
 	m_pPointCloud->Release();
 	m_pLightBuffer->Release();
+	m_pAVPLPositions->Release();
 
 	m_pLightDebugRenderTarget->Release();
 	m_pPostProcessRenderTarget->Release();
@@ -276,6 +368,7 @@ void Renderer::Release()
 	m_pGatherRadianceWithSMProgram->Release();
 	m_pPointCloudProgram->Release();
 	m_pAreaLightProgram->Release();
+	m_pDrawOctahedronProgram->Release();
 
 	m_pGatherRenderTarget->Release();
 	m_pNormalizeRenderTarget->Release();
@@ -283,9 +376,11 @@ void Renderer::Release()
 
 	m_pNormalizeProgram->Release();
 	m_pGatherProgram->Release();
+	m_pGatherWithAtlas->Release();
 	m_pShadeProgram->Release();
 	
 	m_pGLPointSampler->Release();
+	m_pGLLinearSampler->Release();
 	m_pGLShadowMapSampler->Release();
 
 	m_pUBTransform->Release();
@@ -295,56 +390,116 @@ void Renderer::Release()
 	m_pUBCamera->Release();
 	m_pUBInfo->Release();
 	m_pUBAreaLight->Release();
+	m_pUBModel->Release();
+	m_pUBAtlasInfo->Release();
+
+	m_pOctahedron->Release();
+	m_pOctahedronAtlas->Release();
+	m_pOctahedronMap->Release();
+
+	m_pCLTexture2D->Release();
+	m_pGLTexture2D->Release();
+
+	m_pCLKernel->Release();
+	m_pCLProgram->Release();
+	m_pCLContext->Release();
 }
 
 void Renderer::Render() 
 {	
+	/*
+		OpenCL test
+	*/
+	
 	SetUpRender();
 		
 	CreateGBuffer();
 	
-	if(m_UseAntiradiance)
+	if(m_pConfManager->GetConfVars()->UseAntiradiance)
 	{
-		if(m_CurrentPath < m_NumPaths)
+		if(m_pConfManager->GetConfVars()->UseDebugMode)
 		{
-			m_Timer->StartEvent("Create Paths");
-			std::vector<AVPL*> avpls;
-			int remaining = m_NumPaths - m_CurrentPath;
-			if(remaining >= m_NumPathsPerFrame)
+			if(!m_Finished)
 			{
-				avpls = scene->CreatePaths(m_NumPathsPerFrame, m_N, m_NumAdditionalAVPLs, m_UseHammersley);
-				m_CurrentPath += m_NumPathsPerFrame;
-			}
-			else
-			{
-				 avpls = scene->CreatePaths(remaining, m_N, m_NumAdditionalAVPLs, m_UseHammersley);
-				 m_CurrentPath += remaining;
-			}
-			m_Timer->StopEvent("Create Paths");
+				if(m_pConfManager->GetConfVars()->GatherWithAVPLAtlas)
+				{
+					GatherWithAtlas(m_DebugAVPLs);
+				}
+				else
+				{
+					Gather(DetermineUsedAvpls(m_DebugAVPLs));
+				}
 
-			Gather(avpls);
+				if(m_pConfManager->GetConfVars()->DrawLights)
+					DrawLights(m_DebugAVPLs);
 
-			for(uint i = 0; i < avpls.size(); ++i)
-			{
-				delete avpls[i];
-			}
+				m_CurrentPath++;
 
-			if(m_CurrentPath >= m_NumPaths && !m_Finished)
-			{
-				std::cout << "Finished." << std::endl;
 				m_Finished = true;
+			}
+		}
+		else
+		{
+			if(m_CurrentPath < m_pConfManager->GetConfVars()->NumPaths)
+			{
+				m_Timer->StartEvent("Create Paths");
+				std::vector<AVPL*> avpls;
+				
+				int remaining = m_pConfManager->GetConfVars()->NumPaths - m_CurrentPath;
+				if(remaining >= m_pConfManager->GetConfVars()->NumPathsPerFrame)
+				{
+					avpls = scene->CreatePaths(m_pConfManager->GetConfVars()->NumPathsPerFrame, 
+						m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
+					m_CurrentPath += m_pConfManager->GetConfVars()->NumPathsPerFrame;
+				}
+				else
+				{
+					 avpls = scene->CreatePaths(remaining, m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
+					 m_CurrentPath += remaining;
+				}
+				
+				m_Timer->StopEvent("Create Paths");
+
+				if(m_pConfManager->GetConfVars()->GatherWithAVPLAtlas)
+				{
+					//GatherWithAtlas(DetermineUsedAvpls(avpls));
+					GatherWithAtlas(avpls);
+				}
+				else
+				{
+					Gather(DetermineUsedAvpls(avpls));
+				}
+
+				if(m_pConfManager->GetConfVars()->DrawLights)
+					DrawLights(avpls);
+
+				
+				for(uint i = 0; i < avpls.size(); ++i)
+				{
+					delete avpls[i];
+				}
+
+				avpls.clear();
+				
+
+				if(m_CurrentPath >= m_pConfManager->GetConfVars()->NumPaths && !m_Finished)
+				{
+					std::cout << "Finished." << std::endl;
+					m_Finished = true;
+				}
 			}
 		}
 	}
 	else
 	{
-		if(m_CurrentPath < m_NumPaths)
+		if(m_CurrentPath < m_pConfManager->GetConfVars()->NumPaths)
 		{
-			std::vector<AVPL*> path = scene->CreatePath(m_N, m_NumAdditionalAVPLs, m_UseHammersley);
+			std::vector<AVPL*> path = scene->CreatePath(m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
 
 			GatherRadianceWithShadowMap(path);
 	
-			DrawLights(path);
+			if(m_pConfManager->GetConfVars()->DrawLights)
+				DrawLights(path);
 
 			m_CurrentPath++;
 		}
@@ -360,8 +515,10 @@ void Renderer::Render()
 	
 	Shade();
 	
-	if(m_ToneMapping)
+	if(m_pConfManager->GetConfVars()->UseToneMapping)
 	{
+		m_pPostProcess->SetGamma(m_pConfManager->GetConfVars()->Gamma);
+		m_pPostProcess->SetExposure(m_pConfManager->GetConfVars()->Exposure);
 		m_pPostProcess->Postprocess(m_pShadeRenderTarget->GetBuffer(0), m_pPostProcessRenderTarget);
 		m_pTextureViewer->DrawTexture(m_pPostProcessRenderTarget->GetBuffer(0), 0, 0, camera->GetWidth(), camera->GetHeight());
 	}
@@ -371,18 +528,18 @@ void Renderer::Render()
 	}
 	
 	m_Frame++;
-	
-	if(m_Frame % 10 == 0)
+		
+	if(m_pConfManager->GetConfVars()->DrawAVPLAtlas)
+		m_pTextureViewer->DrawTexture(m_pOctahedronAtlas->GetTexture(), 0, 0, camera->GetWidth(), camera->GetHeight());
+
+	if(m_CurrentPath % 10000 == 0 && m_CurrentPath > 0)
 	{
-		m_Timer->PrintStats();
-		m_Timer->Reset();
+		std::stringstream ss;
+		ss << "result-" << m_CurrentPath << "paths" << ".pfm";
+		m_Export->ExportPFM(m_pShadeRenderTarget->GetBuffer(0), ss.str());
 	}
 
-	if(m_Frame % 1000 == 0)
-	{
-		ExportPartialResult();
-		std::cout << "#Paths: " << m_CurrentPath << std::endl;
-	}
+	m_pTextureViewer->DrawTexture(m_pGLTexture2D, 0, 0, camera->GetWidth(), camera->GetHeight());
 }
 
 void Renderer::SetUpRender()
@@ -406,11 +563,11 @@ void Renderer::SetUpRender()
 void Renderer::CreateGBuffer()
 {
 	GLenum buffers [3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2};
-	CGLRenderTargetLock lockRenderTarget(m_pGBuffer->GetRenderTarget(), 3, buffers);
+	COGLRenderTargetLock lockRenderTarget(m_pGBuffer->GetRenderTarget(), 3, buffers);
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	CGLBindLock lockProgram(m_pCreateGBufferProgram->GetGLProgram(), CGL_PROGRAM_SLOT);
+	COGLBindLock lockProgram(m_pCreateGBufferProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
 
 	scene->DrawScene(m_pUBTransform, m_pUBMaterial);
 }
@@ -426,18 +583,17 @@ void Renderer::GatherRadianceWithShadowMap(std::vector<AVPL*> path)
 
 void Renderer::Normalize()
 {
-	ConfigureLighting();
-	
+	ConfigureLighting();	
 	{
 		CRenderTargetLock lock(m_pNormalizeRenderTarget);
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		CGLBindLock lockProgram(m_pNormalizeProgram->GetGLProgram(), CGL_PROGRAM_SLOT);
+		COGLBindLock lockProgram(m_pNormalizeProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
 
-		CGLBindLock lock0(m_pGatherRenderTarget->GetBuffer(0), CGL_TEXTURE0_SLOT);
-		CGLBindLock lock1(m_pGatherRenderTarget->GetBuffer(1), CGL_TEXTURE1_SLOT);
-		CGLBindLock lock2(m_pGatherRenderTarget->GetBuffer(2), CGL_TEXTURE2_SLOT);
+		COGLBindLock lock0(m_pGatherRenderTarget->GetBuffer(0), COGL_TEXTURE0_SLOT);
+		COGLBindLock lock1(m_pGatherRenderTarget->GetBuffer(1), COGL_TEXTURE1_SLOT);
+		COGLBindLock lock2(m_pGatherRenderTarget->GetBuffer(2), COGL_TEXTURE2_SLOT);
 
 		m_pFullScreenQuad->Draw();
 	}
@@ -447,10 +603,10 @@ void Renderer::GatherRadianceFromLightWithShadowMap(AVPL* avpl)
 {
 	FillShadowMap(avpl);
 	
-	if(avpl->GetIntensity().length() == 0.f)
+	if(avpl->GetIntensity(avpl->GetOrientation()).length() == 0.f)
 		return;
 	
-	if(avpl->GetBounce() != m_RenderBounce && m_RenderBounce != -1)
+	if(avpl->GetBounce() != m_pConfManager->GetConfVars()->RenderBounce && m_pConfManager->GetConfVars()->RenderBounce != -1)
 		return;
 	
 	glDisable(GL_DEPTH_TEST);
@@ -460,15 +616,15 @@ void Renderer::GatherRadianceFromLightWithShadowMap(AVPL* avpl)
 	
 	CRenderTargetLock lock(m_pGatherRenderTarget);
 
-	CGLBindLock lockProgram(m_pGatherRadianceWithSMProgram->GetGLProgram(), CGL_PROGRAM_SLOT);
+	COGLBindLock lockProgram(m_pGatherRadianceWithSMProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
 
 	AVPL_STRUCT light_info;
 	avpl->Fill(light_info);
 	m_pUBLight->UpdateData(&light_info);
 
-	CGLBindLock lock0(m_pShadowMap->GetShadowMapTexture(), CGL_TEXTURE0_SLOT);
-	CGLBindLock lock1(m_pGBuffer->GetPositionTextureWS(), CGL_TEXTURE1_SLOT);
-	CGLBindLock lock2(m_pGBuffer->GetNormalTexture(), CGL_TEXTURE2_SLOT);
+	COGLBindLock lock0(m_pShadowMap->GetShadowMapTexture(), COGL_TEXTURE0_SLOT);
+	COGLBindLock lock1(m_pGBuffer->GetPositionTextureWS(), COGL_TEXTURE1_SLOT);
+	COGLBindLock lock2(m_pGBuffer->GetNormalTexture(), COGL_TEXTURE2_SLOT);
 	
 	m_pFullScreenQuad->Draw();
 	
@@ -476,10 +632,11 @@ void Renderer::GatherRadianceFromLightWithShadowMap(AVPL* avpl)
 	glDisable(GL_BLEND);
 }
 
-void Renderer::Gather(std::vector<AVPL*> avpls)
+std::vector<AVPL*> Renderer::DetermineUsedAvpls(std::vector<AVPL*> avpls)
 {
+	// determine avpls used for lighting with m_RenderBounce config
 	std::vector<AVPL*> useAVPLs;
-	if(m_RenderBounce == -1)
+	if(m_pConfManager->GetConfVars()->RenderBounce == -1)
 	{
 		// use all avpls
 		useAVPLs = avpls;
@@ -490,25 +647,31 @@ void Renderer::Gather(std::vector<AVPL*> avpls)
 		for(uint i = 0; i < avpls.size(); ++i)
 		{
 			AVPL* avpl = avpls[i];
-			if(avpl->GetBounce() != m_RenderBounce + 1) avpl->SetAntiintensity(glm::vec3(0.f));
-			if(avpl->GetBounce() != m_RenderBounce) avpl->SetIntensity(glm::vec3(0.f));
+			if(avpl->GetBounce() != m_pConfManager->GetConfVars()->RenderBounce + 1) avpl->SetAntiintensity(glm::vec3(0.f));
+			if(avpl->GetBounce() != m_pConfManager->GetConfVars()->RenderBounce) avpl->SetIntensity(glm::vec3(0.f));
 			useAVPLs.push_back(avpl);
 		}
 	}
 
-	AVPL_BUFFER* avplBuffer = new AVPL_BUFFER[useAVPLs.size() + 1];
-	memset(avplBuffer, 0, sizeof(AVPL_BUFFER) * useAVPLs.size() + 1);
-	for(uint i = 0; i < useAVPLs.size(); ++i)
+	return useAVPLs;
+}
+
+void Renderer::Gather(std::vector<AVPL*> avpls)
+{
+	AVPL_BUFFER* avplBuffer = new AVPL_BUFFER[avpls.size() + 1];
+	memset(avplBuffer, 0, sizeof(AVPL_BUFFER) * avpls.size() + 1);
+	for(uint i = 0; i < avpls.size(); ++i)
 	{
 		AVPL_BUFFER buffer;
-		useAVPLs[i]->Fill(buffer);
+		avpls[i]->Fill(buffer);
 		avplBuffer[i] = buffer;
 	}
-	m_pLightBuffer->SetContent(sizeof(AVPL_BUFFER), useAVPLs.size() + 1, avplBuffer, GL_STATIC_DRAW);
+	m_pLightBuffer->SetContent(sizeof(AVPL_BUFFER), avpls.size() + 1, avplBuffer, GL_STATIC_DRAW);
 	delete [] avplBuffer;
 
 	INFO i;
-	i.numLights = useAVPLs.size();
+	i.numLights = avpls.size();
+	i.drawLightingOfLight = m_pConfManager->GetConfVars()->DrawLightingOfLight;
 	m_pUBInfo->UpdateData(&i);
 
 	glDisable(GL_DEPTH_TEST);
@@ -517,12 +680,58 @@ void Renderer::Gather(std::vector<AVPL*> avpls)
 	
 	CRenderTargetLock lockRenderTarget(m_pGatherRenderTarget);
 
-	CGLBindLock lockProgram(m_pGatherProgram->GetGLProgram(), CGL_PROGRAM_SLOT);
+	COGLBindLock lockProgram(m_pGatherProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
 
-	CGLBindLock lock0(m_pGBuffer->GetPositionTextureWS(), CGL_TEXTURE0_SLOT);
-	CGLBindLock lock1(m_pGBuffer->GetNormalTexture(), CGL_TEXTURE1_SLOT);
-	CGLBindLock lock2(m_pLightBuffer, CGL_TEXTURE2_SLOT);
+	COGLBindLock lock0(m_pGBuffer->GetPositionTextureWS(), COGL_TEXTURE0_SLOT);
+	COGLBindLock lock1(m_pGBuffer->GetNormalTexture(), COGL_TEXTURE1_SLOT);
+	COGLBindLock lock2(m_pLightBuffer, COGL_TEXTURE2_SLOT);
 
+	m_pFullScreenQuad->Draw();
+	
+	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_BLEND);
+}
+
+void Renderer::GatherWithAtlas(std::vector<AVPL*> avpls)
+{
+	AVPL_POSITION* avplPositions = new AVPL_POSITION[avpls.size() + 1];
+	memset(avplPositions, 0, sizeof(AVPL_POSITION) * avpls.size() + 1);
+	for(uint i = 0; i < avpls.size(); ++i)
+	{
+		AVPL_POSITION p;
+		p.positionWS = glm::vec4(avpls[i]->GetPosition(), 1.f);
+		avplPositions[i] = p;
+	}
+	m_pAVPLPositions->SetContent(sizeof(AVPL_POSITION), avpls.size() + 1, avplPositions, GL_STATIC_DRAW);
+	delete [] avplPositions;
+
+	m_pOctahedronAtlas->FillAtlas(avpls, m_pConfManager->GetConfVars()->NumSqrtAtlasSamples,
+		float(m_pConfManager->GetConfVars()->ConeFactor), m_pConfManager->GetConfVars()->FilterAvplAtlasLinear == 1 ? true : false);
+
+	INFO i;
+	i.numLights = avpls.size();
+	i.drawLightingOfLight = m_pConfManager->GetConfVars()->DrawLightingOfLight;
+	i.filterAVPLAtlas = m_pConfManager->GetConfVars()->FilterAvplAtlasLinear == 1 ? true : false;
+	m_pUBInfo->UpdateData(&i);
+
+	glDisable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);	
+	glBlendFunc(GL_ONE, GL_ONE);
+	
+	CRenderTargetLock lockRenderTarget(m_pGatherRenderTarget);
+
+	COGLBindLock lockProgram(m_pGatherWithAtlas->GetGLProgram(), COGL_PROGRAM_SLOT);
+
+	COGLBindLock lock0(m_pGBuffer->GetPositionTextureWS(), COGL_TEXTURE0_SLOT);
+	COGLBindLock lock1(m_pGBuffer->GetNormalTexture(), COGL_TEXTURE1_SLOT);
+	COGLBindLock lock2(m_pAVPLPositions, COGL_TEXTURE2_SLOT);
+	COGLBindLock lock3(m_pOctahedronAtlas->GetTexture(), COGL_TEXTURE3_SLOT);
+	
+	if(m_pConfManager->GetConfVars()->FilterAvplAtlasLinear)
+		glBindSampler(3, m_pGLLinearSampler->GetResourceIdentifier());
+	else
+		glBindSampler(3, m_pGLPointSampler->GetResourceIdentifier());
+	
 	m_pFullScreenQuad->Draw();
 	
 	glEnable(GL_DEPTH_TEST);
@@ -537,9 +746,9 @@ void Renderer::FillShadowMap(AVPL* avpl)
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(1.1f, 4.0f);
 	
-	CGLBindLock lockProgram(m_pCreateSMProgram->GetGLProgram(), CGL_PROGRAM_SLOT);
+	COGLBindLock lockProgram(m_pCreateSMProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
 	GLenum buffer[1] = {GL_NONE};
-	CGLRenderTargetLock lock(m_pShadowMap->GetRenderTarget(), 1, buffer);
+	COGLRenderTargetLock lock(m_pShadowMap->GetRenderTarget(), 1, buffer);
 
 	glViewport(0, 0, m_pShadowMap->GetShadowMapSize(), m_pShadowMap->GetShadowMapSize());
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -559,10 +768,10 @@ void Renderer::Shade()
 		glDisable(GL_DEPTH_TEST);
 		glDepthMask(GL_FALSE);
 
-		CGLBindLock lockProgram(m_pShadeProgram->GetGLProgram(), CGL_PROGRAM_SLOT);
+		COGLBindLock lockProgram(m_pShadeProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
 
-		CGLBindLock lock0(m_pNormalizeRenderTarget->GetBuffer(0), CGL_TEXTURE0_SLOT);
-		CGLBindLock lock2(m_pGBuffer->GetMaterialTexture(), CGL_TEXTURE1_SLOT);
+		COGLBindLock lock0(m_pNormalizeRenderTarget->GetBuffer(0), COGL_TEXTURE0_SLOT);
+		COGLBindLock lock2(m_pGBuffer->GetMaterialTexture(), COGL_TEXTURE1_SLOT);
 
 		m_pFullScreenQuad->Draw();
 		
@@ -577,7 +786,7 @@ void Renderer::Shade()
 
 void Renderer::DrawAreaLight()
 {
-	CGLBindLock lock(m_pAreaLightProgram->GetGLProgram(), CGL_PROGRAM_SLOT);
+	COGLBindLock lock(m_pAreaLightProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
 	
 	// avoid z-fighting
 	glEnable(GL_POLYGON_OFFSET_FILL);
@@ -596,7 +805,8 @@ void Renderer::DrawLights(std::vector<AVPL*> avpls)
 	for ( it=avpls.begin() ; it < avpls.end(); it++ )
 	{
 		AVPL* avpl = *it;
-		if(m_RenderBounce == -1 || (avpl->GetBounce() == m_RenderBounce || avpl->GetBounce() == m_RenderBounce + 1))
+		int rb = m_pConfManager->GetConfVars()->RenderBounce;
+		if(rb == -1 || (avpl->GetBounce() == rb || avpl->GetBounce() == rb + 1))
 		{
 			POINT_CLOUD_POINT p;
 			glm::vec3 pos = avpl->GetPosition() + 0.05f * avpl->GetOrientation();
@@ -615,9 +825,9 @@ void Renderer::DrawLights(std::vector<AVPL*> avpls)
 	}
 	
 	{
-		CRenderTargetLock lock(m_pLightDebugRenderTarget);
+		CRenderTargetLock lock(m_pGatherRenderTarget);
 		
-		CGLBindLock lockProgram(m_pPointCloudProgram->GetGLProgram(), CGL_PROGRAM_SLOT);
+		COGLBindLock lockProgram(m_pPointCloudProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
 		
 		TRANSFORM transform;
 		transform.M = IdentityMatrix();
@@ -628,12 +838,9 @@ void Renderer::DrawLights(std::vector<AVPL*> avpls)
 	
 		glDepthMask(GL_FALSE);
 		glDisable(GL_DEPTH_TEST);
-		glEnable(GL_BLEND);	
-		glBlendFunc(GL_ONE, GL_ONE);
 		m_pPointCloud->Draw(positionData, colorData, pcp.size());		
 		glDepthMask(GL_TRUE);
 		glEnable(GL_DEPTH_TEST);
-		glDisable(GL_BLEND);
 	}
 	
 	pcp.clear();
@@ -644,7 +851,7 @@ void Renderer::DrawLights(std::vector<AVPL*> avpls)
 void Renderer::DebugRender()
 {
 	// draw gbuffer info for debuging
-	if(GetDrawTexture()) 
+	if(m_pConfManager->GetConfVars()->DrawDebugTextures) 
 	{
 		m_pTextureViewer->DrawTexture(m_pLightDebugRenderTarget->GetBuffer(0), 10, 360, 620, 340);
 		m_pTextureViewer->DrawTexture(m_pNormalizeRenderTarget->GetBuffer(0),  640, 360, 620, 340);
@@ -704,11 +911,10 @@ void Renderer::Stats()
 void Renderer::ConfigureLighting()
 {
 	CONFIG conf;
-	conf.GeoTermLimit = m_GeoTermLimit;
-	conf.UseAntiradiance = m_UseAntiradiance ? 1 : 0;
-	conf.nPaths = std::min(m_CurrentPath, m_NumPaths);
-	conf.N = m_N;
-	conf.Bias = m_Bias;
+	conf.GeoTermLimit = m_pConfManager->GetConfVars()->GeoTermLimit;
+	conf.UseAntiradiance = m_pConfManager->GetConfVars()->UseAntiradiance ? 1 : 0;
+	conf.nPaths = std::min(m_CurrentPath, m_pConfManager->GetConfVars()->NumPaths);
+	conf.N = m_pConfManager->GetConfVars()->ConeFactor;
 	m_pUBConfig->UpdateData(&conf);
 }
 
@@ -736,11 +942,6 @@ glm::vec4 Renderer::ColorForLight(AVPL* avpl)
 	return color;
 }
 
-void Renderer::CreatePlaneHammersleySamples(int i)
-{
-	scene->CreatePlaneHammersleySamples(i);
-}
-
 void Renderer::Export()
 {
 	m_Export->ExportPFM(m_pNormalizeRenderTarget->GetBuffer(0), "result.pfm");
@@ -762,12 +963,21 @@ void Renderer::ExportPartialResult()
 	m_Export->ExportPFM(m_pShadeRenderTarget->GetBuffer(0), ss.str());
 }
 
-void Renderer::SetGamma(float gamma)
+void Renderer::NewDebugLights()
 {
-	m_pPostProcess->SetGamma(gamma);
+	ClearAccumulationBuffer();
+
+	for(uint i = 0; i < m_DebugAVPLs.size(); ++i)
+	{
+		delete m_DebugAVPLs[i];
+	}
+	m_DebugAVPLs.clear();
+	
+	m_DebugAVPLs = scene->CreatePaths(m_pConfManager->GetConfVars()->NumPaths, m_pConfManager->GetConfVars()->ConeFactor,
+		m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
 }
 
-void Renderer::SetExposure(float exposure)
+void Renderer::SetConfigManager(CConfigManager* pConfManager)
 {
-	m_pPostProcess->SetExposure(exposure);
+	m_pConfManager = pConfManager;
 }

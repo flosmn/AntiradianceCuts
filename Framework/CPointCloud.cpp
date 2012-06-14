@@ -2,12 +2,12 @@
 
 #include "Macros.h"
 
-#include "CGLResources\CGLVertexArray.h"
-#include "CGLResources\CGLProgram.h"
+#include "OGLResources\COGLVertexArray.h"
+#include "OGLResources\COGLProgram.h"
 
 CPointCloud::CPointCloud()
 {
-	m_pVertexArray = new CGLVertexArray("CPointCloud.m_pVertexArray");
+	m_pVertexArray = new COGLVertexArray("CPointCloud.m_pVertexArray");
 }
 
 CPointCloud::~CPointCloud()

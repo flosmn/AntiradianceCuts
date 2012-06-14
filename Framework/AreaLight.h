@@ -9,7 +9,7 @@
 class CModel;
 class Camera;
 class Light;
-class CGLUniformBuffer;
+class COGLUniformBuffer;
 
 class AreaLight
 {
@@ -21,7 +21,7 @@ public:
 	bool Init();
 	void Release();
 
-	void Draw(Camera* camera, CGLUniformBuffer* pUBTransform, CGLUniformBuffer* pUBAreaLight);
+	void Draw(Camera* camera, COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBAreaLight);
 
 	glm::vec3 GetCenterPosition() { return centerPosition; }
 	glm::vec3 GetFrontDirection() { return frontDirection; }

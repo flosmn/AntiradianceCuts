@@ -5,7 +5,7 @@
 
 typedef unsigned int uint;
 
-class CGLVertexArray;
+class COGLVertexArray;
 
 class CPointCloud
 {
@@ -18,7 +18,7 @@ public:
 	
 	void Draw(glm::vec4* positionData, glm::vec4* colorData, uint nPoints);
 private:
-	CGLVertexArray* m_pVertexArray;
+	COGLVertexArray* m_pVertexArray;
 	uint m_nPoints;
 };
 

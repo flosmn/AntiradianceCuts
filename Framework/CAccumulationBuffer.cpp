@@ -2,16 +2,16 @@
 
 #include "Macros.h"
 
-#include "CGLResources\CGLTexture2D.h"
-#include "CGLResources\CGLRenderBuffer.h"
-#include "CGLResources\CGLFrameBuffer.h"
+#include "OGLResources\COGLTexture2D.h"
+#include "OGLResources\COGLRenderBuffer.h"
+#include "OGLResources\COGLFrameBuffer.h"
 
 CAccumulationBuffer::CAccumulationBuffer()
 	: m_pGLFBRenderTarget(0), m_pGLTAccumTexture(0), m_pDepthBuffer(0),
 	  m_Width(0), m_Height(0), m_ExternalDepthBuffer(false)
 {
-	m_pGLFBRenderTarget = new CGLFrameBuffer("CAccumulationBuffer.m_pGLFBRenderTarget");
-	m_pGLTAccumTexture = new CGLTexture2D("CAccumulationBuffer.m_pGLTAccumTexture");
+	m_pGLFBRenderTarget = new COGLFrameBuffer("CAccumulationBuffer.m_pGLFBRenderTarget");
+	m_pGLTAccumTexture = new COGLTexture2D("CAccumulationBuffer.m_pGLTAccumTexture");
 }
 
 CAccumulationBuffer::~CAccumulationBuffer() 
@@ -23,7 +23,7 @@ CAccumulationBuffer::~CAccumulationBuffer()
 	SAFE_DELETE(m_pGLFBRenderTarget);
 }
 	
-bool CAccumulationBuffer::Init(GLuint width, GLuint height, CGLTexture2D* pDepthBuffer)
+bool CAccumulationBuffer::Init(GLuint width, GLuint height, COGLTexture2D* pDepthBuffer)
 {
 	if(pDepthBuffer != 0)
 	{
@@ -32,7 +32,7 @@ bool CAccumulationBuffer::Init(GLuint width, GLuint height, CGLTexture2D* pDepth
 	}
 	else
 	{
-		m_pDepthBuffer = new CGLTexture2D("CAccumulationBuffer.m_pDepthBuffer");
+		m_pDepthBuffer = new COGLTexture2D("CAccumulationBuffer.m_pDepthBuffer");
 		V_RET_FOF(m_pDepthBuffer->Init(width, height, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, 1, false));
 
 	}

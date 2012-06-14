@@ -2,15 +2,15 @@
 
 #include "Macros.h"
 
-#include "CGLResources\CGLFrameBuffer.h"
-#include "CGLResources\CGLTexture2D.h"
+#include "OGLResources\COGLFrameBuffer.h"
+#include "OGLResources\COGLTexture2D.h"
 
 #include <sstream>
 
 CRenderTarget::CRenderTarget()
 	: m_pFrameBuffer(0), m_Width(0), m_Height(0), m_ExternalDepthBuffer(false)
 {
-	m_pFrameBuffer = new CGLFrameBuffer("CRenderTarget.m_pFrameBuffer");
+	m_pFrameBuffer = new COGLFrameBuffer("CRenderTarget.m_pFrameBuffer");
 }
 
 CRenderTarget::~CRenderTarget()
@@ -19,7 +19,7 @@ CRenderTarget::~CRenderTarget()
 }
 	
 
-bool CRenderTarget::Init(uint width, uint height, uint nBuffers, CGLTexture2D* pDepthBuffer)
+bool CRenderTarget::Init(uint width, uint height, uint nBuffers, COGLTexture2D* pDepthBuffer)
 {
 	if(pDepthBuffer != 0)
 	{
@@ -28,7 +28,7 @@ bool CRenderTarget::Init(uint width, uint height, uint nBuffers, CGLTexture2D* p
 	}
 	else
 	{
-		m_pDepthBuffer = new CGLTexture2D("CAccumulationBuffer.m_pDepthBuffer");
+		m_pDepthBuffer = new COGLTexture2D("CAccumulationBuffer.m_pDepthBuffer");
 		V_RET_FOF(m_pDepthBuffer->Init(width, height, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, 1, false));
 
 	}
@@ -46,7 +46,7 @@ bool CRenderTarget::Init(uint width, uint height, uint nBuffers, CGLTexture2D* p
 	{
 		std::stringstream ss;
 		ss << "CRenderTarget.buffer" << i;
-		CGLTexture2D* buffer = new CGLTexture2D(ss.str());
+		COGLTexture2D* buffer = new COGLTexture2D(ss.str());
 		V_RET_FOF(buffer->Init(m_Width, m_Height, GL_RGBA32F, GL_RGBA, GL_FLOAT, 1, false));
 		m_vTargetTextures.push_back(buffer);
 		m_pFrameBuffer->AttachTexture2D(buffer, GL_COLOR_ATTACHMENT0 + i);
@@ -78,7 +78,7 @@ void CRenderTarget::Release()
 	delete [] m_pBuffers;
 }
 
-CGLTexture2D* CRenderTarget::GetBuffer(uint i)
+COGLTexture2D* CRenderTarget::GetBuffer(uint i)
 {
 	if(i >= m_nBuffers)
 	{
@@ -91,7 +91,7 @@ CGLTexture2D* CRenderTarget::GetBuffer(uint i)
 
 void CRenderTarget::Bind()
 {
-	m_pFrameBuffer->Bind(CGL_FRAMEBUFFER_SLOT);
+	m_pFrameBuffer->Bind(COGL_FRAMEBUFFER_SLOT);
 
 	glDrawBuffers(m_nBuffers, m_pBuffers);
 }

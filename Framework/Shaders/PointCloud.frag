@@ -6,6 +6,6 @@ smooth in vec4 color;
 
 void main()
 {
-	outputColor = 0.01 * color;
+	outputColor = vec4(1.f, 1.f, 1.f, 1.f);
 	outputColor.w = 1.f;
 }

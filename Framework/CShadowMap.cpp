@@ -4,15 +4,15 @@
 
 #include "Macros.h"
 
-#include "CGLResources\CGLTexture2D.h"
-#include "CGLResources\CGLFrameBuffer.h"
+#include "OGLResources\COGLTexture2D.h"
+#include "OGLResources\COGLFrameBuffer.h"
 
 #include <iostream>
 
 CShadowMap::CShadowMap() 
 {
-	m_pRenderTarget = new CGLFrameBuffer("CShadowMap.m_pRenderTarget");
-	m_pShadowMapTexture = new CGLTexture2D("CShadowMap.m_pShadowMapTexture");
+	m_pRenderTarget = new COGLFrameBuffer("CShadowMap.m_pRenderTarget");
+	m_pShadowMapTexture = new COGLTexture2D("CShadowMap.m_pShadowMapTexture");
 }
 
 CShadowMap::~CShadowMap() 

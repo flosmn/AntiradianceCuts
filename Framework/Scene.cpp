@@ -9,11 +9,11 @@ typedef unsigned int uint;
 #include "AreaLight.h"
 #include "Camera.h"
 
-#include "CGLResources\CGLUniformBuffer.h"
+#include "OGLResources\COGLUniformBuffer.h"
 
-#include "CMeshResources\CMesh.h"
-#include "CMeshResources\CModel.h"
-#include "CMeshResources\CSubModel.h"
+#include "MeshResources\CMesh.h"
+#include "MeshResources\CModel.h"
+#include "MeshResources\CSubModel.h"
 
 #include <set>
 #include <iostream>
@@ -23,7 +23,6 @@ Scene::Scene(Camera* _camera)
 {
 	m_Camera = _camera;
 	m_CurrentBounce = 0;
-	m_pPlaneHammersleySamples = 0;
 }
 
 Scene::~Scene()
@@ -68,7 +67,7 @@ void Scene::ClearScene()
 	m_NumLightPaths = 0;
 }
 
-void Scene::DrawScene(CGLUniformBuffer* pUBTransform, CGLUniformBuffer* pUBMaterial)
+void Scene::DrawScene(COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBMaterial)
 {
 	std::vector<CModel*>::iterator it;
 
@@ -78,7 +77,7 @@ void Scene::DrawScene(CGLUniformBuffer* pUBTransform, CGLUniformBuffer* pUBMater
 	}
 }
 
-void Scene::DrawScene(CGLUniformBuffer* pUBTransform)
+void Scene::DrawScene(COGLUniformBuffer* pUBTransform)
 {
 	std::vector<CModel*>::iterator it;
 
@@ -88,7 +87,7 @@ void Scene::DrawScene(CGLUniformBuffer* pUBTransform)
 	}
 }
 
-void Scene::DrawScene(const glm::mat4& mView, const glm::mat4& mProj, CGLUniformBuffer* pUBTransform)
+void Scene::DrawScene(const glm::mat4& mView, const glm::mat4& mProj, COGLUniformBuffer* pUBTransform)
 {
 	std::vector<CModel*>::iterator it;
 
@@ -98,12 +97,12 @@ void Scene::DrawScene(const glm::mat4& mView, const glm::mat4& mProj, CGLUniform
 	}
 }
 
-void Scene::DrawAreaLight(CGLUniformBuffer* pUBTransform, CGLUniformBuffer* pUBAreaLight)
+void Scene::DrawAreaLight(COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBAreaLight)
 {
 	m_AreaLight->Draw(m_Camera, pUBTransform, pUBAreaLight);
 }
 
-AVPL* Scene::CreateAVPL(AVPL* predecessor, int N, int nAdditionalAVPLs, bool useHammersley)
+AVPL* Scene::CreateAVPL(AVPL* predecessor, int N, int nAdditionalAVPLs)
 {
 	AVPL* avpl = 0;
 	if(predecessor == 0)
@@ -124,12 +123,12 @@ AVPL* Scene::CreateAVPL(AVPL* predecessor, int N, int nAdditionalAVPLs, bool use
 		float pdf = 0.f;
 		glm::vec3 direction = GetRandomSampleDirectionCosCone(predecessor->GetOrientation(), Rand01(), Rand01(), pdf, 1);
 		
-		avpl = ContinueAVPLPath(predecessor, direction, pdf, N, nAdditionalAVPLs, useHammersley);
+		avpl = ContinueAVPLPath(predecessor, direction, pdf, N, nAdditionalAVPLs);
 	}
 	return avpl;
 }
 
-AVPL* Scene::ContinueAVPLPath(AVPL* pred, glm::vec3 direction, float pdf, int N, int nAdditionalAVPLs, bool useHammersley)
+AVPL* Scene::ContinueAVPLPath(AVPL* pred, glm::vec3 direction, float pdf, int N, int nAdditionalAVPLs)
 {
 	AVPL* avpl = 0;
 
@@ -148,14 +147,12 @@ AVPL* Scene::ContinueAVPLPath(AVPL* pred, glm::vec3 direction, float pdf, int N,
 		glm::vec3 pos = intersection.GetPoint();
 		glm::vec3 norm = intersection.GetTriangle().GetNormal();
 		glm::vec3 rho = glm::vec3(intersection.GetModel()->GetMaterial().diffuseColor);
-
-		const float cos_theta_yz = glm::dot(glm::normalize(pred_norm), glm::normalize(direction));
-
-		glm::vec3 intensity = rho/PI * cos_theta_yz/pdf * pred->GetIntensity();	
+				
+		glm::vec3 intensity = rho/PI * pred->GetIntensity(glm::normalize(direction)) / pdf;	
 		
 		const float area = 2 * PI * ( 1 - cos(PI/float(N+1)) );
 		
-		glm::vec3 antiintensity = 1.f / float(nAdditionalAVPLs + 1) * pred->GetIntensity() * cos_theta_yz / (pdf * area);
+		glm::vec3 antiintensity = 1.f / float(nAdditionalAVPLs + 1) * pred->GetIntensity(glm::normalize(direction)) / (pdf * area);
 			
 		avpl = new AVPL(pos, norm, intensity, antiintensity, direction, pred->GetBounce() + 1);	
 	}
@@ -163,12 +160,12 @@ AVPL* Scene::ContinueAVPLPath(AVPL* pred, glm::vec3 direction, float pdf, int N,
 	return avpl;
 }
 
-std::vector<AVPL*> Scene::CreatePaths(uint numPaths, int N, int nAdditionalAVPLs, bool useHammersley)
+std::vector<AVPL*> Scene::CreatePaths(uint numPaths, int N, int nAdditionalAVPLs)
 {
 	std::vector<AVPL*> avpls;
 	for(uint i = 0; i < numPaths; ++i)
 	{
-		std::vector<AVPL*> path = CreatePath(N, nAdditionalAVPLs, useHammersley);
+		std::vector<AVPL*> path = CreatePath(N, nAdditionalAVPLs);
 		for(uint j = 0; j < path.size(); ++j)
 			avpls.push_back(path[j]);
 	}
@@ -176,7 +173,7 @@ std::vector<AVPL*> Scene::CreatePaths(uint numPaths, int N, int nAdditionalAVPLs
 	return avpls;
 }
 
-std::vector<AVPL*> Scene::CreatePath(int N, int nAdditionalAVPLs, bool useHammersley) 
+std::vector<AVPL*> Scene::CreatePath(int N, int nAdditionalAVPLs) 
 {
 	m_NumLightPaths++;
 
@@ -186,7 +183,7 @@ std::vector<AVPL*> Scene::CreatePath(int N, int nAdditionalAVPLs, bool useHammer
 	AVPL *pred, *succ;
 		
 	// create new primary light on light source
-	pred = CreateAVPL(0, N, nAdditionalAVPLs, useHammersley);
+	pred = CreateAVPL(0, N, nAdditionalAVPLs);
 	path.push_back(pred);
 	
 	m_CurrentBounce++;
@@ -202,9 +199,9 @@ std::vector<AVPL*> Scene::CreatePath(int N, int nAdditionalAVPLs, bool useHammer
 		if(rand_01 > rrProb)
 		{
 			// create path-finishing Anti-VPLs
-			CreateAVPLs(pred, path, N, nAdditionalAVPLs, useHammersley);
+			CreateAVPLs(pred, path, N, nAdditionalAVPLs);
 
-			AVPL* avpl = CreateAVPL(pred, N, nAdditionalAVPLs, useHammersley);
+			AVPL* avpl = CreateAVPL(pred, N, nAdditionalAVPLs);
 			if(avpl != 0)
 			{
 				avpl->SetIntensity(glm::vec3(0.f));
@@ -216,14 +213,14 @@ std::vector<AVPL*> Scene::CreatePath(int N, int nAdditionalAVPLs, bool useHammer
 		else
 		{
 			// create additional avpls
-			CreateAVPLs(pred, path, N, nAdditionalAVPLs, useHammersley);
+			CreateAVPLs(pred, path, N, nAdditionalAVPLs);
 
 			// follow the path with cos-sampled direction (importance sample diffuse surface)
 			// if the ray hits geometry
-			succ = CreateAVPL(pred, N, nAdditionalAVPLs, useHammersley);
+			succ = CreateAVPL(pred, N, nAdditionalAVPLs);
 			if(succ != 0)
 			{
-				succ->SetIntensity(succ->GetIntensity() / rrProb);
+				succ->SetIntensity(succ->GetIntensity(succ->GetOrientation()) / rrProb);
 				path.push_back(succ);
 				pred = succ;
 			}
@@ -241,7 +238,7 @@ std::vector<AVPL*> Scene::CreatePath(int N, int nAdditionalAVPLs, bool useHammer
 	return path;
 }
 
-void Scene::CreateAVPLs(AVPL* pred, std::vector<AVPL*>& path, int N, int nAVPLs, bool useHammersley)
+void Scene::CreateAVPLs(AVPL* pred, std::vector<AVPL*>& path, int N, int nAVPLs)
 {
 	glm::vec3 pred_norm = pred->GetOrientation();
 
@@ -249,8 +246,8 @@ void Scene::CreateAVPLs(AVPL* pred, std::vector<AVPL*>& path, int N, int nAVPLs,
 	{
 		float pdf;
 		glm::vec3 direction = GetRandomSampleDirectionCosCone(pred_norm, Rand01(), Rand01(), pdf, 1);
-
-		AVPL* avpl = ContinueAVPLPath(pred, direction, pdf, N, nAVPLs, useHammersley);
+		
+		AVPL* avpl = ContinueAVPLPath(pred, direction, pdf, N, nAVPLs);
 		if(avpl != 0)
 		{
 			avpl->SetIntensity(glm::vec3(0.f));
@@ -339,7 +336,7 @@ void Scene::LoadSimpleScene()
 		glm::vec3(0.0f, -1.0f, 0.0f),
 		glm::vec3(0.0f, 0.0f, 1.0f));
 
-	m_AreaLight->SetFlux(glm::vec3(120.f, 120.f, 120.f));
+	m_AreaLight->SetRadiance(glm::vec3(120.f, 120.f, 120.f));
 	
 	m_AreaLight->Init();
 }
@@ -366,14 +363,4 @@ void Scene::LoadCornellBox()
 	m_AreaLight->SetRadiance(glm::vec3(100.f, 100.f, 100.f));
 
 	m_AreaLight->Init();
-}
-
-void Scene::CreatePlaneHammersleySamples(int i)
-{
-	if(m_pPlaneHammersleySamples)
-		SAFE_DELETE_ARRAY(m_pPlaneHammersleySamples);
-
-	m_pPlaneHammersleySamples = new float[2* i];
-
-	PlaneHammersley(m_pPlaneHammersleySamples, i);
 }

@@ -4,13 +4,13 @@
 
 #include "Camera.h"
 
-#include "CUtils\ShaderUtil.h"
-#include "CUtils\Util.h"
+#include "Utils\ShaderUtil.h"
+#include "Utils\Util.h"
 
-#include "CMeshResources\CMesh.h"
-#include "CMeshResources\CModel.h"
+#include "MeshResources\CMesh.h"
+#include "MeshResources\CModel.h"
 
-#include "CGLResources\CGLUniformBuffer.h"
+#include "OGLResources\COGLUniformBuffer.h"
 
 #define NUM_QR_NUMBERS 1024
 
@@ -64,7 +64,7 @@ void AreaLight::Release()
 	m_pAreaLightModel->Release();
 }
 
-void AreaLight::Draw(Camera* camera, CGLUniformBuffer* pUBTransform, CGLUniformBuffer* pUBAreaLight)
+void AreaLight::Draw(Camera* camera, COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBAreaLight)
 {
 	AREA_LIGHT arealight;
 	arealight.radiance = glm::vec4(GetRadiance(), 1.f);
@@ -92,7 +92,7 @@ glm::vec3 AreaLight::SampleDir(float& pdf, int order)
 	float u2 = m_pPlaneHammersleyNumbers[2 * m_PlaneHammersleyIndex + 1];
 
 	glm::vec3 direction = GetRandomSampleDirectionCosCone(GetFrontDirection(), u1, u2, pdf, order);
-
+	
 	m_PlaneHammersleyIndex++;
 	if(m_PlaneHammersleyIndex >= NUM_QR_NUMBERS) m_PlaneHammersleyIndex = 0;
 

@@ -8,8 +8,8 @@
 
 typedef unsigned int uint;
 
-class CGLFrameBuffer;
-class CGLTexture2D;
+class COGLFrameBuffer;
+class COGLTexture2D;
 
 class CRenderTarget
 {
@@ -19,22 +19,22 @@ public:
 	CRenderTarget();
 	~CRenderTarget();
 	
-	bool Init(uint width, uint height, uint nBuffers, CGLTexture2D* pDepthBuffer);
+	bool Init(uint width, uint height, uint nBuffers, COGLTexture2D* pDepthBuffer);
 	void Release();
 		
-	CGLFrameBuffer* GetFrameBuffer() { return m_pFrameBuffer; }
+	COGLFrameBuffer* GetFrameBuffer() { return m_pFrameBuffer; }
 
-	CGLTexture2D* GetBuffer(uint i);
-	CGLTexture2D* GetDepthBuffer();
+	COGLTexture2D* GetBuffer(uint i);
+	COGLTexture2D* GetDepthBuffer();
 		
 private:
 	void Bind();
 	void Unbind();
 
-	std::vector<CGLTexture2D*> m_vTargetTextures;
-	CGLTexture2D* m_pDepthBuffer;
+	std::vector<COGLTexture2D*> m_vTargetTextures;
+	COGLTexture2D* m_pDepthBuffer;
 	
-	CGLFrameBuffer* m_pFrameBuffer;
+	COGLFrameBuffer* m_pFrameBuffer;
 	
 	uint m_nBuffers;
 	GLenum* m_pBuffers;

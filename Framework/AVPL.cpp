@@ -2,7 +2,8 @@
 
 #include <glm/gtx/transform.hpp>
 
-#include "CUtils\Util.h"
+#include "Utils\Util.h"
+#include "Utils\Rand.h"
 
 AVPL::AVPL(glm::vec3 p, glm::vec3 n, glm::vec3 I,
 	glm::vec3 A, glm::vec3 w_A, int bounce)
@@ -54,4 +55,37 @@ void AVPL::Fill(AVPL_BUFFER& avpl)
 	avpl.A = glm::vec4(m_Antiintensity, 1.f);
 	avpl.w_A = m_AntiradianceDirection;
 	avpl.Bounce = m_Bounce;
+}
+
+glm::vec3 AVPL::GetIntensity(glm::vec3 w)
+{
+	return clamp(glm::dot(w, m_Orientation), 0, 1) * m_Intensity;
+}
+
+glm::vec3 AVPL::GetAntiintensity(glm::vec3 w, const float& N)
+{
+	glm::vec3 res = glm::vec3(0.f);
+
+	if(glm::dot(w, m_AntiradianceDirection) < 0.01f)
+	{
+		return res;
+	}
+
+	const float theta = acos(clamp(glm::dot(w, m_AntiradianceDirection), 0, 1));
+
+	if(theta < PI/N)
+	{
+		//const float K = (PI * (1 - cos(PI/N))) / (PI - N * sin(PI/N));
+		//res = K * (1 - theta / PI/N) * m_Antiintensity;
+		res = m_Antiintensity;
+	}
+
+	return res;
+}
+
+glm::vec3 AVPL::SampleAntiradianceDirection(const float& N)
+{
+	float pdf = 0.f;
+	glm::vec3 dir = SampleConeDirection(m_AntiradianceDirection, PI/N, Rand01(), Rand01(), &pdf);
+	return dir;
 }

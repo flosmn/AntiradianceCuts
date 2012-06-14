@@ -3,8 +3,8 @@
 
 typedef unsigned int uint;
 
-class CGLTexture2D;
-class CGLFrameBuffer;
+class COGLTexture2D;
+class COGLFrameBuffer;
 
 class CAccumulationBuffer
 {
@@ -12,16 +12,16 @@ public:
 	CAccumulationBuffer();
 	~CAccumulationBuffer();
 	
-	bool Init(uint width, uint height, CGLTexture2D* pDepthBuffer);
+	bool Init(uint width, uint height, COGLTexture2D* pDepthBuffer);
 	void Release();
 
-	CGLTexture2D* GetTexture() { return m_pGLTAccumTexture; }
-	CGLFrameBuffer* GetRenderTarget() { return m_pGLFBRenderTarget; }
+	COGLTexture2D* GetTexture() { return m_pGLTAccumTexture; }
+	COGLFrameBuffer* GetRenderTarget() { return m_pGLFBRenderTarget; }
 	
 private:
-	CGLFrameBuffer* m_pGLFBRenderTarget;
-	CGLTexture2D* m_pGLTAccumTexture;
-	CGLTexture2D* m_pDepthBuffer;
+	COGLFrameBuffer* m_pGLFBRenderTarget;
+	COGLTexture2D* m_pGLTAccumTexture;
+	COGLTexture2D* m_pDepthBuffer;
 
 	bool m_ExternalDepthBuffer;
 

@@ -7,9 +7,9 @@ class Scene;
 class ShadowMap;
 class Light;
 
-class CGLTexture2D;
-class CGLFrameBuffer;
-class CGLSampler;
+class COGLTexture2D;
+class COGLFrameBuffer;
+class COGLSampler;
 class CFullScreenQuad;
 class CProgram;
 class CShadowMap;
@@ -20,23 +20,23 @@ public:
 	CGBuffer();
 	~CGBuffer();
 
-	bool Init(uint width, uint height, CGLTexture2D* pDepthBuffer);
+	bool Init(uint width, uint height, COGLTexture2D* pDepthBuffer);
 	void Release();
 
-	CGLTexture2D* GetPositionTextureWS() { return m_pGLTTexturePositionWS; }
-	CGLTexture2D* GetNormalTexture() { return m_pGLTTextureNormalWS; }
-	CGLTexture2D* GetMaterialTexture() { return m_pGLTTextureMaterials; }
-	CGLFrameBuffer* GetRenderTarget() { return m_pGLFBRenderTarget; }
+	COGLTexture2D* GetPositionTextureWS() { return m_pGLTTexturePositionWS; }
+	COGLTexture2D* GetNormalTexture() { return m_pGLTTextureNormalWS; }
+	COGLTexture2D* GetMaterialTexture() { return m_pGLTTextureMaterials; }
+	COGLFrameBuffer* GetRenderTarget() { return m_pGLFBRenderTarget; }
 
 private:
 	uint m_Width;
 	uint m_Height;
 
-	CGLFrameBuffer* m_pGLFBRenderTarget;
-	CGLTexture2D* m_pGLTTexturePositionWS;
-	CGLTexture2D* m_pGLTTextureNormalWS;
-	CGLTexture2D* m_pGLTTextureMaterials;
-	CGLSampler* m_pGLPointSampler;
+	COGLFrameBuffer* m_pGLFBRenderTarget;
+	COGLTexture2D* m_pGLTTexturePositionWS;
+	COGLTexture2D* m_pGLTTextureNormalWS;
+	COGLTexture2D* m_pGLTTextureMaterials;
+	COGLSampler* m_pGLPointSampler;
 
 	CProgram* m_pCreateGBufferProgram;
 };
