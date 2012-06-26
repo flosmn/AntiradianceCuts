@@ -19,6 +19,7 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->DrawDebugTextures = m_pConfVarsGUI->DrawDebugTextures = 0;
 	m_pConfVars->DrawLights = m_pConfVarsGUI->DrawLights = 0;
 	m_pConfVars->FilterAvplAtlasLinear = m_pConfVarsGUI->FilterAvplAtlasLinear = 1;
+	m_pConfVars->FillAvplAltasOnGPU = m_pConfVarsGUI->FillAvplAltasOnGPU = 1;
 
 	m_pConfVars->GeoTermLimit = m_pConfVarsGUI->GeoTermLimit = 0.001f;
 	m_pConfVars->Gamma = m_pConfVarsGUI->Gamma = 2.2f;
@@ -31,6 +32,8 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->RenderBounce = m_pConfVarsGUI->RenderBounce = -1;
 	m_pConfVars->DrawLightingOfLight = m_pConfVarsGUI->DrawLightingOfLight = -1;
 	m_pConfVars->NumSqrtAtlasSamples = m_pConfVarsGUI->NumSqrtAtlasSamples = 2;
+	m_pConfVars->TexelOffsetX = m_pConfVarsGUI->TexelOffsetX = 0.f;
+	m_pConfVars->TexelOffsetY = m_pConfVarsGUI->TexelOffsetY = 0.f;
 }
 
 CConfigManager::~CConfigManager()
@@ -113,6 +116,12 @@ void CConfigManager::Update()
 		clearAccumBuffer = true;
 	}
 
+	if(m_pConfVarsGUI->FillAvplAltasOnGPU != m_pConfVars->FillAvplAltasOnGPU)
+	{
+		m_pConfVars->FillAvplAltasOnGPU = m_pConfVarsGUI->FillAvplAltasOnGPU;
+		clearAccumBuffer = true;
+	}
+
 	if(m_pConfVarsGUI->GatherWithAVPLAtlas != m_pConfVars->GatherWithAVPLAtlas)
 	{
 		m_pConfVars->GatherWithAVPLAtlas = m_pConfVarsGUI->GatherWithAVPLAtlas;
@@ -172,6 +181,22 @@ void CConfigManager::Update()
 	if(m_pConfVarsGUI->NumSqrtAtlasSamples != m_pConfVars->NumSqrtAtlasSamples)
 	{
 		m_pConfVars->NumSqrtAtlasSamples = m_pConfVarsGUI->NumSqrtAtlasSamples;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->TexelOffsetX != m_pConfVars->TexelOffsetX)
+	{
+		m_pConfVars->TexelOffsetX = m_pConfVarsGUI->TexelOffsetX;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->TexelOffsetY != m_pConfVars->TexelOffsetY)
+	{
+		m_pConfVars->TexelOffsetY = m_pConfVarsGUI->TexelOffsetY;
 		configureLighting = true;
 		clearAccumBuffer = true;
 		clearLighting = true;

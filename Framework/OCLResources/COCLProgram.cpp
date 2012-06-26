@@ -35,7 +35,7 @@ bool COCLProgram::Init(const std::string& sourceFile)
 		return false;
 	}
 
-	V_RET_FOF(CHECK_CL_SUCCESS(clUnloadCompiler(), "clUnloadCompiler"));
+//	V_RET_FOF(CHECK_CL_SUCCESS(clUnloadCompiler(), "clUnloadCompiler"));
 
 	V_RET_FOF(COCLResource::Init());
 

@@ -36,10 +36,7 @@ class COGLTextureBuffer;
 class COGLContext;
 
 class COCLContext;
-class COCLProgram;
-class COCLKernel;
 class COCLBuffer;
-class COCLTexture2D;
 
 class Renderer {
 public:
@@ -115,7 +112,8 @@ private:
 	CRenderTarget* m_pPostProcessRenderTarget;
 	CPostprocess* m_pPostProcess;
 
-	COGLTextureBuffer* m_pLightBuffer;
+	COGLTextureBuffer* m_pOGLLightBuffer;
+	
 	COGLTextureBuffer* m_pAVPLPositions;
 
 	CPointCloud* m_pPointCloud;
@@ -155,12 +153,7 @@ private:
 	CFullScreenQuad* m_pFullScreenQuad;
 
 	COCLContext* m_pCLContext;
-	COCLProgram* m_pCLProgram;
-	COCLKernel* m_pCLKernel;
-
-	COGLTexture2D* m_pGLTexture2D;
-	COCLTexture2D* m_pCLTexture2D;
-
+	
 	CModel* m_pOctahedron;
 	
 	int m_Frame;
@@ -169,6 +162,8 @@ private:
 	bool m_Finished;
 
 	time_t m_StartTime;
+
+	int m_MaxNumAVPLs;
 
 	std::vector<AVPL*> m_DebugAVPLs;
 };

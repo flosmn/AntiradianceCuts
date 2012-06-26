@@ -129,10 +129,10 @@
     <ClCompile Include="guicon.cpp" />
     <ClCompile Include="CGUI.cpp" />
     <ClCompile Include="old_main.cpp" />
-    <ClCompile Include="OCLResources\COCLContext.cpp">
-      <Filter>OGLResources</Filter>
-    </ClCompile>
     <ClCompile Include="OCLResources\COCLTexture2D.cpp">
+      <Filter>OCLResources</Filter>
+    </ClCompile>
+    <ClCompile Include="OCLResources\COCLContext.cpp">
       <Filter>OCLResources</Filter>
     </ClCompile>
   </ItemGroup>
@@ -159,7 +159,6 @@
     <ClInclude Include="AVPL.h" />
     <ClInclude Include="COctahedronMap.h" />
     <ClInclude Include="COctahedronAtlas.h" />
-    <ClInclude Include="OctahedronUtil.h" />
     <ClInclude Include="CConfigManager.h" />
     <ClInclude Include="MeshResources\CFullScreenQuad.h">
       <Filter>MeshResources</Filter>
@@ -259,15 +258,21 @@
     </ClInclude>
     <ClInclude Include="guicon.h" />
     <ClInclude Include="CGUI.h" />
-    <ClInclude Include="COGLContext.h">
-      <Filter>OGLResources</Filter>
-    </ClInclude>
-    <ClInclude Include="OGLResources\COGLContext.h">
-      <Filter>OCLResources</Filter>
-    </ClInclude>
     <ClInclude Include="OCLResources\COCLTexture2D.h">
       <Filter>OCLResources</Filter>
     </ClInclude>
+    <ClInclude Include="OGLResources\COGLContext.h">
+      <Filter>OGLResources</Filter>
+    </ClInclude>
+    <ClInclude Include="OCLResources\COCLContext.h">
+      <Filter>OCLResources</Filter>
+    </ClInclude>
+    <ClInclude Include="GlmUtil.h" />
+    <ClInclude Include="OctahedronUtil.cl">
+      <Filter>Kernels</Filter>
+    </ClInclude>
+    <ClInclude Include="OctahedronUtil.h" />
+    <ClInclude Include="CPrimitive.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">
@@ -331,6 +336,9 @@
       <Filter>Shaders</Filter>
     </None>
     <None Include="Kernels\vec.cl">
+      <Filter>Kernels</Filter>
+    </None>
+    <None Include="Kernels\FillAVPLAtlas.cl">
       <Filter>Kernels</Filter>
     </None>
   </ItemGroup>

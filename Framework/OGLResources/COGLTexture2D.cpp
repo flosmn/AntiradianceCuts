@@ -40,7 +40,7 @@ bool COGLTexture2D::Init(GLuint width, GLuint height, GLenum internalFormat,
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
 		glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, m_GenMipMaps);
 		glTexImage2D(GL_TEXTURE_2D, 0, m_InternalFormat, m_Width, m_Height,
-			0, m_Format, m_Type, 0);
+			0, m_Format, m_Type, NULL);
 	}
 
 	V_RET_FOT(CheckGLError(m_DebugName, "COGLTexture2D::Init()"));
@@ -89,9 +89,11 @@ void COGLTexture2D::SetPixelData(void* pData)
 
 	COGLBindLock lock(this, COGL_TEXTURE0_SLOT);
 
+	CheckGLError(m_DebugName, "COGLTexture2D::SetPixelData(), before glTexImage2D");
+
 	glTexImage2D(GL_TEXTURE_2D, 0, m_InternalFormat, m_Width, m_Height, 0, m_Format, m_Type, pData);
 	
-	CheckGLError(m_DebugName, "COGLTexture2D::SetPixelData()");
+	CheckGLError(m_DebugName, "COGLTexture2D::SetPixelData(), after glTexImage2D");
 }
 
 void COGLTexture2D::CopyData(COGLTexture2D* pTexture)
@@ -111,19 +113,26 @@ void COGLTexture2D::CopyData(COGLTexture2D* pTexture)
 	assert(src_internalformat == GL_RGBA32F);
 	assert(m_InternalFormat == GL_RGBA32F);
 
-	float* pData = new float[4 * sizeof(float) * m_Width * m_Height];
-	
+	try
 	{
-		COGLBindLock lock(pTexture, COGL_TEXTURE0_SLOT);
-		glGetTexImage(GL_TEXTURE_2D, 0, m_Format, m_Type, pData);
-	}
+		float* pData = new float[4 * sizeof(float) * m_Width * m_Height];
+		
+		{
+			COGLBindLock lock(pTexture, COGL_TEXTURE0_SLOT);
+			glGetTexImage(GL_TEXTURE_2D, 0, m_Format, m_Type, pData);
+		}
 
+		{
+			COGLBindLock lock(this, COGL_TEXTURE0_SLOT);
+			glTexImage2D(GL_TEXTURE_2D, 0, m_InternalFormat, m_Width, m_Height, 0, m_Format, m_Type, pData);
+		}
+
+		delete [] pData;
+	}
+	catch(std::bad_alloc)
 	{
-		COGLBindLock lock(this, COGL_TEXTURE0_SLOT);
-		glTexImage2D(GL_TEXTURE_2D, 0, m_InternalFormat, m_Width, m_Height, 0, m_Format, m_Type, pData);
+		std::cout << "bad_alloc exception at COGLTexture2D.CopyData()" << std::endl;
 	}
-
-	delete [] pData;
 }
 
 void COGLTexture2D::Bind(COGLBindSlot slot)
@@ -140,4 +149,27 @@ void COGLTexture2D::Unbind()
 
 	glActiveTexture(GetGLSlot(m_Slot));
 	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void COGLTexture2D::Clear()
+{
+	CheckInitialized("COGLTexture2D::Clear()");
+	CheckNotBound("COGLTexture2D::Clear()");
+	
+	try{
+		float* pData = new float[4 * sizeof(float) * m_Width * m_Height];
+
+		memset(pData, 0, 4 * sizeof(float) * m_Width * m_Height);
+	
+		COGLBindLock lock(this, COGL_TEXTURE0_SLOT);
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, m_Width, m_Height, 0, GL_RGBA, GL_FLOAT, pData);
+
+		delete [] pData;
+	}
+	catch(std::bad_alloc)
+	{
+		std::cout << "bad_alloc exception at COGLTexture2D.Clear()" << std::endl;
+		return;
+	}
 }

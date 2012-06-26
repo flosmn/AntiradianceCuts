@@ -301,15 +301,6 @@ bool Scene::IntersectRayScene(Ray ray, Intersection &intersection)
 							hasIntersection = true;
 						}
 					}
-					if(IntersectRayTriangle(origin, direction, v0, v2, v1, temp))
-					{
-						if(temp < t && temp > 0) {
-							t = temp;
-							glm::vec3 position = origin + t * direction;
-							intersection = Intersection(subModel, triangle, position);
-							hasIntersection = true;
-						}
-					}
 				}
 			}
 		}

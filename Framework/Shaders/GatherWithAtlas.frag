@@ -5,23 +5,23 @@ layout(std140) uniform;
 #define ONE_OVER_PI 0.3183
 #define PI 3.14159
 
-vec2 GetTexCoordForDirection(vec3 d)
-{
-	// projection onto octahedron
-	d /= dot( vec3(1.f), abs(d) );
+vec2 GetTexCoordForDir(vec3 dir) {
+	// Project from sphere onto octahedron
+	dir /= dot(vec3(1.0f), abs(dir));
 	
-	// out-folding of the downward faces
-	if ( d.y < 0.0f )
-	{
-		float x = (1-abs(d.z)) * sign(d.x);
-		float z = (1-abs(d.x)) * sign(d.z);
-		d.x = x;
-		d.z = z;
+	// If on lower hemisphere...
+	if (dir.y < 0.0f) {
+		// ...unfold
+		float x = (1.0f - abs(dir.z)) * sign(dir.x);
+		float z = (1.0f - abs(dir.x)) * sign(dir.z);
+		dir.x = x;
+		dir.z = z;
 	}
-	// mapping to [0;1]ˆ2 texture space
-	d.xz = d.xz * 0.5 + 0.5;
+
+	// [-1,1]^2 to [0,1]^2
+	dir.xz = dir.xz * 0.5f + 0.5f;
 	
-	return d.xz;
+	return dir.xz;
 }
 
 uniform atlas_info
@@ -36,6 +36,8 @@ uniform info_block
 	int drawLightingOfLight;
 	bool filterAVPLAtlas;
 	float debugColorB;
+	float texelOffsetX;
+	float texelOffsetY;
 } uInfo;
 
 uniform config
@@ -63,7 +65,7 @@ layout(location = 2) out vec4 outputAntiradiance;
 
 layout(binding=0) uniform sampler2D samplerPositionWS;
 layout(binding=1) uniform sampler2D samplerNormalWS;
-layout(binding=2) uniform samplerBuffer samplerLightPositionBuffer;
+layout(binding=2) uniform samplerBuffer samplerLightBuffer;
 layout(binding=3) uniform sampler2D samplerLightAtlas;
 
 float G(vec3 p1, vec3 n1, vec3 p2, vec3 n3);
@@ -88,9 +90,9 @@ void main()
 
 	int columns = uAtlasInfo.dim_atlas / uAtlasInfo.dim_tile;
 
+	int size = 5 * 4; // sizeof(AVPL_BUFFER)
 	if(uInfo.drawLightingOfLight == -1)
-	{
-		int size = 4;
+	{		
 		for(int i = 0; i < uInfo.numLights; ++i)
 		{		
 			vec4 radiance = vec4(0.f);
@@ -98,28 +100,28 @@ void main()
 			vec4 diff = vec4(0.f);
 			
 			const vec3 p = vec3(
-				texelFetch(samplerLightPositionBuffer, i * size + 0).r,
-				texelFetch(samplerLightPositionBuffer, i * size + 1).r,
-				texelFetch(samplerLightPositionBuffer, i * size + 2).r);
+				texelFetch(samplerLightBuffer, i * size + 8).r,
+				texelFetch(samplerLightBuffer, i * size + 9).r,
+				texelFetch(samplerLightBuffer, i * size + 10).r);
 
 			const vec3 direction = normalize(vPositionWS - p);
 
 			vec2 texel_local;
 			if(uInfo.filterAVPLAtlas)
 			{
-				texel_local = (uAtlasInfo.dim_tile-2) * GetTexCoordForDirection(direction) + vec2(1.f, 1.f) + 0.5f / uAtlasInfo.dim_atlas;
+				texel_local = (uAtlasInfo.dim_tile-2) * GetTexCoordForDir(direction) + vec2(1.f, 1.f);
 			}
 			else
 			{
-				texel_local = (uAtlasInfo.dim_tile) * GetTexCoordForDirection(direction) + 0.5f / uAtlasInfo.dim_atlas;
+				texel_local = (uAtlasInfo.dim_tile) * GetTexCoordForDir(direction);
 			}
-
+		
 			const int row = i / columns;
 			const int column = i % columns;
 			const vec2 globalOffset = vec2(column * uAtlasInfo.dim_tile, row * uAtlasInfo.dim_tile);
 			const vec2 texel_global = texel_local + globalOffset;
 			
-			vec4 sam = texture2D(samplerLightAtlas, (1.f/float(uAtlasInfo.dim_atlas)) * texel_global);
+			vec4 sam = texture2D(samplerLightAtlas, (1.f/float(uAtlasInfo.dim_atlas)) * (texel_global + vec2(uInfo.texelOffsetX, uInfo.texelOffsetY)));
 			
 			radiance = max(vec4(0.f), sam);
 			antiradiance = -min(vec4(0.f), sam);
@@ -142,20 +144,20 @@ void main()
 		vec4 diff = vec4(0.f);
 		
 		const vec3 p = vec3(
-			texelFetch(samplerLightPositionBuffer, uInfo.drawLightingOfLight * 4 + 0).r,
-			texelFetch(samplerLightPositionBuffer, uInfo.drawLightingOfLight * 4 + 1).r,
-			texelFetch(samplerLightPositionBuffer, uInfo.drawLightingOfLight * 4 + 2).r);
+			texelFetch(samplerLightBuffer, uInfo.drawLightingOfLight * size + 8).r,
+			texelFetch(samplerLightBuffer, uInfo.drawLightingOfLight * size + 9).r,
+			texelFetch(samplerLightBuffer, uInfo.drawLightingOfLight * size + 10).r);
 
 		const vec3 direction = normalize(vPositionWS - p);
 
 		vec2 texel_local;
 		if(uInfo.filterAVPLAtlas)
 		{
-			texel_local = (uAtlasInfo.dim_tile-2) * GetTexCoordForDirection(direction) + vec2(1.f, 1.f) + 0.5f / uAtlasInfo.dim_atlas;
+			texel_local = (uAtlasInfo.dim_tile-2) * GetTexCoordForDir(direction) + vec2(1.f, 1.f);
 		}
 		else
 		{
-			texel_local = (uAtlasInfo.dim_tile) * GetTexCoordForDirection(direction) + 0.5f / uAtlasInfo.dim_atlas;
+			texel_local = (uAtlasInfo.dim_tile) * GetTexCoordForDir(direction);
 		}
 
 		const int row = uInfo.drawLightingOfLight / columns;
@@ -163,8 +165,8 @@ void main()
 		const vec2 globalOffset = vec2(column * uAtlasInfo.dim_tile, row * uAtlasInfo.dim_tile);
 		const vec2 texel_global = texel_local + globalOffset;
 		
-		vec4 sam = texture2D(samplerLightAtlas, (1.f/float(uAtlasInfo.dim_atlas)) * texel_global);
-		
+		vec4 sam = texture2D(samplerLightAtlas, (1.f/float(uAtlasInfo.dim_atlas)) * (texel_global + vec2(uInfo.texelOffsetX, uInfo.texelOffsetY)));
+				
 		radiance = max(vec4(0.f), sam);
 		antiradiance = -min(vec4(0.f), sam);
 			

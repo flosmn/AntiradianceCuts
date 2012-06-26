@@ -1,95 +1,57 @@
-
 #ifndef _OCTAHEDRON_UTIL_H_
 #define _OCTAHEDRON_UTIL_H_
 
 #include <glm/glm.hpp>
 
-float sign(const float& f)
-{
-	float res;
-	res = f > 0 ? 1.f : -1.f;
-	return res;
-}
-
-glm::vec2 sign(const glm::vec2& v)
-{
-	glm::vec2 res;
-	res.x = v.x > 0 ? 1.f : -1.f;
-	res.y = v.y > 0 ? 1.f : -1.f;
-	return res;
-}
-
-glm::vec3 sign(const glm::vec3& v)
-{
-	glm::vec3 res;
-	res.x = v.x > 0 ? 1.f : -1.f;
-	res.y = v.y > 0 ? 1.f : -1.f;
-	res.z = v.z > 0 ? 1.f : -1.f;
-	return res;
-}
-
-glm::vec2 abs(const glm::vec2& v)
-{
-	glm::vec2 res;
-	res.x = v.x > 0 ? v.x : -v.x;
-	res.y = v.y > 0 ? v.y : -v.y;
-	return res;
-}
-
-glm::vec3 abs(const glm::vec3& v)
-{
-	glm::vec3 res;
-	res.x = v.x > 0 ? v.x : -v.x;
-	res.y = v.y > 0 ? v.y : -v.y;
-	res.z = v.z > 0 ? v.z : -v.z;
-	return res;
-}
-
-glm::vec2 GetTexCoordForDirection(glm::vec3 d) 
-{
-	d /= glm::dot( glm::vec3(1.f), glm::abs(d) );
+glm::vec2 GetTexCoordForDir(glm::vec3 dir) {
+	// Project from sphere onto octahedron
+	dir /= glm::dot(glm::vec3(1.0f), glm::abs(dir));
 	
-	if ( d.y < 0.0f )
-	{
-		float x = (1.f - abs(d.z)) * sign(d.x);
-		float z = (1.f - abs(d.x)) * sign(d.z);
-		d.x = x;
-		d.z = z;
+	// If on lower hemisphere...
+	if (dir.y < 0.0f) {
+		// ...unfold
+		float x = (1.0f - abs(dir.z)) * glm::sign(dir.x);
+		float z = (1.0f - abs(dir.x)) * glm::sign(dir.z);
+		dir.x = x;
+		dir.z = z;
 	}
+
+	// Map from [0,1]^2 to [-1,1]^2
+	dir.x = dir.x * 0.5f + 0.5f;
+	dir.z = dir.z * 0.5f + 0.5f;
 	
-	d.x = d.x * 0.5f + 0.5f;
-	d.z = d.z * 0.5f + 0.5f;
-	
-	return glm::vec2(d.x, d.z);
+	return glm::vec2(dir.x, dir.z);
 }
 
-glm::vec3 GetDirectionForTexCoord(glm::vec2 tex)
-{
-	tex = 2.f * (tex - glm::vec2(0.5f));
+glm::vec3 GetDirForTexCoord(glm::vec2 texCoord) {
+	glm::vec3 dir;
 
-	float x = tex.x;
-	float y = tex.y;
+	dir.x = texCoord.x;
+	dir.z = texCoord.y;
 	
-	glm::vec3 dir = glm::vec3(0.f);	
+	// [-1,1]^2 -> [0,1]^2
+	dir.x *= 2.0f;
+	dir.z *= 2.0f;
+	dir.x -= 1.0f;
+	dir.z -= 1.0f;
 
-	if(	x < 0 && y < 0 && x + y < -1 ||
-		x > 0 && y > 0 && x + y >  1 ||
-		x > 0 && y < 0 && x - y >  1 ||
-		x < 0 && y > 0 && x - y < -1 ) 
-	{
-		tex.y = - sign(x) * sign(y) * (x - sign(x));
-		tex.x = - sign(x) * sign(y) * (y - sign(y));
-		dir.y = - (1 - abs(tex.x) - abs(tex.y));
+	glm::vec3 vAbs = glm::abs(dir);
+	// If on lower hemisphere...
+	if (vAbs.x + vAbs.z > 1.0f) {
+		// ...fold
+		float x = glm::sign(dir.x) * (1.0f - vAbs.z);
+		float z = glm::sign(dir.z) * (1.0f - vAbs.x);
+		dir.x = x;
+		dir.z = z;
 	}
-	else
-	{
-		dir.y = 1 - abs(tex.x) - abs(tex.y);
-	}
-	
-	dir.x = tex.x;
-	dir.z = tex.y;
-			
+
+	// Elevate height
+	dir.y = 1.0f - vAbs.x - vAbs.z;
+
+	// Project onto sphere
+	dir = glm::normalize(dir);
+
 	return dir;
 }
 
-#endif _OCTAHEDRON_UTIL_H_
+#endif

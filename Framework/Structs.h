@@ -40,12 +40,11 @@ struct AVPL_STRUCT
 
 struct AVPL_BUFFER
 {
-	glm::vec4 I;	//Intensity;
-	glm::vec4 A;	//Antiintensity;
+	glm::vec4 I;	// Intensity;
+	glm::vec4 A;	// Antiintensity;
 	glm::vec4 pos;	// Position
-	glm::vec4 norm;	//Orientation;
-	glm::vec3 w_A;	//AntiintensityDirection;
-	int Bounce;		
+	glm::vec4 norm;	// Orientation;
+	glm::vec4 w_A;	// AntiintensityDirection;	
 };
 
 struct CONFIG
@@ -79,6 +78,8 @@ struct INFO
 	int drawLightingOfLight;
 	bool filterAVPLAtlas;
 	float debugColorB;
+	float texelOffsetX;
+	float texelOffsetY;
 };
 
 struct AREA_LIGHT
@@ -95,6 +96,12 @@ struct ATLAS_INFO
 {
 	int dim_atlas;
 	int dim_tile;
+};
+
+struct TEST_STRUCT
+{
+	glm::vec4 color1;
+	glm::vec4 color2;
 };
 
 #endif // _STRUCTS_H_

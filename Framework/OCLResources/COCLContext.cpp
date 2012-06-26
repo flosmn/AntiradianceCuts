@@ -8,8 +8,11 @@
 
 #include <string>
 #include <iostream>
+#include <algorithm>
 
 typedef unsigned int uint;
+
+#define DEBUG
 
 COCLContext::COCLContext()
 	: COCLResource("COCLContext")
@@ -32,9 +35,7 @@ bool COCLContext::Init()
 
 	V_RET_FOF(CHECK_CL_SUCCESS(err, "clCreateContext"));
 
-	m_CommandQueue = clCreateCommandQueue(m_Context, m_DeviceId, NULL, &err);
-
-	V_RET_FOF(CHECK_CL_SUCCESS(err, "clCreateCommandQueue"));
+	V_RET_FOF(CreateCommandQueue());
 
 	V_RET_FOF(COCLResource::Init());
 
@@ -70,36 +71,12 @@ bool COCLContext::Init(COGLContext* pGLContext)
 		0
 	};
 
-	typedef CL_API_ENTRY cl_int (CL_API_CALL *P1)(
-		const cl_context_properties *properties,
-        cl_gl_context_info param_name,
-        size_t param_value_size,
-        void *param_value,
-        size_t *param_value_size_ret);
-
-	CL_API_ENTRY cl_int (CL_API_CALL *myclGetGLContextInfoKHR)(
-		const cl_context_properties *properties,
-        cl_gl_context_info param_name,
-        size_t param_value_size,
-        void *param_value,
-        size_t *param_value_size_ret)=NULL;
-
-    myclGetGLContextInfoKHR=(P1)clGetExtensionFunctionAddress("clGetGLContextInfoKHR");
-    
-	// Find CL capable devices in the current GL context
-	cl_device_id devices[1]; size_t size;
-		
-	myclGetGLContextInfoKHR(properties, CL_DEVICES_FOR_GL_CONTEXT_KHR, 1 * sizeof(cl_device_id), devices, &size);
-	// Create a context using the supported devices
-	int count = size / sizeof(cl_device_id);
-	m_Context = clCreateContext(properties, count, devices, NULL, 0, &err);
+	m_Context = clCreateContext(properties, 1, &m_DeviceId, NULL, NULL, &err);
 
 	V_RET_FOF(CHECK_CL_SUCCESS(err, "clCreateContext()"));
 
-	m_CommandQueue = clCreateCommandQueue(m_Context, m_DeviceId, NULL, &err);
-
-	V_RET_FOF(CHECK_CL_SUCCESS(err, "clCreateCommandQueue"));
-
+	V_RET_FOF(CreateCommandQueue());
+	
 	V_RET_FOF(COCLResource::Init());
 
 	return true;
@@ -155,6 +132,31 @@ bool COCLContext::GetDevice()
 	std::cout << "CL_DEVICE_VERSION: " << buffer << std::endl;
 	V_RET_FOF(CHECK_CL_SUCCESS(clGetDeviceInfo(m_DeviceId, CL_DRIVER_VERSION, 4096, buffer, NULL), "clGetDeviceInfo"));
 	std::cout << "CL_DRIVER_VERSION: " << buffer << std::endl;
+
+	V_RET_FOF(CHECK_CL_SUCCESS(clGetDeviceInfo(m_DeviceId, CL_DEVICE_MAX_WORK_GROUP_SIZE , sizeof(size_t), &m_MaxWorkGroupSize, NULL), "clGetDeviceInfo"));
+	V_RET_FOF(CHECK_CL_SUCCESS(clGetDeviceInfo(m_DeviceId, CL_DEVICE_MAX_WORK_ITEM_SIZES , 3 * sizeof(size_t), m_MaxWorkItemSizes, NULL), "clGetDeviceInfo"));
+	
+	size_t dim = int(std::sqrtf(float(m_MaxWorkGroupSize)));
+	dim = min(m_MaxWorkItemSizes[0], min(dim, m_MaxWorkItemSizes[1]));
+
+	m_MaxWorkGroupDimensions2DSquare[0] = dim;
+	m_MaxWorkGroupDimensions2DSquare[1] = dim;
+
+#ifdef DEBUG
+	std::cout << "CL_DEVICE_MAX_WORK_GROUP_SIZE : " << m_MaxWorkGroupSize << std::endl;
+	std::cout << "CL_DEVICE_MAX_WORK_ITEM_SIZES:  X: " << m_MaxWorkItemSizes[0] << std::endl;
+	std::cout << "CL_DEVICE_MAX_WORK_ITEM_SIZES:  Y: " << m_MaxWorkItemSizes[1] << std::endl;
+	std::cout << "CL_DEVICE_MAX_WORK_ITEM_SIZES:  Z: " << m_MaxWorkItemSizes[2] << std::endl;
+#endif
+	return true;
+}
+
+bool COCLContext::CreateCommandQueue()
+{
+	cl_int err;
+	m_CommandQueue = clCreateCommandQueue(m_Context, m_DeviceId, NULL, &err);
+
+	V_RET_FOF(CHECK_CL_SUCCESS(err, "clCreateCommandQueue"));
 
 	return true;
 }

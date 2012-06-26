@@ -50,11 +50,10 @@ void AVPL::Fill(AVPL_BUFFER& avpl)
 {
 	memset(&avpl, 0, sizeof(AVPL_BUFFER));
 	avpl.pos = glm::vec4(m_Position, 1.f);
-	avpl.norm = glm::vec4(m_Orientation, 1.f);
-	avpl.I = glm::vec4(m_Intensity, 1.f);
-	avpl.A = glm::vec4(m_Antiintensity, 1.f);
-	avpl.w_A = m_AntiradianceDirection;
-	avpl.Bounce = m_Bounce;
+	avpl.norm = glm::vec4(m_Orientation, 0.f);
+	avpl.I = glm::vec4(m_Intensity, 0.f);
+	avpl.A = glm::vec4(m_Antiintensity, 0.f);
+	avpl.w_A = glm::vec4(m_AntiradianceDirection, 0.f);
 }
 
 glm::vec3 AVPL::GetIntensity(glm::vec3 w)

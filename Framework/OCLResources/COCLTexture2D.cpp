@@ -30,7 +30,7 @@ bool COCLTexture2D::Init(COGLTexture2D* pGLTexture)
 		GL_TEXTURE_2D, 0, m_pGLTexture->GetResourceIdentifier(), &err);
 	
 	V_RET_FOF(CHECK_CL_SUCCESS(err, "clCreateFromGLTexture2D"));
-
+	
 	V_RET_FOF(COCLResource::Init());
 
 	return true;

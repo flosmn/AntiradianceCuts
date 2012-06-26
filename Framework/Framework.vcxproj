@@ -41,13 +41,13 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v4.2\include;external/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(OPENCL_INC_PATH);C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v4.2\include;external/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v4.2\lib\Win32;$(CUDA_LIB_PATH);external/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v4.2\lib\Win32;$(OPENCL_LIB_PATH);external/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>glew32.lib;glu32.lib;opengl32.lib;anttweakbar.lib;opencl.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -145,13 +145,15 @@
     <ClInclude Include="MeshResources\CObjFileLoader.h" />
     <ClInclude Include="MeshResources\CSubModel.h" />
     <ClInclude Include="OCLResources\COCLBuffer.h" />
+    <ClInclude Include="OCLResources\COCLContext.h" />
     <ClInclude Include="OCLResources\COCLKernel.h" />
     <ClInclude Include="OCLResources\COCLProgram.h" />
     <ClInclude Include="OCLResources\COCLResource.h" />
     <ClInclude Include="OCLResources\COCLTexture2D.h" />
     <ClInclude Include="OCLResources\OCLUtil.h" />
+    <ClInclude Include="OctahedronUtil.cl" />
+    <ClInclude Include="GlmUtil.h" />
     <ClInclude Include="OctahedronUtil.h" />
-    <ClInclude Include="COGLContext.h" />
     <ClInclude Include="OGLResources\COGLBindLock.h" />
     <ClInclude Include="OGLResources\COGLBindSlot.h" />
     <ClInclude Include="OGLResources\COGLContext.h" />
@@ -165,6 +167,7 @@
     <ClInclude Include="OGLResources\COGLUniformBuffer.h" />
     <ClInclude Include="OGLResources\COGLVertexArray.h" />
     <ClInclude Include="OGLResources\COGLVertexBuffer.h" />
+    <ClInclude Include="CPrimitive.h" />
     <ClInclude Include="Ray.h" />
     <ClInclude Include="Render.h" />
     <ClInclude Include="Scene.h" />
@@ -188,6 +191,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Kernels\FillAVPLAtlas.cl" />
     <None Include="Kernels\vec.cl" />
     <None Include="Shaders\CreateGBuffer.frag" />
     <None Include="Shaders\CreateGBuffer.vert" />

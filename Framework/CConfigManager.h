@@ -13,6 +13,7 @@ struct CONF_VARS
 	int DrawDebugTextures;
 	int DrawLights;
 	int FilterAvplAtlasLinear;
+	int FillAvplAltasOnGPU;
 
 	float GeoTermLimit;
 	float Gamma;
@@ -25,6 +26,8 @@ struct CONF_VARS
 	int RenderBounce;
 	int DrawLightingOfLight;
 	int NumSqrtAtlasSamples;
+	float TexelOffsetX;
+	float TexelOffsetY;
 };
 
 class CConfigManager

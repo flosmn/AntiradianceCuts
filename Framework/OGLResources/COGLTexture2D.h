@@ -28,6 +28,8 @@ public:
 	void SetPixelData(void* pData);
 
 	void CopyData(COGLTexture2D* pTexture);	
+
+	void Clear();
 	
 private:
 	virtual void Bind(COGLBindSlot slot);
