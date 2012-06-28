@@ -20,8 +20,11 @@
 #include "Render.h"
 #include "Camera.h"
 #include "OGLResources\COGLContext.h"
+#include "CTimer.h"
 
 #include "Utils\Rand.h"
+
+#include "CTestFramework.h"
 
 #include "guicon.h"
 
@@ -340,6 +343,10 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 
 	done = false;   //initialize loop condition variable
 	
+	// run tests before rendering
+	CTestFramework testFramework;
+	testFramework.RunTests();
+
 	/* Main message loop*/
 	while (!done)
 	{

@@ -66,8 +66,7 @@ Renderer::Renderer(Camera* _camera) {
 	m_pOctahedronMap = new COctahedronMap();
 
 	m_Export = new CExport();
-	m_Timer = new CTimer(1000);
-
+	
 	m_pDepthBuffer = new COGLTexture2D("Renderer.m_pDepthBuffer");
 	
 	m_pGBuffer = new CGBuffer();
@@ -170,8 +169,6 @@ Renderer::~Renderer() {
 
 	SAFE_DELETE(m_pOGLLightBuffer);
 	
-	SAFE_DELETE(m_Timer);
-
 	SAFE_DELETE(m_pOctahedronAtlas);
 	SAFE_DELETE(m_pOctahedronMap);
 
@@ -282,9 +279,6 @@ bool Renderer::Init()
 	ConfigureLighting();
 
 	time(&m_StartTime);
-
-	m_Timer->Init();
-	m_Timer->RegisterEvent("Create Paths", CTimer::CPU);
 
 	int dim_atlas = 4096;
 	int dim_tile = 64;
@@ -415,15 +409,20 @@ void Renderer::Render()
 		{
 			if(m_CurrentPath < m_pConfManager->GetConfVars()->NumPaths)
 			{
-				m_Timer->StartEvent("Create Paths");
 				std::vector<AVPL*> avpls;
 				
 				int remaining = m_pConfManager->GetConfVars()->NumPaths - m_CurrentPath;
 				if(remaining >= m_pConfManager->GetConfVars()->NumPathsPerFrame)
 				{
+					CTimer timer(CTimer::CPU);
+					timer.Start();
 					avpls = scene->CreatePaths(m_pConfManager->GetConfVars()->NumPathsPerFrame, 
 						m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
 					m_CurrentPath += m_pConfManager->GetConfVars()->NumPathsPerFrame;
+
+					timer.Stop();
+
+					std::cout << "Creating " << avpls.size() << " avpls took " << timer.GetTime() << " ms." << std::endl;
 				}
 				else
 				{
@@ -431,8 +430,6 @@ void Renderer::Render()
 					 m_CurrentPath += remaining;
 				}
 				
-				m_Timer->StopEvent("Create Paths");
-
 				if(m_pConfManager->GetConfVars()->GatherWithAVPLAtlas)
 				{
 					//GatherWithAtlas(DetermineUsedAvpls(avpls));

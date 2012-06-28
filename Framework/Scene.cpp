@@ -145,7 +145,7 @@ AVPL* Scene::ContinueAVPLPath(AVPL* pred, glm::vec3 direction, float pdf, int N,
 	{
 		// gather information for the new VPL
 		glm::vec3 pos = intersection.GetPoint();
-		glm::vec3 norm = intersection.GetTriangle().GetNormal();
+		glm::vec3 norm = intersection.GetTriangle().n;
 		glm::vec3 rho = glm::vec3(intersection.GetModel()->GetMaterial().diffuseColor);
 				
 		glm::vec3 intensity = rho/PI * pred->GetIntensity(glm::normalize(direction)) / pdf;	
@@ -256,7 +256,7 @@ void Scene::CreateAVPLs(AVPL* pred, std::vector<AVPL*>& path, int N, int nAVPLs)
 	}
 }
 
-bool Scene::IntersectRayScene(Ray ray, Intersection &intersection)
+bool Scene::IntersectRayScene(const Ray& ray, Intersection &intersection)
 {	
 	float t = 1000000.0f;
 	bool hasIntersection = false;;
@@ -284,15 +284,11 @@ bool Scene::IntersectRayScene(Ray ray, Intersection &intersection)
 				bool intersectionBB = IntersectWithBB(triangle, ray);
 				if(intersectionBB)
 				{
-					glm::vec3 v0 = triangle.GetPoints()[0];
-					glm::vec3 v1 = triangle.GetPoints()[1];
-					glm::vec3 v2 = triangle.GetPoints()[2];
-
-					glm::vec3 origin = ray.GetOrigin();
-					glm::vec3 direction = glm::normalize(ray.GetDirection());
+					glm::vec3 origin = ray.o;
+					glm::vec3 direction = glm::normalize(ray.d);
 
 					float temp = -1.0f;
-					if(IntersectRayTriangle(origin, direction, v0, v1, v2, temp))
+					if(IntersectRayTriangle(ray, triangle.p0, triangle.p1, triangle.p2, temp))
 					{
 						if(temp < t && temp > 0) {
 							t = temp;

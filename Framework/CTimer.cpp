@@ -1,162 +1,63 @@
 #include "CTimer.h"
 #include <time.h>
 
-CTimer::CTimer(GLuint maxEvents)
-{
-	m_MaxEvents = maxEvents + 1;
-	m_Index = 0;
-}
-
-void CTimer::Init()
-{
-	m_Queries = new GLuint[2 * m_MaxEvents];
-	m_TimesStartGPU = new GLuint[m_MaxEvents];
-	m_TimesEndGPU = new GLuint[m_MaxEvents];
-	m_ClocksStartCPU = new clock_t[m_MaxEvents];
-	m_ClocksEndCPU = new clock_t[m_MaxEvents];
-	m_NumberOfStartStops = new GLuint[m_MaxEvents];
-	m_TotalClocks = new clock_t[m_MaxEvents];
-
-	Reset();
-
-	m_Index = 1;
-
-	glGenQueries(m_MaxEvents, m_Queries);
+CTimer::CTimer(TIMERTYPE type)
+{	
+	m_Type = type;
+	m_Time = 0;
+	glGenQueries(1, &m_QueryStartGPU);
+	glGenQueries(1, &m_QueryEndGPU);
 }
 
 CTimer::~CTimer()
 {
-	glDeleteQueries(m_MaxEvents, m_Queries);
-
-	delete [] m_Queries;
-	delete [] m_TimesStartGPU;
-	delete [] m_TimesEndGPU;
-	delete [] m_ClocksStartCPU;
-	delete [] m_ClocksEndCPU;
-	delete [] m_NumberOfStartStops;
-	delete [] m_TotalClocks;
+	glDeleteQueries(1, &m_QueryStartGPU);
+	glDeleteQueries(1, &m_QueryEndGPU);
 }
 
-void CTimer::RegisterEvent(std::string eventName, TIMERTYPE type)
+void CTimer::Start()
 {
-	if (m_mapEventNameToIndex[eventName] != NULL) {
-		std::cout << "Event " << eventName << " already registered." << std::endl;
-	}
-	else if (m_Index >= m_MaxEvents) {
-		std::cout << "Maximum number of registerable events reached."  << std::endl;
-	}
-	else {
-		m_mapEventNameToIndex[eventName] = m_Index;
-		m_mapEventIndexToName[m_Index] = eventName;
-		m_mapEventNameToType[eventName] = type;
-		m_Index++;
-	}
-}
-
-void CTimer::StartEvent(std::string eventName)
-{
-	GLuint index = m_mapEventNameToIndex[eventName];
-	if (index == NULL) {
-		std::cout << "Event " << eventName << " not registered." << std::endl;
-	}
-	else {
-		if(m_mapEventNameToType[eventName] == GPU)
-		{
-			glQueryCounter(m_Queries[2 * index + 0], GL_TIMESTAMP);
-			m_NumberOfStartStops[index]++;
-		}
-		else
-		{
-			m_ClocksStartCPU[index] = clock();
-			m_NumberOfStartStops[index]++;
-		}
-	}	
-}
-
-void CTimer::StopEvent(std::string eventName)
-{
-	GLuint index = m_mapEventNameToIndex[eventName];
-	if (index == NULL) {
-		std::cout << "Event " << eventName << " not registered." << std::endl;
-	}
-	else {
-		if (m_mapEventNameToType[eventName] == GPU)
-		{
-			glQueryCounter(m_Queries[2 * index + 1], GL_TIMESTAMP);
-		
-			WaitTillAvailable(m_Queries[2 * index + 0]);
-			WaitTillAvailable(m_Queries[2 * index + 1]);
-		
-			glGetQueryObjectuiv(m_Queries[2 * index + 0], GL_QUERY_RESULT, &m_TimesStartGPU[index]);
-			glGetQueryObjectuiv(m_Queries[2 * index + 1], GL_QUERY_RESULT, &m_TimesEndGPU[index]);
-		
-			GLuint time = (m_TimesEndGPU[index] - m_TimesStartGPU[index])/1000;
-			if (time < 0) {
-				std::cout << "Measured time <0 !" << std::endl;
-			}
-			/*
-			// does not work
-			double temp = m_TotalTime[index];
-			m_TotalTime[index] += time;
-			if(m_TotalTime[index] < temp){
-				std::cout << "total time overflow!" << std::endl;
-			}
-			*/
-		}
-		else
-		{
-			m_ClocksEndCPU[index] = clock();
-			clock_t diff = m_ClocksEndCPU[index] - m_ClocksStartCPU[index];
-			if (diff < 0) {
-				std::cout << "Measured #clocks <0 !" << std::endl;
-			}
-			clock_t temp = m_TotalClocks[index];
-			m_TotalClocks[index] += diff;
-			if(m_TotalClocks[index] < temp) {
-				std::cout << "total #clocks overflow!" << std::endl;
-			}
-		}
-	}	
-}
-
-double CTimer::GetTime(std::string eventName)
-{
-	float time = 0;
-	GLuint index = m_mapEventNameToIndex[eventName];
-	if (index == NULL) {
-		std::cout << "Event " << eventName << " not registered." << std::endl;
-	}
-	return GetTime(index);
-}
-
-double CTimer::GetTime(int eventIndex)
-{
-	clock_t numClocks = m_TotalClocks[eventIndex];
-	double time_total = double(numClocks) / double(CLOCKS_PER_SEC);
-	double time_avg = time_total / m_NumberOfStartStops[eventIndex];
-
-	// convert to ms
-	return time_avg * 1000; 
-}
-
-void CTimer::PrintStats()
-{
-	std::cout << "Print timer stats:" << std::endl;
-	for(int i = 1; i < m_Index; ++i)
+	if(m_Type == GPU)
 	{
-		std::cout << "\t event: " << m_mapEventIndexToName[i] << std::endl;
-		std::cout << "\t \t total time: " << double(m_TotalClocks[i]) / double(CLOCKS_PER_SEC) << std::endl;
-		std::cout << "\t \t # of measures: " << m_NumberOfStartStops[i] << std::endl;
-		std::cout << "\t \t time: " << GetTime(i) << " ms." << std::endl;
+		glQueryCounter(m_QueryStartGPU, GL_TIMESTAMP);
 	}
+	else
+	{
+		m_ClockStartCPU = clock();
+	}	
 }
 
-void CTimer::Reset()
+void CTimer::Stop()
 {
-	for (int i = 0; i < m_MaxEvents; ++i) {
-		m_NumberOfStartStops[i] = 0;
-		m_TotalClocks[i] = 0;
+	if (m_Type == GPU)
+	{
+		glQueryCounter(m_QueryEndGPU, GL_TIMESTAMP);
+		
+		WaitTillAvailable(m_QueryStartGPU);
+		WaitTillAvailable(m_QueryEndGPU);
+		
+		glGetQueryObjectuiv(m_QueryStartGPU, GL_QUERY_RESULT, &m_TimeStartGPU);
+		glGetQueryObjectuiv(m_QueryEndGPU, GL_QUERY_RESULT, &m_TimeEndGPU);
+		
+		GLuint time = (m_TimeEndGPU - m_TimeStartGPU)/1000;
 	}
+	else
+	{
+		m_ClockEndCPU = clock();
+		clock_t diff = m_ClockEndCPU - m_ClockStartCPU;
+		if (diff < 0) {
+			std::cout << "Measured #clocks <0 !" << std::endl;
+		}
+		else
+		{
+			m_Time = 1000.0 * double(diff) / (double(CLOCKS_PER_SEC));
+		}
+	}	
+}
+
+double CTimer::GetTime()
+{
+	return m_Time;
 }
 
 void CTimer::WaitTillAvailable(GLuint query)

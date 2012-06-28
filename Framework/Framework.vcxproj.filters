@@ -135,6 +135,9 @@
     <ClCompile Include="OCLResources\COCLContext.cpp">
       <Filter>OCLResources</Filter>
     </ClCompile>
+    <ClCompile Include="CTriangle.cpp" />
+    <ClCompile Include="CTestFramework.cpp" />
+    <ClCompile Include="CKdTreeAccelerator.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CTimer.h" />
@@ -273,6 +276,11 @@
     </ClInclude>
     <ClInclude Include="OctahedronUtil.h" />
     <ClInclude Include="CPrimitive.h" />
+    <ClInclude Include="CTriangle.h" />
+    <ClInclude Include="BBox.h" />
+    <ClInclude Include="CTestFramework.h" />
+    <ClInclude Include="CKdTreeAccelerator.h" />
+    <ClInclude Include="IntersectionNew.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">

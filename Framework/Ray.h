@@ -3,23 +3,27 @@
 
 #include "glm/glm.hpp"
 
+#include <limits>
+
 class Ray
 {
 public:
-	Ray(glm::vec3 _origin, glm::vec3 _direction) 
+	Ray(glm::vec3 origin, glm::vec3 direction)
 	{
-			origin = _origin;
-			direction = _direction;
+		o = origin;
+		d = direction;
+		min_t = std::numeric_limits<float>::min();
+		max_t = std::numeric_limits<float>::max();
 	}
 
-	glm::vec3 GetOrigin() { return origin; }
-	glm::vec3 GetDirection() { return direction; }
+	glm::vec3 o;
+	glm::vec3 d;
 
-	void SetOrigin(glm::vec3 _origin) { origin = _origin; }
+	// to restrict the ray
+	float min_t;
+	float max_t;
 
-private:
-	glm::vec3 origin;
-	glm::vec3 direction;
+	void SetOrigin(glm::vec3 origin) { o = origin; }	
 };
 
 #endif

@@ -118,8 +118,7 @@ private:
 
 	CPointCloud* m_pPointCloud;
 	CExport* m_Export;
-
-	CTimer* m_Timer;
+		
 	CTextureViewer* m_pTextureViewer;
 
 	COctahedronAtlas* m_pOctahedronAtlas;

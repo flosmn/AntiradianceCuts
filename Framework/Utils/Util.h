@@ -33,13 +33,11 @@ float map(float x, float x0, float x1, float y0, float y1);
 
 float clamp(const float& x, const float& low, const float& high);
 
-bool IntersectRayBox(glm::vec3 rayPos, glm::vec3 rayDir, glm::vec3 boxMin, 
-										 glm::vec3 boxMax);
+bool IntersectRayBox(const Ray& ray, glm::vec3 boxMin, glm::vec3 boxMax);
 
-bool IntersectWithBB(Triangle triangle, Ray ray);
+bool IntersectWithBB(const Triangle& triangle, const Ray& ray);
 
-bool IntersectRayTriangle(glm::vec3 origin, glm::vec3 direction, 
-							 glm::vec3 v0, glm::vec3 v1, glm::vec3 v2, float &t);
+bool IntersectRayTriangle(const Ray& ray, glm::vec3 v0, glm::vec3 v1, glm::vec3 v2, float &t);
 
 std::string AsString(glm::vec3 v);
 std::string AsString(glm::vec4 v);

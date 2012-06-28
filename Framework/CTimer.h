@@ -3,54 +3,37 @@
 
 #include <gl\glew.h>
 
-#include <map>
 #include <string>
 #include <iostream>
 #include <time.h>
 
-/*
-	this class implement simple OpenGL timing queries. Every StartEvent pushes a new event onto
-	an event stack and with EndEvent the topmost event is poped from the event stack and the
-	time from start to end is stored and can be queried with the function GetTime.
-	To print the time of all events onto console call PrintStats.
-*/
 class CTimer
 {
 public:
 	enum TIMERTYPE { GPU, CPU };
 
-	CTimer(GLuint maxEvents);
+	CTimer(TIMERTYPE type);
 	~CTimer();
 
-	void Init();
-	void RegisterEvent(std::string eventName, TIMERTYPE type);
-	void StartEvent(std::string eventName);		// start the timer for an event. multiple start-stop sequences are averaged
-	void StopEvent(std::string eventName);		// stops the timer for an event. can be started again
-	void Reset();								// resets all times mesuared by the timer. registerd events are not lost
-
-	double GetTime(std::string eventName);		// returns the time in milliseconds.
-	double GetTime(int eventIndex);
-	void PrintStats();
+	void Start();
+	void Stop();
+	
+	double GetTime();		// returns the time in milliseconds.
+		
 private:
 	void WaitTillAvailable(GLuint query);
 
-	GLuint* m_Queries;
+	TIMERTYPE m_Type;
+	double m_Time;
+
+	GLuint m_QueryStartGPU;
+	GLuint m_QueryEndGPU;
 	
-	GLuint* m_TimesStartGPU;
-	GLuint* m_TimesEndGPU;
+	GLuint m_TimeStartGPU;
+	GLuint m_TimeEndGPU;
 
-	clock_t* m_ClocksStartCPU;
-	clock_t* m_ClocksEndCPU;
-
-	GLuint* m_NumberOfStartStops;		// tracks the number of times a start-stop sequence has been called for an event
-	clock_t* m_TotalClocks;			// tracks the total time for a registered event
-	
-	int m_MaxEvents;
-	int m_Index;
-
-	std::map<std::string, GLuint> m_mapEventNameToIndex;
-	std::map<GLuint, std::string> m_mapEventIndexToName;
-	std::map<std::string, TIMERTYPE> m_mapEventNameToType;
+	clock_t m_ClockStartCPU;
+	clock_t m_ClockEndCPU;
 };
 
 #endif

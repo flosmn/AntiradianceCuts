@@ -71,14 +71,17 @@
     <ClCompile Include="CConfigManager.cpp" />
     <ClCompile Include="CGBuffer.cpp" />
     <ClCompile Include="CGUI.cpp" />
+    <ClCompile Include="CKdTreeAccelerator.cpp" />
     <ClCompile Include="COctahedronAtlas.cpp" />
     <ClCompile Include="COctahedronMap.cpp" />
     <ClCompile Include="CPointCloud.cpp" />
     <ClCompile Include="CProgram.cpp" />
     <ClCompile Include="CRenderTarget.cpp" />
     <ClCompile Include="CShadowMap.cpp" />
+    <ClCompile Include="CTestFramework.cpp" />
     <ClCompile Include="CTimer.cpp" />
     <ClCompile Include="AVPL.cpp" />
+    <ClCompile Include="CTriangle.cpp" />
     <ClCompile Include="guicon.cpp" />
     <ClCompile Include="OCLResources\COCLTexture2D.cpp" />
     <ClCompile Include="old_main.cpp" />
@@ -119,22 +122,27 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AreaLight.h" />
+    <ClInclude Include="BBox.h" />
     <ClInclude Include="CAccumulationBuffer.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CConfigManager.h" />
     <ClInclude Include="CGBuffer.h" />
     <ClInclude Include="CGUI.h" />
+    <ClInclude Include="CKdTreeAccelerator.h" />
     <ClInclude Include="COctahedronAtlas.h" />
     <ClInclude Include="COctahedronMap.h" />
     <ClInclude Include="CPointCloud.h" />
     <ClInclude Include="CProgram.h" />
     <ClInclude Include="CRenderTarget.h" />
     <ClInclude Include="CShadowMap.h" />
+    <ClInclude Include="CTestFramework.h" />
     <ClInclude Include="CTimer.h" />
+    <ClInclude Include="CTriangle.h" />
     <ClInclude Include="Defines.h" />
     <ClInclude Include="guicon.h" />
     <ClInclude Include="Intersection.h" />
     <ClInclude Include="AVPL.h" />
+    <ClInclude Include="IntersectionNew.h" />
     <ClInclude Include="Macros.h" />
     <ClInclude Include="CPostprocess.h" />
     <ClInclude Include="MeshResources\CFullScreenQuad.h" />

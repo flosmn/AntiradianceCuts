@@ -47,7 +47,7 @@ public:
 
 	int GetNumberOfLightPaths() { return m_NumLightPaths; }
 
-	bool IntersectRayScene(Ray ray, Intersection &intersection);
+	bool IntersectRayScene(const Ray& ray, Intersection &intersection);
 		
 	std::vector<AVPL*> CreatePaths(uint numPaths, int N, int nAdditionalAVPLs);
 	std::vector<AVPL*> CreatePath(int N, int nAdditionalAVPLs);
