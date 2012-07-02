@@ -11,10 +11,9 @@ typedef unsigned short ushort;
 
 #include "..\Utils\Util.h"
 
-#include "..\Triangle.h"
+#include "..\CTriangle.h"
 
 #include <vector>
-
 
 class CMesh 
 {
@@ -23,21 +22,14 @@ public:
 	virtual ~CMesh() {};
 		
 	uint GetNumberOfVertices() { return numberOfVertices; }
-	uint GetNumberOfTriangles() { return numberOfTriangles; }
-	const glm::vec4* GetVertexPositions() { return m_pVertexPositions; }
-	const glm::vec3* GetVertexNormals() { return m_pVertexNormals; }
+	uint GetNumberOfFaces() { return numberOfTriangles; }
+	const glm::vec4* GetPositionData() { return m_pVertexPositions; }
+	const glm::vec3* GetNormalData() { return m_pVertexNormals; }
 	const glm::vec3* GetVertexTexCoords() { return m_pVertexTexCoords; }
 	const ushort* GetIndexData() { return m_pIndexData; }
 
-	void CreateTriangleData(std::vector<Triangle*>& triangles)
+	void FillWithTriangleData(std::vector<CTriangle*>& triangles)
 	{
-		std::vector<Triangle*>::iterator it;
-		for ( it=triangles.begin() ; it < triangles.end(); it++ )
-		{
-			SAFE_DELETE(*it);
-		}
-		triangles.clear();
-		
 		for(uint i = 0; i < numberOfTriangles; i++)
 		{
 			uint i1 = m_pIndexData[i * 3 + 0];
@@ -49,7 +41,7 @@ public:
 
 			glm::vec3 normal = glm::normalize(glm::cross(p3-p1, p2-p1));
 
-			Triangle* triangle = new Triangle(p1, p2, p3, normal);
+			CTriangle* triangle = new CTriangle(p1, p2, p3);
 			triangles.push_back(triangle);																	 
 		}
 	}
@@ -62,7 +54,7 @@ protected:
 	uint numberOfVertices;
 	uint numberOfTriangles;
 
-	std::vector<Triangle*> triangles;
+	std::vector<CTriangle*> triangles;
 };
 
 class CFullScreenQuadMesh : public CMesh 
@@ -99,13 +91,6 @@ public:
 		SAFE_DELETE_ARRAY(m_pIndexData);
 		SAFE_DELETE_ARRAY(m_pVertexPositions); 
 		SAFE_DELETE_ARRAY(m_pVertexTexCoords);
-		
-		std::vector<Triangle*>::iterator it;
-		for(it=triangles.begin(); it < triangles.end(); ++it)
-		{
-			SAFE_DELETE(*it);
-		}
-		triangles.clear();
 	}
 };
 
@@ -143,13 +128,6 @@ public:
 		SAFE_DELETE_ARRAY(m_pIndexData);
 		SAFE_DELETE_ARRAY(m_pVertexPositions); 
 		SAFE_DELETE_ARRAY(m_pVertexNormals); 
-
-		std::vector<Triangle*>::iterator it;
-		for(it=triangles.begin(); it < triangles.end(); ++it)
-		{
-			SAFE_DELETE(*it);
-		}
-		triangles.clear();
 	}
 };
 
@@ -252,13 +230,6 @@ public:
 		SAFE_DELETE_ARRAY(m_pVertexPositions);
 		SAFE_DELETE_ARRAY(m_pVertexNormals);
 		SAFE_DELETE_ARRAY(m_pIndexData);
-
-		std::vector<Triangle*>::iterator it;
-		for(it=triangles.begin(); it < triangles.end(); ++it)
-		{
-			SAFE_DELETE(*it);
-		}
-		triangles.clear();
 	}
 };
 

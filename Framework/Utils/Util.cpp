@@ -177,11 +177,11 @@ float map(float x, float x0, float x1, float y0, float y1) {
 	return y1 - (x1 - x) * (y1 - y0) / (x1 - x0);
 }
 
-bool IntersectWithBB(const Triangle& triangle, const Ray& ray)
+bool IntersectWithBB(const CTriangle& triangle, const Ray& ray)
 {
-	glm::vec3 p1 = triangle.p0;
-	glm::vec3 p2 = triangle.p1;
-	glm::vec3 p3 = triangle.p2;
+	glm::vec3 p1 = triangle.P0();
+	glm::vec3 p2 = triangle.P1();
+	glm::vec3 p3 = triangle.P2();
 	
 	float minX = glm::min(p1.x, glm::min(p2.x, p3.x));
 	float minY = glm::min(p1.y, glm::min(p2.y, p3.y));
@@ -219,8 +219,8 @@ bool IntersectRayTriangle(const Ray& ray, glm::vec3 v0, glm::vec3 v1, glm::vec3 
 	float epsilon = 0.0001f;
 
 	glm::vec3 vec_p, vec_t, vec_q;
-	glm::vec3 e1 = v1 - v0;
-	glm::vec3 e2 = v2 - v0;
+	glm::vec3 e1 = v2 - v0;
+	glm::vec3 e2 = v1 - v0;
 
 	vec_p = glm::cross(ray.d, e2);
 

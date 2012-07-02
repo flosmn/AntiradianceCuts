@@ -10,8 +10,6 @@ typedef unsigned int uint;
 
 #include <vector>
 
-class Triangle;
-
 class CMesh;
 class CSubModel;
 class CMeshGeometry;
@@ -31,15 +29,18 @@ public:
 	void Draw(const glm::mat4& mView, const glm::mat4& mProj, COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBMaterial);
 	void Draw(const glm::mat4& mView, const glm::mat4& mProj, COGLUniformBuffer* pUBTransform);
 	
-	void SetWorldTransform(glm::mat4 matrix) { m_WorldTransform = matrix; }
-	glm::mat4 GetWorldTransform() { return m_WorldTransform; }
+	void SetWorldTransform(const glm::mat4& matrix);
+	glm::mat4 GetWorldTransform() const { return m_WorldTransform; }
 
 	glm::vec3 GetPositionWS();
 	
-	virtual void SetMaterial(MATERIAL& mat);	
-	virtual MATERIAL& GetMaterial();
+	virtual void SetMaterial(const MATERIAL& mat);	
+	virtual MATERIAL GetMaterial() const;
 		
-	std::vector<CSubModel*> GetSubModels() { return m_vecSubModels; }
+	std::vector<CSubModel*> GetSubModels() { return m_SubModels; }
+
+protected:
+	glm::mat4 m_WorldTransform;
 
 private:	
 	CMesh* m_Mesh;
@@ -49,9 +50,7 @@ private:
 	std::vector<CMeshGeometry*> m_MeshGeometries;
 	std::vector<CMeshMaterial*> m_MeshMaterials;
 
-	std::vector<CSubModel*> m_vecSubModels;
-		
-	glm::mat4 m_WorldTransform;		
+	std::vector<CSubModel*> m_SubModels;
 };
 
 #endif

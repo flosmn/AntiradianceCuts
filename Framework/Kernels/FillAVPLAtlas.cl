@@ -1,7 +1,5 @@
 #define PI 3.14159265f
 
-#include "OctahedronUtil.cl"
-
 struct AVPL_BUFFER
 {
 	float4 I;		// Intensity;
@@ -10,6 +8,9 @@ struct AVPL_BUFFER
 	float4 norm;	// Orientation;
 	float4 w_A;		// AntiintensityDirection;
 };
+
+float3 GetDirForTexCoord(float2 texCoord);
+float2 GetTexCoordForDir(float3 dir);
 
 float4 SampleTexel(uint x, uint y, int tile_dim, const int sqrt_num_ss_samples, const float N, struct AVPL_BUFFER avpl);
 float4 SampleTex(uint x, uint y, int tile_dim, const float N, struct AVPL_BUFFER avpl);
@@ -156,4 +157,51 @@ float3 GetAntiintensity(float3 w, struct AVPL_BUFFER avpl, float N)
 	}
 	
 	return res;
+}
+
+float2 GetTexCoordForDir(float3 dir) {
+	// Project from sphere onto octahedron
+	dir /= dot(1.0f, fabs(dir));
+	
+	// If on lower hemisphere...
+	if (dir.y < 0.0f) {
+		// ...unfold
+		float x = (1.0f - fabs(dir.z)) * sign(dir.x);
+		float z = (1.0f - fabs(dir.x)) * sign(dir.z);
+		dir.x = x;
+		dir.z = z;
+	}
+		
+	// [-1,1]^2 to [0,1]^2
+	dir.xz = dir.xz * 0.5f + 0.5f;
+	
+	return dir.xz;
+}
+
+float3 GetDirForTexCoord(float2 texCoord) {
+	float3 dir;
+
+	dir.xz = texCoord;
+	
+	// [0,1]^2 to [-1,1]^2 
+	dir.xz *= 2.0f;
+	dir.xz -= 1.0f;
+		
+	float3 vAbs = fabs(dir);
+	// If on lower hemisphere...
+	if (vAbs.x + vAbs.z > 1.0f) {
+		// ...fold
+		float x = sign(dir.x) * (1.0f - vAbs.z);
+		float z = sign(dir.z) * (1.0f - vAbs.x);
+		dir.x = x;
+		dir.z = z;
+	}
+	
+	// Elevate height
+	dir.y = 1.0f - vAbs.x - vAbs.z;
+
+	// Project onto sphere
+	dir = normalize(dir);
+
+	return dir;
 }

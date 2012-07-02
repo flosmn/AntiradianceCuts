@@ -15,6 +15,8 @@ typedef unsigned int uint;
 class Camera;
 class AVPL;
 class AreaLight;
+class CKdTreeAccelerator;
+class CPbrtKdTreeAccel;
 
 class COGLUniformBuffer;
 
@@ -28,7 +30,7 @@ public:
 	
 	bool Init();
 	void Release();
-
+	
 	void ClearScene();
 	
 	void DrawScene(COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBMaterial);
@@ -46,18 +48,23 @@ public:
 	void ClearLighting();
 
 	int GetNumberOfLightPaths() { return m_NumLightPaths; }
-
-	bool IntersectRayScene(const Ray& ray, Intersection &intersection);
-		
+				
 	std::vector<AVPL*> CreatePaths(uint numPaths, int N, int nAdditionalAVPLs);
 	std::vector<AVPL*> CreatePath(int N, int nAdditionalAVPLs);
-			
+	std::vector<AVPL*> CreatePrimaryVpls(int numVpls);
+
 private:
 	void ClearPath();
+
+	bool IntersectRaySceneSimple(const Ray& ray, float* t, Intersection *pIntersection);
+
+	void InitKdTree();
+	void ReleaseKdTree();
 
 	AVPL* CreateAVPL(AVPL* pred, int N, int nAdditionalAVPLs);
 	AVPL* ContinueAVPLPath(AVPL* pred, glm::vec3 direction, float pdf, int N, int nAdditionalAVPLs);
 	void CreateAVPLs(AVPL* pred, std::vector<AVPL*>& path, int N, int nAVPLs);
+
 
 	std::vector<CModel*> m_Models;
 		
@@ -66,6 +73,11 @@ private:
 
 	Camera* m_Camera;		
 	AreaLight* m_AreaLight;
+
+	CKdTreeAccelerator* m_pKdTreeAccelerator;
+	CPbrtKdTreeAccel* m_pPbrtKdTreeAccelerator;
+	std::vector<CPrimitive*> m_Primitives;
+
 };
 
 #endif SCENE_H

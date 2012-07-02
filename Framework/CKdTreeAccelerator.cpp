@@ -21,6 +21,7 @@ CKdTreeAccelerator::CKdTreeAccelerator(const std::vector<CPrimitive*>& primitive
 
 	m_NextFreeNode = 0;
 	m_NumAllocatedNodes = 0;
+	m_EmptyBonus = 0.f;
 
 	if(m_MaxDepth <= 0)
 		m_MaxDepth = int(8.f + 1.3f * glm::log2(float(m_Primitives.size())));
@@ -37,7 +38,8 @@ void CKdTreeAccelerator::BuildTree()
 	primitiveBounds.reserve(m_Primitives.size());
 	for(uint i = 0; i < m_Primitives.size(); ++i)
 	{
-		BBox b = m_Primitives[i]->GetBBox();
+		CPrimitive* prim = m_Primitives[i];
+		BBox b = prim->GetBBox();
 		m_BoundingBox = BBox::Union(m_BoundingBox, b);
 		primitiveBounds.push_back(b);
 	}
@@ -169,7 +171,7 @@ void CKdTreeAccelerator::InitializeInteriorNode(int node, const BBox& nodeBounds
 		axis = (axis + 1) % 3;
 		goto retrySplit;
 	}
-
+	
 	// Create lead if no good splits were found
 	if (bestCost > oldCost) ++badRefines;
 	if ((bestCost > 4.f * oldCost && numOverlappingPrimitives < 16) ||
@@ -177,7 +179,7 @@ void CKdTreeAccelerator::InitializeInteriorNode(int node, const BBox& nodeBounds
 		m_Nodes[node].InitLeaf(overlappingPrimitives, numOverlappingPrimitives);
 		return;
 	}
-
+	
 	// Classify overlapping primitives with respect to split
 	int n0 = 0, n1 = 0;
 	for (int i = 0; i < bestOffset; ++i) {
@@ -208,13 +210,14 @@ void CKdTreeAccelerator::InitializeInteriorNode(int node, const BBox& nodeBounds
 		edges, prims0, prims1 + numOverlappingPrimitives, badRefines);
 }
 
-bool CKdTreeAccelerator::Intersect(const Ray& ray, float *t, IntersectionNew* pIntersection) const
+bool CKdTreeAccelerator::Intersect(const Ray& ray, float *t, Intersection* pIntersection) const
 {
 	// compute initial parametric range of ray inside kd-tree extent
 	float t_min = std::numeric_limits<float>::max();
 	float t_max = std::numeric_limits<float>::min();
 
-	float closest_hit = std::numeric_limits<float>::max();
+	float t_best = std::numeric_limits<float>::max();
+	Intersection isect_best;
 
 	if(!m_BoundingBox.IntersectP(ray, &t_min, &t_max))
 		return false;
@@ -230,7 +233,7 @@ bool CKdTreeAccelerator::Intersect(const Ray& ray, float *t, IntersectionNew* pI
 	while(node != NULL)
 	{
 		// bail out if we found a hit closer than the current node
-		if(closest_hit < t_min) break;
+		if(t_best <= t_min) break;
 
 		if(!node->IsLeaf())
 		{
@@ -285,10 +288,13 @@ bool CKdTreeAccelerator::Intersect(const Ray& ray, float *t, IntersectionNew* pI
 			if(numPrimitives == 1)
 			{
 				CPrimitive* primitive = m_Primitives[node->m_OnePrimitive];
-				if(primitive->Intersect(ray, t, pIntersection))
+				float t_temp = 0.f;
+				Intersection isect_temp;
+				if(primitive->Intersect(ray, &t_temp, &isect_temp))
 				{
-					if(*t < closest_hit) {
-						closest_hit = *t;
+					if(t_temp < t_best && t_temp > 0.f) {
+						t_best = t_temp;
+						isect_best = isect_temp;
 						hit = true;
 					}
 				}
@@ -299,10 +305,13 @@ bool CKdTreeAccelerator::Intersect(const Ray& ray, float *t, IntersectionNew* pI
 				for(uint i = 0; i < node->GetNumPrimitives(); ++i)
 				{
 					CPrimitive* primitive = m_Primitives[node->m_Primitives[i]];
-					if(primitive->Intersect(ray, t, pIntersection))
+					float t_temp = 0.f;
+					Intersection isect_temp;
+					if(primitive->Intersect(ray, &t_temp, &isect_temp))
 					{
-						if(*t < closest_hit) {
-							closest_hit = *t;
+						if(t_temp < t_best && t_temp > 0.f) {
+							t_best = t_temp;
+							isect_best = isect_temp;
 							hit = true;
 						}
 					}
@@ -321,6 +330,9 @@ bool CKdTreeAccelerator::Intersect(const Ray& ray, float *t, IntersectionNew* pI
 				break;
 		}
 	}
+
+	*pIntersection = isect_best;
+	*t = t_best; 
 
 	return hit;
 }
@@ -341,6 +353,29 @@ void CKdTreeAccelerator::PrintForDebug()
 			std::cout << "Split Axis: " << m_Nodes[i].GetSplitAxis() << ", split position: " << m_Nodes[i].GetSplitPosition() << std::endl;
 		}
 	}
+}
+
+std::vector<CPrimitive*> CKdTreeAccelerator::GetPrimitivesOfNode(int i)
+{
+	std::vector<CPrimitive*> primitives;
+	if(i < m_NextFreeNode)
+	{
+		if(m_Nodes[i].IsLeaf())
+		{
+			if(m_Nodes[i].GetNumPrimitives() == 1)
+			{
+				primitives.push_back(m_Primitives[m_Nodes[i].m_OnePrimitive]);
+			}
+			else
+			{
+				for(uint j = 0; j < m_Nodes[i].GetNumPrimitives(); ++j)
+				{
+					primitives.push_back(m_Primitives[m_Nodes[i].m_Primitives[j]]);
+				}
+			}
+		}
+	}
+	return primitives;
 }
 
 void KdAccelNode::InitLeaf(uint* primitives, int numPrimitives)

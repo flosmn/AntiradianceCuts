@@ -345,8 +345,8 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	
 	// run tests before rendering
 	CTestFramework testFramework;
-	testFramework.RunTests();
-
+	//testFramework.RunTests();
+	
 	/* Main message loop*/
 	while (!done)
 	{

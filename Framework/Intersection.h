@@ -3,37 +3,26 @@
 
 #include "glm/glm.hpp"
 
-#include "Triangle.h"
+#include "CTriangle.h"
 
 class CModel;
 
 class Intersection
 {
 public:
-	Intersection() 
-	{
-		valid = false;
-	}
-	
-	Intersection(CModel* _model, Triangle _triangle, glm::vec3 _point)
-	{
-		model = _model;
-		triangle = _triangle;
-		point = _point;
-		valid = true;
-	}
+	Intersection() { m_Position = glm::vec3(0.f); m_pPrimitive = 0; }
+	Intersection(const glm::vec3& position, CPrimitive* pPrimitive) { m_Position = position; m_pPrimitive = pPrimitive; }
+	~Intersection() {}	
 
-	CModel* GetModel() { return model; }
-	Triangle GetTriangle() { return triangle; }
-	glm::vec3 GetPoint() { return point; }
+	CPrimitive* GetPrimitive() const { return m_pPrimitive; }
+	glm::vec3 GetPosition() const { return m_Position; }
 
-	bool IsValid() { return valid; } 
+	void SetPrimitive(CPrimitive* pPrimitive) { m_pPrimitive = pPrimitive; }
+	void SetPosition(const glm::vec3& position) { m_Position = position; }
 
 private:
-	bool valid;
-	CModel* model;
-	Triangle triangle;
-	glm::vec3 point;
+	CPrimitive* m_pPrimitive;
+	glm::vec3 m_Position;
 };
 
 #endif

@@ -77,6 +77,8 @@ private:
 	void Normalize();
 	void Shade();	
 
+	void InitDebugLights();
+
 	std::vector<AVPL*> DetermineUsedAvpls(std::vector<AVPL*> path);
 	
 	void GatherRadianceWithShadowMap(std::vector<AVPL*> path);	

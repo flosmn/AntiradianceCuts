@@ -8,12 +8,17 @@ typedef unsigned int uint;
 #include "AVPL.h"
 #include "AreaLight.h"
 #include "Camera.h"
+#include "CKdTreeAccelerator.h"
+#include "CPbrtKdTreeAccelerator.h"
+#include "CPrimitive.h"
 
 #include "OGLResources\COGLUniformBuffer.h"
 
 #include "MeshResources\CMesh.h"
 #include "MeshResources\CModel.h"
 #include "MeshResources\CSubModel.h"
+
+#include "MeshResources\CMeshMaterial.h"
 
 #include <set>
 #include <iostream>
@@ -23,6 +28,8 @@ Scene::Scene(Camera* _camera)
 {
 	m_Camera = _camera;
 	m_CurrentBounce = 0;
+	m_pKdTreeAccelerator = 0;
+	m_pPbrtKdTreeAccelerator = 0;
 }
 
 Scene::~Scene()
@@ -43,6 +50,8 @@ void Scene::Release()
 	m_AreaLight->Release();
 	
 	ClearScene();
+
+	ReleaseKdTree();
 }
 
 void Scene::ClearScene() 
@@ -137,16 +146,17 @@ AVPL* Scene::ContinueAVPLPath(AVPL* pred, glm::vec3 direction, float pdf, int N,
 	const glm::vec3 pred_norm = glm::normalize(pred->GetOrientation());
 	direction = glm::normalize(direction);
 
-	const float epsilon = 0.0005f;
-	Ray ray(pred_pos + epsilon * direction + epsilon * pred_norm, direction);
-		
+	const float epsilon = 0.005f;
+	Ray ray(pred_pos + epsilon * direction, direction);
+	
 	Intersection intersection;
-	if(IntersectRayScene(ray, intersection)) 
+	float t = 0.f;
+	if(m_pKdTreeAccelerator->Intersect(ray, &t, &intersection)) 
 	{
 		// gather information for the new VPL
-		glm::vec3 pos = intersection.GetPoint();
-		glm::vec3 norm = intersection.GetTriangle().n;
-		glm::vec3 rho = glm::vec3(intersection.GetModel()->GetMaterial().diffuseColor);
+		glm::vec3 pos = intersection.GetPosition();
+		glm::vec3 norm = intersection.GetPrimitive()->GetNormal();
+		glm::vec3 rho = glm::vec3(intersection.GetPrimitive()->GetModel()->GetMaterial().diffuseColor);
 				
 		glm::vec3 intensity = rho/PI * pred->GetIntensity(glm::normalize(direction)) / pdf;	
 		
@@ -154,7 +164,7 @@ AVPL* Scene::ContinueAVPLPath(AVPL* pred, glm::vec3 direction, float pdf, int N,
 		
 		glm::vec3 antiintensity = 1.f / float(nAdditionalAVPLs + 1) * pred->GetIntensity(glm::normalize(direction)) / (pdf * area);
 			
-		avpl = new AVPL(pos, norm, intensity, antiintensity, direction, pred->GetBounce() + 1);	
+		avpl = new AVPL(pos, norm, intensity, antiintensity, direction, pred->GetBounce() + 1);
 	}
 
 	return avpl;
@@ -256,51 +266,42 @@ void Scene::CreateAVPLs(AVPL* pred, std::vector<AVPL*>& path, int N, int nAVPLs)
 	}
 }
 
-bool Scene::IntersectRayScene(const Ray& ray, Intersection &intersection)
-{	
-	float t = 1000000.0f;
-	bool hasIntersection = false;;
-	
-	std::vector<CModel*>::iterator it_models;
-	for (it_models = m_Models.begin(); it_models < m_Models.end(); it_models++ )
+std::vector<AVPL*> Scene::CreatePrimaryVpls(int numVpls)
+{
+	std::vector<AVPL*> vpls;
+	for(int i = 0; i < numVpls; ++i)
 	{
-		CModel* model = *it_models;
+		AVPL* avpl = CreateAVPL(0, 30, 0);
+		avpl->SetIntensity(1.f / float(numVpls) * avpl->GetIntensity(avpl->GetOrientation()));
+		vpls.push_back(avpl);
+	}
 
-		std::vector<CSubModel*> subModels = model->GetSubModels();
-		std::vector<CSubModel*>::iterator it_subModels;
-		
-		for (it_subModels = subModels.begin(); it_subModels < subModels.end(); it_subModels++ )
+	return vpls;
+}
+
+bool Scene::IntersectRaySceneSimple(const Ray& ray, float* t, Intersection *pIntersection)
+{	
+	float t_best = std::numeric_limits<float>::max();
+	Intersection isect_best;
+	bool hasIntersection = false;
+
+	for(uint i = 0; i < m_Primitives.size(); ++i)
+	{
+		float t_temp = 0.f;
+		Intersection isect_temp;
+		if(m_Primitives[i]->Intersect(ray, &t_temp, &isect_temp))
 		{
-			CSubModel* subModel = *it_subModels;
-
-			std::vector<Triangle*> triangles = subModel->GetTriangles();
-			glm::mat4 transform = model->GetWorldTransform();
-
-			std::vector<Triangle*>::iterator it_triangle;
-			for(it_triangle = triangles.begin(); it_triangle < triangles.end(); it_triangle++)
-			{
-				Triangle triangle = (*it_triangle)->GetTransformedTriangle(transform);
-			
-				bool intersectionBB = IntersectWithBB(triangle, ray);
-				if(intersectionBB)
-				{
-					glm::vec3 origin = ray.o;
-					glm::vec3 direction = glm::normalize(ray.d);
-
-					float temp = -1.0f;
-					if(IntersectRayTriangle(ray, triangle.p0, triangle.p1, triangle.p2, temp))
-					{
-						if(temp < t && temp > 0) {
-							t = temp;
-							glm::vec3 position = origin + t * direction;
-							intersection = Intersection(subModel, triangle, position);
-							hasIntersection = true;
-						}
-					}
-				}
+			if(t_temp < t_best && t_temp > 0) {
+				t_best = t_temp;
+				isect_best = isect_temp;
+				hasIntersection = true;
 			}
 		}
 	}
+
+	*pIntersection = isect_best;
+	*t = t_best;
+		
 	return hasIntersection;
 }
 
@@ -326,6 +327,8 @@ void Scene::LoadSimpleScene()
 	m_AreaLight->SetRadiance(glm::vec3(120.f, 120.f, 120.f));
 	
 	m_AreaLight->Init();
+
+	InitKdTree();
 }
 
 void Scene::LoadCornellBox()
@@ -350,4 +353,49 @@ void Scene::LoadCornellBox()
 	m_AreaLight->SetRadiance(glm::vec3(100.f, 100.f, 100.f));
 
 	m_AreaLight->Init();
+
+	InitKdTree();
+}
+
+void Scene::InitKdTree()
+{
+	std::vector<CModel*>::iterator it_models;
+	for (it_models = m_Models.begin(); it_models < m_Models.end(); it_models++ )
+	{
+		CModel* model = *it_models;
+
+		std::vector<CSubModel*> subModels = model->GetSubModels();
+		std::vector<CSubModel*>::iterator it_subModels;
+		for (it_subModels = subModels.begin(); it_subModels < subModels.end(); it_subModels++ )
+		{
+			CSubModel* subModel = *it_subModels;
+			std::vector<CTriangle*> triangles = subModel->GetTrianglesWS();
+			for(uint i = 0; i < triangles.size(); ++i)
+			{
+				m_Primitives.push_back(triangles[i]);
+			}
+		}
+	}
+
+	m_pPbrtKdTreeAccelerator = new CPbrtKdTreeAccel(m_Primitives, 80, 1, 5, 0);
+	
+	m_pKdTreeAccelerator = new CKdTreeAccelerator(m_Primitives, 80, 1, 5, 0);
+	m_pKdTreeAccelerator->BuildTree();
+}
+
+void Scene::ReleaseKdTree()
+{
+	if(m_pKdTreeAccelerator)
+	{
+		delete m_pKdTreeAccelerator;
+		m_pKdTreeAccelerator = 0;
+	}
+
+	if(m_pPbrtKdTreeAccelerator)
+	{
+		delete m_pPbrtKdTreeAccelerator;
+		m_pPbrtKdTreeAccelerator = 0;
+	}
+
+	m_Primitives.clear();
 }

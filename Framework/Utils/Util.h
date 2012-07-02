@@ -7,7 +7,7 @@ typedef unsigned int uint;
 #include "glm/glm.hpp"
 
 #include "..\Defines.h"
-#include "..\Triangle.h"
+#include "..\CTriangle.h"
 #include "..\Ray.h"
 
 #include "..\Utils\rand.h"
@@ -35,7 +35,7 @@ float clamp(const float& x, const float& low, const float& high);
 
 bool IntersectRayBox(const Ray& ray, glm::vec3 boxMin, glm::vec3 boxMax);
 
-bool IntersectWithBB(const Triangle& triangle, const Ray& ray);
+bool IntersectWithBB(const CTriangle& triangle, const Ray& ray);
 
 bool IntersectRayTriangle(const Ray& ray, glm::vec3 v0, glm::vec3 v1, glm::vec3 v2, float &t);
 

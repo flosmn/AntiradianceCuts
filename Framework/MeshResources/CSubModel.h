@@ -9,16 +9,20 @@ typedef unsigned int uint;
 
 #include <vector>
 
-#include "CModel.h"
+#include <glm/glm.hpp>
 
-class Triangle;
+#include "CModel.h"
 
 class COGLVertexArray;
 class COGLVertexBuffer;
 class COGLUniformBuffer;
 class CMeshGeometry;
 class CMeshMaterial;
-class CMesh;
+
+class CTriangle;
+
+typedef unsigned int uint;
+typedef unsigned short ushort;
 
 class CSubModel : public CModel
 {
@@ -26,23 +30,31 @@ public:
 	CSubModel();
 	~CSubModel();
 
-	bool Init(CMesh* mesh);
+	bool Init(CMesh* pMesh);
 	bool Init(CMeshGeometry* pMeshGeometry);
 	void Release();
 	
 	void Draw(COGLUniformBuffer* pUBMaterial);
 	void Draw();
 	
-	virtual void SetMaterial(MATERIAL& mat);
-	virtual MATERIAL& GetMaterial();
+	virtual void SetMaterial(const MATERIAL& mat);
+	virtual MATERIAL GetMaterial() const;
+
+	void SetWorldTransform(const glm::mat4& transform);
 		
-	std::vector<Triangle*> GetTriangles();
+	const std::vector<CTriangle*>& GetTrianglesOS() const;
+	const std::vector<CTriangle*>& GetTrianglesWS() const;
 
 private:	
+	void CreateTriangleData(uint nFaces, const ushort* pIndexData, 
+		const glm::vec4* pPositionData, const glm::vec3* pNormalData);
+	
 	COGLVertexArray* m_pGLVARenderData;
 	CMeshMaterial* m_pMaterial;
 	
-	std::vector<Triangle*> m_Triangles;
+	std::vector<CTriangle*> m_TrianglesOS;
+	std::vector<CTriangle*> m_TrianglesWS;
+
 	uint m_nTriangles;
 };
 

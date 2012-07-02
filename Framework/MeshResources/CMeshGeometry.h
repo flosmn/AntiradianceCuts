@@ -9,7 +9,7 @@ typedef unsigned short ushort;
 #include <vector>
 
 class CMeshMaterial;
-class Triangle;
+class CTriangle;
 
 class CMeshVertex
 {
@@ -85,10 +85,10 @@ public:
 	~CMeshGeometry();
 		
 	// sets a data vector to NULL if no data of that kind is provided
-	const glm::vec4* GetPositionData() { return m_pPositionData; }
-	const glm::vec3* GetNormalData() { return m_pNormalData; }
-	const glm::vec3* GetTexCoordData() { return m_pTexCoordData; }
-	const ushort* GetIndexData() { return m_pIndexData; }
+	const glm::vec4* GetPositionData() const { return m_pPositionData; }
+	const glm::vec3* GetNormalData() const { return m_pNormalData; }
+	const glm::vec3* GetTexCoordData() const { return m_pTexCoordData; }
+	const ushort* GetIndexData() const { return m_pIndexData; }
 
 	void SetPositionData(glm::vec4* pPositionData) { m_pPositionData = pPositionData; }
 	void SetNormalData(glm::vec3* pNormalData) { m_pNormalData = pNormalData; }
@@ -104,7 +104,7 @@ public:
 	CMeshMaterial* GetMeshMaterial() { return m_pMeshMaterial; }
 	void SetMeshMaterial(CMeshMaterial* pMeshMaterial) { m_pMeshMaterial = pMeshMaterial; }
 
-	void CreateTriangleData(std::vector<Triangle*>& triangles);
+	void FillWithTriangleData(std::vector<CTriangle*>& triangles);
 
 	void PrintGeometryData();
 	

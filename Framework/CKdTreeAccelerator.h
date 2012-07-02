@@ -5,7 +5,7 @@ class CPrimitive;
 
 #include "BBox.h"
 #include "Ray.h"
-#include "IntersectionNew.h"
+#include "Intersection.h"
 
 #include <vector>
 
@@ -24,9 +24,13 @@ public:
 
 	void BuildTree();
 
-	bool Intersect(const Ray& ray, float* t, IntersectionNew* pIntersection) const;
+	bool Intersect(const Ray& ray, float* t, Intersection* pIntersection) const;
 
 	void PrintForDebug();
+
+	int GetNumNodes() { return m_NextFreeNode; }
+	KdAccelNode* GetNodes() { return m_Nodes; }
+	std::vector<CPrimitive*> GetPrimitivesOfNode(int i);
 
 private:
 	void BuildTreeRecursive(int node, const BBox& nodeBounds,

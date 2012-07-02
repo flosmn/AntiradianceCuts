@@ -15,7 +15,7 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->UseToneMapping = m_pConfVarsGUI->UseToneMapping = 0;
 	m_pConfVars->UseDebugMode = m_pConfVarsGUI->UseDebugMode = 0;
 	m_pConfVars->DrawAVPLAtlas = m_pConfVarsGUI->DrawAVPLAtlas = 0;
-	m_pConfVars->GatherWithAVPLAtlas = m_pConfVarsGUI->GatherWithAVPLAtlas = 1;
+	m_pConfVars->GatherWithAVPLAtlas = m_pConfVarsGUI->GatherWithAVPLAtlas = 0;
 	m_pConfVars->DrawDebugTextures = m_pConfVarsGUI->DrawDebugTextures = 0;
 	m_pConfVars->DrawLights = m_pConfVarsGUI->DrawLights = 0;
 	m_pConfVars->FilterAvplAtlasLinear = m_pConfVarsGUI->FilterAvplAtlasLinear = 1;

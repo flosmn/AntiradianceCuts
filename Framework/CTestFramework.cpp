@@ -11,6 +11,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <algorithm>
 
 CTestFramework::CTestFramework()
 {
@@ -49,7 +50,7 @@ void CTestFramework::TriangleIntersectionTest()
 
 	float t = -10000.f;
 
-	IntersectionNew intersection;
+	Intersection intersection;
 	assert(triangle.IntersectBBox(ray0) == true);
 	assert(triangle.Intersect(ray0, &t, &intersection) == false);
 
@@ -84,6 +85,7 @@ void CTestFramework::KdTreeBuildTest()
 		glm::vec3(0.75f, 0.1f, 0.0f),
 		glm::vec3(0.9f, 0.4f, 0.0f),
 		glm::vec3(0.6f, 0.4f, 0.0f)));
+	
 	primitives.push_back(new CTriangle(
 		glm::vec3(0.1f, 0.6f, 0.5f),
 		glm::vec3(0.4f, 0.6f, 0.5f),
@@ -93,9 +95,29 @@ void CTestFramework::KdTreeBuildTest()
 		glm::vec3(0.4f, 0.1f, 0.5f),
 		glm::vec3(0.4f, 0.4f, 0.5f)));
 	
-	CKdTreeAccelerator kdTree(primitives,
-		80, 1, 1, 3);
+	const int MAX_NUM_NODES = 1;
+
+	CKdTreeAccelerator kdTree(primitives, 80, 1, MAX_NUM_NODES, 20);
 	kdTree.BuildTree();
+
+	kdTree.PrintForDebug();
+
+	int numNodes = kdTree.GetNumNodes();
+	KdAccelNode* nodes = kdTree.GetNodes();
+	std::vector<CPrimitive*> primitivesInTree;
+	for(int i = 0; i < numNodes; ++i)
+	{
+		if(nodes[i].IsLeaf())
+		{
+			std::cout << "Leaf has " << nodes[i].GetNumPrimitives() << " primitives." << std::endl;
+			std::vector<CPrimitive*> nodePrimitives = kdTree.GetPrimitivesOfNode(i);
+			primitivesInTree.insert(primitivesInTree.end(), nodePrimitives.begin(), nodePrimitives.end());
+		}
+	}
+	for(uint i = 0; i < primitives.size(); ++i)
+	{
+		assert(std::find(primitivesInTree.begin(), primitivesInTree.end(), primitives[i]) != primitivesInTree.end());
+	}
 
 	Ray ray0(glm::vec3(0.25f, 0.75f, 1.f),		glm::vec3(0.f, 0.f, -1.f));
 	Ray ray1(glm::vec3(0.25f, 0.75f, 1.25f),	glm::vec3(0.f, 0.f, -1.f));
@@ -106,8 +128,9 @@ void CTestFramework::KdTreeBuildTest()
 
 	float t = 1000000.f;
 
-	IntersectionNew intersection;
+	Intersection intersection;
 	assert(kdTree.Intersect(ray0, &t, &intersection) == true);
+	assert(intersection.GetPosition() == glm::vec3(0.25f, 0.75f, 0.5f));
 	assert(t = 0.5f);
 
 	assert(kdTree.Intersect(ray1, &t, &intersection) == true);

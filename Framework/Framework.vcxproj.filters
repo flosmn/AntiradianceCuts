@@ -20,6 +20,18 @@
     <Filter Include="Kernels">
       <UniqueIdentifier>{4ed397e0-00fb-43d7-9ea0-4543885f7676}</UniqueIdentifier>
     </Filter>
+    <Filter Include="RayTracingStuff">
+      <UniqueIdentifier>{21e651b1-8013-402e-81d6-e4b97f0475c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GUI&amp;Config">
+      <UniqueIdentifier>{850e1b01-daf4-4a30-ac16-c42ba3276e48}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Octahedron">
+      <UniqueIdentifier>{c7652556-9f69-4e86-89ab-bc716a3d161d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Misc">
+      <UniqueIdentifier>{23eab4a5-e565-4973-bb51-1534963e000a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Render.cpp" />
@@ -30,14 +42,9 @@
     <ClCompile Include="CGBuffer.cpp" />
     <ClCompile Include="CProgram.cpp" />
     <ClCompile Include="CShadowMap.cpp" />
-    <ClCompile Include="CTimer.cpp" />
-    <ClCompile Include="CPointCloud.cpp" />
     <ClCompile Include="CRenderTarget.cpp" />
     <ClCompile Include="CPostprocess.cpp" />
     <ClCompile Include="AVPL.cpp" />
-    <ClCompile Include="COctahedronMap.cpp" />
-    <ClCompile Include="COctahedronAtlas.cpp" />
-    <ClCompile Include="CConfigManager.cpp" />
     <ClCompile Include="MeshResources\CFullScreenQuad.cpp">
       <Filter>MeshResources</Filter>
     </ClCompile>
@@ -126,47 +133,57 @@
       <Filter>OCLResources</Filter>
     </ClCompile>
     <ClCompile Include="Window.cpp" />
-    <ClCompile Include="guicon.cpp" />
-    <ClCompile Include="CGUI.cpp" />
-    <ClCompile Include="old_main.cpp" />
     <ClCompile Include="OCLResources\COCLTexture2D.cpp">
       <Filter>OCLResources</Filter>
     </ClCompile>
     <ClCompile Include="OCLResources\COCLContext.cpp">
       <Filter>OCLResources</Filter>
     </ClCompile>
-    <ClCompile Include="CTriangle.cpp" />
-    <ClCompile Include="CTestFramework.cpp" />
-    <ClCompile Include="CKdTreeAccelerator.cpp" />
+    <ClCompile Include="CKdTreeAccelerator.cpp">
+      <Filter>RayTracingStuff</Filter>
+    </ClCompile>
+    <ClCompile Include="CPbrtKdTreeAccelerator.cpp">
+      <Filter>RayTracingStuff</Filter>
+    </ClCompile>
+    <ClCompile Include="CTriangle.cpp">
+      <Filter>RayTracingStuff</Filter>
+    </ClCompile>
+    <ClCompile Include="CConfigManager.cpp">
+      <Filter>GUI&amp;Config</Filter>
+    </ClCompile>
+    <ClCompile Include="CGUI.cpp">
+      <Filter>GUI&amp;Config</Filter>
+    </ClCompile>
+    <ClCompile Include="COctahedronAtlas.cpp">
+      <Filter>Octahedron</Filter>
+    </ClCompile>
+    <ClCompile Include="COctahedronMap.cpp">
+      <Filter>Octahedron</Filter>
+    </ClCompile>
+    <ClCompile Include="CTimer.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="CTestFramework.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="guicon.cpp">
+      <Filter>GUI&amp;Config</Filter>
+    </ClCompile>
+    <ClCompile Include="CPointCloud.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CTimer.h" />
-    <ClInclude Include="Defines.h" />
-    <ClInclude Include="Intersection.h" />
-    <ClInclude Include="Macros.h" />
-    <ClInclude Include="Ray.h" />
     <ClInclude Include="Render.h" />
     <ClInclude Include="Scene.h" />
-    <ClInclude Include="Structs.h" />
-    <ClInclude Include="Triangle.h" />
-    <ClInclude Include="uniforms.h" />
     <ClInclude Include="AreaLight.h" />
     <ClInclude Include="CAccumulationBuffer.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CGBuffer.h" />
     <ClInclude Include="CProgram.h" />
     <ClInclude Include="CShadowMap.h" />
-    <ClInclude Include="CPointCloud.h" />
     <ClInclude Include="CRenderTarget.h" />
     <ClInclude Include="CPostprocess.h" />
     <ClInclude Include="AVPL.h" />
-    <ClInclude Include="COctahedronMap.h" />
-    <ClInclude Include="COctahedronAtlas.h" />
-    <ClInclude Include="CConfigManager.h" />
     <ClInclude Include="MeshResources\CFullScreenQuad.h">
-      <Filter>MeshResources</Filter>
-    </ClInclude>
-    <ClInclude Include="MeshResources\CMesh.h">
       <Filter>MeshResources</Filter>
     </ClInclude>
     <ClInclude Include="MeshResources\CMeshGeometry.h">
@@ -259,8 +276,6 @@
     <ClInclude Include="OCLResources\OCLUtil.h">
       <Filter>OCLResources</Filter>
     </ClInclude>
-    <ClInclude Include="guicon.h" />
-    <ClInclude Include="CGUI.h" />
     <ClInclude Include="OCLResources\COCLTexture2D.h">
       <Filter>OCLResources</Filter>
     </ClInclude>
@@ -270,17 +285,70 @@
     <ClInclude Include="OCLResources\COCLContext.h">
       <Filter>OCLResources</Filter>
     </ClInclude>
-    <ClInclude Include="GlmUtil.h" />
-    <ClInclude Include="OctahedronUtil.cl">
-      <Filter>Kernels</Filter>
+    <ClInclude Include="MeshResources\CMesh.h">
+      <Filter>MeshResources</Filter>
     </ClInclude>
-    <ClInclude Include="OctahedronUtil.h" />
-    <ClInclude Include="CPrimitive.h" />
-    <ClInclude Include="CTriangle.h" />
-    <ClInclude Include="BBox.h" />
-    <ClInclude Include="CTestFramework.h" />
-    <ClInclude Include="CKdTreeAccelerator.h" />
-    <ClInclude Include="IntersectionNew.h" />
+    <ClInclude Include="CKdTreeAccelerator.h">
+      <Filter>RayTracingStuff</Filter>
+    </ClInclude>
+    <ClInclude Include="CPbrtKdTreeAccelerator.h">
+      <Filter>RayTracingStuff</Filter>
+    </ClInclude>
+    <ClInclude Include="Ray.h">
+      <Filter>RayTracingStuff</Filter>
+    </ClInclude>
+    <ClInclude Include="Intersection.h">
+      <Filter>RayTracingStuff</Filter>
+    </ClInclude>
+    <ClInclude Include="CTriangle.h">
+      <Filter>RayTracingStuff</Filter>
+    </ClInclude>
+    <ClInclude Include="CConfigManager.h">
+      <Filter>GUI&amp;Config</Filter>
+    </ClInclude>
+    <ClInclude Include="CGUI.h">
+      <Filter>GUI&amp;Config</Filter>
+    </ClInclude>
+    <ClInclude Include="COctahedronAtlas.h">
+      <Filter>Octahedron</Filter>
+    </ClInclude>
+    <ClInclude Include="COctahedronMap.h">
+      <Filter>Octahedron</Filter>
+    </ClInclude>
+    <ClInclude Include="OctahedronUtil.h">
+      <Filter>Octahedron</Filter>
+    </ClInclude>
+    <ClInclude Include="CTimer.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="CTestFramework.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="BBox.h">
+      <Filter>RayTracingStuff</Filter>
+    </ClInclude>
+    <ClInclude Include="CPrimitive.h">
+      <Filter>RayTracingStuff</Filter>
+    </ClInclude>
+    <ClInclude Include="uniforms.h">
+      <Filter>Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="Structs.h">
+      <Filter>Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="Macros.h">
+      <Filter>Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="GlmUtil.h">
+      <Filter>Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="Defines.h">
+      <Filter>Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="guicon.h">
+      <Filter>GUI&amp;Config</Filter>
+    </ClInclude>
+    <ClInclude Include="CPointCloud.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">
@@ -347,6 +415,9 @@
       <Filter>Kernels</Filter>
     </None>
     <None Include="Kernels\FillAVPLAtlas.cl">
+      <Filter>Kernels</Filter>
+    </None>
+    <None Include="Kernels\OctahedronUtil.cl">
       <Filter>Kernels</Filter>
     </None>
   </ItemGroup>

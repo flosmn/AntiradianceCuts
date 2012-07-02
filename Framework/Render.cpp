@@ -305,9 +305,8 @@ bool Renderer::Init()
 	glm::mat4 trans = glm::translate(IdentityMatrix(), glm::vec3(278.f, 273.f, 270.f));
 	m_pOctahedron->SetWorldTransform(trans * scale);
 
-	m_DebugAVPLs = scene->CreatePaths(m_pConfManager->GetConfVars()->NumPathsPerFrame, 
-		m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
-
+	InitDebugLights();
+		
 	ClearAccumulationBuffer();
 
 	return true;
@@ -394,7 +393,7 @@ void Renderer::Render()
 				}
 				else
 				{
-					Gather(DetermineUsedAvpls(m_DebugAVPLs));
+					Gather(m_DebugAVPLs);
 				}
 
 				if(m_pConfManager->GetConfVars()->DrawLights)
@@ -985,8 +984,17 @@ void Renderer::NewDebugLights()
 	}
 	m_DebugAVPLs.clear();
 	
-	m_DebugAVPLs = scene->CreatePaths(m_pConfManager->GetConfVars()->NumPaths, m_pConfManager->GetConfVars()->ConeFactor,
-		m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
+	InitDebugLights();
+}
+
+void Renderer::InitDebugLights()
+{
+	/*
+	m_DebugAVPLs = scene->CreatePaths(m_pConfManager->GetConfVars()->NumPathsPerFrame, 
+		m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
+	*/
+
+	m_DebugAVPLs = scene->CreatePrimaryVpls(m_pConfManager->GetConfVars()->NumPaths);
 }
 
 void Renderer::SetConfigManager(CConfigManager* pConfManager)

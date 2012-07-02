@@ -74,6 +74,7 @@
     <ClCompile Include="CKdTreeAccelerator.cpp" />
     <ClCompile Include="COctahedronAtlas.cpp" />
     <ClCompile Include="COctahedronMap.cpp" />
+    <ClCompile Include="CPbrtKdTreeAccelerator.cpp" />
     <ClCompile Include="CPointCloud.cpp" />
     <ClCompile Include="CProgram.cpp" />
     <ClCompile Include="CRenderTarget.cpp" />
@@ -84,7 +85,6 @@
     <ClCompile Include="CTriangle.cpp" />
     <ClCompile Include="guicon.cpp" />
     <ClCompile Include="OCLResources\COCLTexture2D.cpp" />
-    <ClCompile Include="old_main.cpp" />
     <ClCompile Include="CPostprocess.cpp" />
     <ClCompile Include="MeshResources\CFullScreenQuad.cpp" />
     <ClCompile Include="MeshResources\CMeshGeometry.cpp" />
@@ -131,6 +131,7 @@
     <ClInclude Include="CKdTreeAccelerator.h" />
     <ClInclude Include="COctahedronAtlas.h" />
     <ClInclude Include="COctahedronMap.h" />
+    <ClInclude Include="CPbrtKdTreeAccelerator.h" />
     <ClInclude Include="CPointCloud.h" />
     <ClInclude Include="CProgram.h" />
     <ClInclude Include="CRenderTarget.h" />
@@ -142,7 +143,6 @@
     <ClInclude Include="guicon.h" />
     <ClInclude Include="Intersection.h" />
     <ClInclude Include="AVPL.h" />
-    <ClInclude Include="IntersectionNew.h" />
     <ClInclude Include="Macros.h" />
     <ClInclude Include="CPostprocess.h" />
     <ClInclude Include="MeshResources\CFullScreenQuad.h" />
@@ -159,7 +159,6 @@
     <ClInclude Include="OCLResources\COCLResource.h" />
     <ClInclude Include="OCLResources\COCLTexture2D.h" />
     <ClInclude Include="OCLResources\OCLUtil.h" />
-    <ClInclude Include="OctahedronUtil.cl" />
     <ClInclude Include="GlmUtil.h" />
     <ClInclude Include="OctahedronUtil.h" />
     <ClInclude Include="OGLResources\COGLBindLock.h" />
@@ -180,7 +179,6 @@
     <ClInclude Include="Render.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="Structs.h" />
-    <ClInclude Include="Triangle.h" />
     <ClInclude Include="uniforms.h" />
     <ClInclude Include="Utils\CExport.h" />
     <ClInclude Include="Utils\CLightViewer.h" />
@@ -200,6 +198,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Kernels\FillAVPLAtlas.cl" />
+    <None Include="Kernels\OctahedronUtil.cl" />
     <None Include="Kernels\vec.cl" />
     <None Include="Shaders\CreateGBuffer.frag" />
     <None Include="Shaders\CreateGBuffer.vert" />

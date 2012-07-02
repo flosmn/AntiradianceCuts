@@ -36,7 +36,7 @@ bool CGUI::Init(uint window_width, uint window_height)
 	TwAddVarRW(m_pTwBar, "#Paths", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumPaths), " min=1 max=10000000000 step=1 ");
 	TwAddVarRW(m_pTwBar, "#Paths per frame", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumPathsPerFrame), " min=1 max=5000 step=1 ");
 	TwAddVarRW(m_pTwBar, "Cone Factor", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->ConeFactor), " min=1 max=1000 step=1 ");
-	TwAddVarRW(m_pTwBar, "#add. AVPL", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumAdditionalAVPLs), " min=0 max=512 step=1 ");
+	TwAddVarRW(m_pTwBar, "#add. AVPL", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumAdditionalAVPLs), " min=0 max=2048 step=1 ");
 	
 	TwAddSeparator(m_pTwBar, "", "");
 	

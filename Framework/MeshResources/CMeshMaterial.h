@@ -13,14 +13,14 @@ public:
 	CMeshMaterial();
 	~CMeshMaterial();
 
-	void SetMaterialName(std::string name) { m_Name = name; }
-	void SetDiffuseColor(glm::vec4 color) { m_MaterialData.diffuseColor = color; }
+	void SetMaterialName(const std::string& name) { m_Name = name; }
+	void SetDiffuseColor(const glm::vec4& color) { m_MaterialData.diffuseColor = color; }
 
-	std::string GetMaterialName() { return m_Name; }
-	glm::vec4 GetDiffuseColor() { return m_MaterialData.diffuseColor; }
+	std::string GetMaterialName() const { return m_Name; }
+	glm::vec4 GetDiffuseColor() const { return m_MaterialData.diffuseColor; }
 
-	MATERIAL& GetMaterialData() { return m_MaterialData; }
-	void SetMaterialData(MATERIAL& mat) { m_MaterialData = mat; }
+	MATERIAL GetMaterialData() const { return m_MaterialData; }
+	void SetMaterialData(const MATERIAL& mat) { m_MaterialData = mat; }
 
 	void PrintMaterial();
 
