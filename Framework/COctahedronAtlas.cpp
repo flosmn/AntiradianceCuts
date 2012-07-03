@@ -30,6 +30,7 @@ COctahedronAtlas::COctahedronAtlas(COCLContext* pOCLContext)
 	m_pOCLKernelClear = new COCLKernel(m_pOCLContext, m_pOCLProgram, "COctahedronAtlas.m_pOCLKernelClear");
 
 	m_pAvplBuffer = new COCLBuffer(m_pOCLContext, "COctahedronAtlas.m_pAvplBuffer");
+	m_pLocalBuffer = new COCLBuffer(m_pOCLContext, "COctahedronAtlas.m_pLocalBuffer");
 
 	m_pOCLAtlas = new COCLTexture2D(m_pOCLContext, "COctahedronAtlas.m_pOCLAtlas");
 	m_pOGLAtlas = new COGLTexture2D("COctahedronAtlas.m_pOGLAtlas");
@@ -63,11 +64,11 @@ bool COctahedronAtlas::Init(uint atlasDim, uint tileDim, uint maxNumAVPLs)
 	V_RET_FOF(m_pOCLAtlas->Init(m_pOGLAtlas));
 
 	V_RET_FOF(m_pAvplBuffer->Init(sizeof(AVPL_BUFFER) * maxNumAVPLs, CL_MEM_READ_WRITE));
-
+	
 	m_pOCLKernel->SetKernelArg(0, sizeof(cl_mem), m_pOCLAtlas->GetCLTexture());
 	m_pOCLKernel->SetKernelArg(1, sizeof(int), &m_TileDim);
 	m_pOCLKernel->SetKernelArg(2, sizeof(int), &m_AtlasDim);
-	m_pOCLKernel->SetKernelArg(6, sizeof(cl_mem), m_pAvplBuffer->GetCLBuffer());
+	m_pOCLKernel->SetKernelArg(8, sizeof(cl_mem), m_pAvplBuffer->GetCLBuffer());
 		
 	m_pOCLKernelClear->SetKernelArg(0, sizeof(cl_mem), m_pOCLAtlas->GetCLTexture());
 
@@ -111,13 +112,17 @@ void COctahedronAtlas::FillAtlasGPU(AVPL_BUFFER* pBufferData, uint numAVPLs, con
 	size_t global_work_size[2];
 	global_work_size[0] = local_work_size[0] * numColumns;
 	global_work_size[1] = local_work_size[1] * numRows;
-			
+		
 	m_pAvplBuffer->SetBufferData(pBufferData, sizeof(AVPL_BUFFER) * numAVPLs, true);
 	
+	int n = int(N);
+	int b = int(border);
+
 	m_pOCLKernel->SetKernelArg(3, sizeof(int), &numAVPLs);
 	m_pOCLKernel->SetKernelArg(4, sizeof(int), &sqrt_num_ss_samples);
-	int n = int(N);
 	m_pOCLKernel->SetKernelArg(5, sizeof(int), &n);
+	m_pOCLKernel->SetKernelArg(6, sizeof(int), &b);
+	m_pOCLKernel->SetKernelArg(7, 4 * sizeof(float) * m_TileDim * m_TileDim, NULL);
 
 	m_pOCLAtlas->Lock();
 	
@@ -128,7 +133,7 @@ void COctahedronAtlas::FillAtlasGPU(AVPL_BUFFER* pBufferData, uint numAVPLs, con
 
 void COctahedronAtlas::FillAtlas(std::vector<AVPL*> avpls, const int sqrt_num_ss_samples, const float& N, bool border)
 {
-	uint maxIndex = avpls.size();
+	uint maxIndex = (uint)avpls.size();
 	if(avpls.size() * m_TileDim * m_TileDim > m_AtlasDim * m_AtlasDim)
 	{
 		maxIndex = (m_AtlasDim * m_AtlasDim) / (m_TileDim * m_TileDim);
@@ -139,7 +144,7 @@ void COctahedronAtlas::FillAtlas(std::vector<AVPL*> avpls, const int sqrt_num_ss
 	{
 		glm::vec4* pData = new glm::vec4[m_AtlasDim * m_AtlasDim];
 		memset(pData, 0, m_AtlasDim * m_AtlasDim * sizeof(glm::vec4));
-			
+		
 		uint columns = m_AtlasDim / m_TileDim;
 
 		uint b = border ? 1 : 0;
@@ -153,7 +158,7 @@ void COctahedronAtlas::FillAtlas(std::vector<AVPL*> avpls, const int sqrt_num_ss
 			{
 				for(uint y = b; y < m_TileDim-b; ++y)
 				{
-					*AccessAtlas(x, y, tile_x, tile_y, pData) = SampleTexel(x, y, sqrt_num_ss_samples, N, avpls[index]);
+					*AccessAtlas(x, y, tile_x, tile_y, pData) = SampleTexel(x-b, y-b, sqrt_num_ss_samples, N, avpls[index], border);
 				}
 			}
 					
@@ -201,51 +206,33 @@ void COctahedronAtlas::FillAtlas(std::vector<AVPL*> avpls, const int sqrt_num_ss
 	}
 }
 
-glm::vec4 COctahedronAtlas::SampleTexel(uint x, uint y, const int sqrt_num_ss_samples, const float& N, AVPL* avpl)
+glm::vec4 COctahedronAtlas::SampleTexel(uint x, uint y, const int sqrt_num_ss_samples, const float& N, AVPL* avpl, bool border)
 {
+	uint b = border ? 1 : 0;
 	const int num_ss_samples = sqrt_num_ss_samples * sqrt_num_ss_samples;
 
-	const float texel_size = 1.f/float(m_TileDim);
-	const float delta = 1.f / float(sqrt_num_ss_samples + 2);
+	const float texel_size = 1.f/float(m_TileDim - 2 * b);
+	const float delta = 1.f / float(sqrt_num_ss_samples + 1);
 
-	try{
-		glm::vec2* texCoords = new glm::vec2[num_ss_samples];
-		for(int i = 0; i < sqrt_num_ss_samples; ++i)
-		{
-			for(int j = 0; j < sqrt_num_ss_samples; ++j)
-			{
-				texCoords[j + i * sqrt_num_ss_samples] = texel_size * glm::vec2(float(x + (i+1) * delta), float(y + (j+1) * delta));
-			}
-		}
-			
-		glm::vec3* directions = new glm::vec3[num_ss_samples];
-		for(int i = 0; i < num_ss_samples; ++i)
-		{
-			directions[i] = glm::normalize(GetDirForTexCoord(texCoords[i]));
-		}
-		delete [] texCoords;
+	glm::vec3 A = glm::vec3(0.f);
+	glm::vec3 I = glm::vec3(0.f);
 
-		glm::vec3 A = glm::vec3(0.f);
-		glm::vec3 I = glm::vec3(0.f);
-		
-		for(int i = 0; i < num_ss_samples; ++i)
-		{
-			A += avpl->GetAntiintensity(directions[i], N);
-			I += avpl->GetIntensity(directions[i]);
-		}
-		delete [] directions;
-		
-		A *= 1.f/float(num_ss_samples);
-		I *= 1.f/float(num_ss_samples);
-			
-		return glm::vec4(glm::length(I), glm::length(A), 0.f, 1.f);
-	}
-	catch(std::bad_alloc)
+	for(int i = 0; i < sqrt_num_ss_samples; ++i)
 	{
-		std::cout << "bad_alloc exception at COctahedronAtlas::SampleTexel()" << std::endl;
-	}
-
-	return glm::vec4(0.f);
+		for(int j = 0; j < sqrt_num_ss_samples; ++j)
+		{
+			glm::vec2 texCoord = texel_size * glm::vec2(float(x + (i+1) * delta), float(y + (j+1) * delta));
+			glm::vec3 direction = glm::normalize(GetDirForTexCoord(texCoord));
+			
+			A += avpl->GetAntiintensity(direction, N);
+			I += avpl->GetIntensity(direction);
+		}
+	}		
+		
+	A *= 1.f/float(num_ss_samples);
+	I *= 1.f/float(num_ss_samples);
+			
+	return glm::vec4(I - A, 1.f);
 }
 
 glm::vec4* COctahedronAtlas::AccessAtlas(uint x, uint y, uint tile_x, uint tile_y, glm::vec4* pAtlas)

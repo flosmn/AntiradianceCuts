@@ -48,8 +48,8 @@ uint g_MousePosY = 0;
 
 clock_t g_Clock;
 
-bool HandleMouseMoveEvent(uint wParam, uint lParam);
-bool HandleKeyEvent(uint wParam);
+bool HandleMouseMoveEvent(WPARAM wParam, LPARAM lParam);
+bool HandleKeyEvent(WPARAM wParam);
 
 float CalcFPS();
 
@@ -370,14 +370,11 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 		ChangeDisplaySettings(NULL, 0);
 		ShowCursor(TRUE);
 	}
-	
-	//int i = 0;
-	//std::cin >> i;
 
-	return msg.wParam;
+	return (int)msg.wParam;
 }
 
-bool HandleMouseMoveEvent(uint wParam, uint lParam)
+bool HandleMouseMoveEvent(WPARAM wParam, LPARAM lParam)
 {
 	int x=(short)LOWORD(lParam);
 	int y=(short)HIWORD(lParam);
@@ -406,7 +403,7 @@ bool HandleMouseMoveEvent(uint wParam, uint lParam)
 	return false;
 }
 
-bool HandleKeyEvent(uint wParam)
+bool HandleKeyEvent(WPARAM wParam)
 {
 	switch(wParam)
     {

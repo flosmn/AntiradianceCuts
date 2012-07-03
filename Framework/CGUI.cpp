@@ -51,8 +51,8 @@ bool CGUI::Init(uint window_width, uint window_height)
 	TwAddSeparator(m_pTwBar, "", "");
 
 	TwAddVarRW(m_pTwBar, "Use Tone Mapping", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->UseToneMapping), "min=0 max=1 step=1");
-	TwAddVarRW(m_pTwBar, "Gamma", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->Gamma), " min=0.0 max=10.0 step=0.1 ");
-	TwAddVarRW(m_pTwBar, "Exposure", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->Exposure), " min=0.0 max=10.0 step=0.1 ");
+	TwAddVarRW(m_pTwBar, "Gamma", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->Gamma), " min=0.0 max=100.0 step=0.1 ");
+	TwAddVarRW(m_pTwBar, "Exposure", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->Exposure), " min=0.0 max=100.0 step=0.1 ");
 
 	TwAddSeparator(m_pTwBar, "", "");
 	TwAddVarRW(m_pTwBar, "Texel Offset X", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->TexelOffsetX), " min=0.0 max=10.0 step=0.1 ");
@@ -72,7 +72,7 @@ void CGUI::Render(float fps)
 	TwDraw();
 }
 
-bool CGUI::HandleEvent(void* wnd, uint msg, uint wParam, uint lParam)
+bool CGUI::HandleEvent(void* wnd, uint msg, WPARAM wParam, LPARAM lParam)
 {
 	if(TwEventWin(wnd, msg, wParam, lParam))
 		return true;

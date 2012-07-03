@@ -223,7 +223,7 @@ bool Renderer::Init()
 	m_pGatherRadianceWithSMProgram->BindUniformBuffer(m_pUBConfig, "config");
 	m_pGatherRadianceWithSMProgram->BindUniformBuffer(m_pUBCamera, "camera");
 
-	V_RET_FOF(m_pGLLinearSampler->Init(GL_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT));
+	V_RET_FOF(m_pGLLinearSampler->Init(GL_LINEAR, GL_LINEAR, GL_CLAMP, GL_CLAMP));
 	V_RET_FOF(m_pGLPointSampler->Init(GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT));
 	V_RET_FOF(m_pGLShadowMapSampler->Init(GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER));
 	
@@ -280,9 +280,9 @@ bool Renderer::Init()
 
 	time(&m_StartTime);
 
-	int dim_atlas = 4096;
+	int dim_atlas = 64;
 	int dim_tile = 64;
-	
+		
 	ATLAS_INFO atlas_info;
 	atlas_info.dim_atlas = dim_atlas;
 	atlas_info.dim_tile = dim_tile;
@@ -380,7 +380,48 @@ void Renderer::Render()
 	SetUpRender();
 		
 	CreateGBuffer();
-	
+
+	if(m_pConfManager->GetConfVars()->UseDebugMode)
+	{
+		if(!m_Finished)
+		{
+			if(m_pConfManager->GetConfVars()->GatherWithAVPLAtlas)
+			{
+				GatherWithAtlas(m_DebugAVPLs);
+			}
+			else
+			{
+				Gather(m_DebugAVPLs);
+			}
+			
+			m_CurrentPath++;
+
+			m_Finished = true;
+		}
+	}
+	else 
+	{
+		if(m_CurrentPath < m_pConfManager->GetConfVars()->NumPaths)
+		{
+			std::vector<AVPL*> avpls = scene->CreatePrimaryVpls(1);
+			
+			if(m_pConfManager->GetConfVars()->GatherWithAVPLAtlas)
+			{
+				GatherWithAtlas(avpls);
+			}
+			else
+			{
+				Gather(avpls);
+			}
+
+			m_CurrentPath++;
+		}
+	}
+
+	/*
+
+	/*
+	/*
 	if(m_pConfManager->GetConfVars()->UseAntiradiance)
 	{
 		if(m_pConfManager->GetConfVars()->UseDebugMode)
@@ -413,15 +454,15 @@ void Renderer::Render()
 				int remaining = m_pConfManager->GetConfVars()->NumPaths - m_CurrentPath;
 				if(remaining >= m_pConfManager->GetConfVars()->NumPathsPerFrame)
 				{
-					CTimer timer(CTimer::CPU);
-					timer.Start();
+					//CTimer timer(CTimer::CPU);
+					//timer.Start();
 					avpls = scene->CreatePaths(m_pConfManager->GetConfVars()->NumPathsPerFrame, 
 						m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
 					m_CurrentPath += m_pConfManager->GetConfVars()->NumPathsPerFrame;
 
-					timer.Stop();
+					//timer.Stop();
 
-					std::cout << "Creating " << avpls.size() << " avpls took " << timer.GetTime() << " ms." << std::endl;
+					//std::cout << "Creating " << avpls.size() << " avpls took " << timer.GetTime() << " ms." << std::endl;
 				}
 				else
 				{
@@ -480,7 +521,7 @@ void Renderer::Render()
 			m_Finished = true;
 		}
 	}
-	
+	*/
 	Normalize();
 	
 	Shade();
@@ -504,7 +545,9 @@ void Renderer::Render()
 		if(m_pConfManager->GetConfVars()->FillAvplAltasOnGPU)
 			m_pTextureViewer->DrawTexture(m_pOctahedronAtlas->GetTexture(), 0, 0, camera->GetWidth(), camera->GetHeight());
 		else
+		{
 			m_pTextureViewer->DrawTexture(m_pOctahedronAtlas->GetRefTexture(), 0, 0, camera->GetWidth(), camera->GetHeight());
+		}
 	}
 
 	if(m_CurrentPath % 10000 == 0 && m_CurrentPath > 0)
@@ -652,12 +695,11 @@ void Renderer::Gather(std::vector<AVPL*> avpls)
 		return;
 	}
 
-	INFO i;
-	i.numLights = avpls.size();
-	i.drawLightingOfLight = m_pConfManager->GetConfVars()->DrawLightingOfLight;
-	i.texelOffsetX = m_pConfManager->GetConfVars()->TexelOffsetX;
-	i.texelOffsetY = m_pConfManager->GetConfVars()->TexelOffsetY;
-	m_pUBInfo->UpdateData(&i);
+	INFO info;
+	info.numLights = (int)avpls.size();
+	info.filterAVPLAtlas = m_pConfManager->GetConfVars()->FilterAvplAtlasLinear;
+	info.drawLightingOfLight = m_pConfManager->GetConfVars()->DrawLightingOfLight;
+	m_pUBInfo->UpdateData(&info);
 
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);	
@@ -695,7 +737,7 @@ void Renderer::GatherWithAtlas(std::vector<AVPL*> avpls)
 
 		if(m_pConfManager->GetConfVars()->FillAvplAltasOnGPU)
 		{
-			m_pOctahedronAtlas->FillAtlasGPU(avplBuffer, avpls.size(), m_pConfManager->GetConfVars()->NumSqrtAtlasSamples,
+			m_pOctahedronAtlas->FillAtlasGPU(avplBuffer, (int)avpls.size(), m_pConfManager->GetConfVars()->NumSqrtAtlasSamples,
 				float(m_pConfManager->GetConfVars()->ConeFactor), m_pConfManager->GetConfVars()->FilterAvplAtlasLinear == 1 ? true : false);
 		}
 		else
@@ -706,13 +748,11 @@ void Renderer::GatherWithAtlas(std::vector<AVPL*> avpls)
 
 		delete [] avplBuffer;
 
-		INFO i;
-		i.numLights = avpls.size();
-		i.drawLightingOfLight = m_pConfManager->GetConfVars()->DrawLightingOfLight;
-		i.filterAVPLAtlas = m_pConfManager->GetConfVars()->FilterAvplAtlasLinear == 1 ? true : false;
-		i.texelOffsetX = m_pConfManager->GetConfVars()->TexelOffsetX;
-		i.texelOffsetY = m_pConfManager->GetConfVars()->TexelOffsetY;
-		m_pUBInfo->UpdateData(&i);
+		INFO info;
+		info.numLights = (int)avpls.size();
+		info.drawLightingOfLight = m_pConfManager->GetConfVars()->DrawLightingOfLight;
+		info.filterAVPLAtlas = m_pConfManager->GetConfVars()->FilterAvplAtlasLinear;
+		m_pUBInfo->UpdateData(&info);
 
 		glDisable(GL_DEPTH_TEST);
 		glEnable(GL_BLEND);	
@@ -726,13 +766,30 @@ void Renderer::GatherWithAtlas(std::vector<AVPL*> avpls)
 		COGLBindLock lock1(m_pGBuffer->GetNormalTexture(), COGL_TEXTURE1_SLOT);
 		COGLBindLock lock2(m_pOGLLightBuffer, COGL_TEXTURE2_SLOT);
 
-		COGLBindLock lock3(m_pOctahedronAtlas->GetTexture(), COGL_TEXTURE3_SLOT);
-		glBindSampler(3, m_pGLPointSampler->GetResourceIdentifier());
+		if(m_pConfManager->GetConfVars()->FilterAvplAtlasLinear)
+		{
+			glBindSampler(3, m_pGLLinearSampler->GetResourceIdentifier());
+		}
+		else
+		{
+			glBindSampler(3, m_pGLPointSampler->GetResourceIdentifier());
+		}
 		
-		m_pFullScreenQuad->Draw();
-		
+		if(m_pConfManager->GetConfVars()->FillAvplAltasOnGPU == 1)
+		{
+			COGLBindLock lock3(m_pOctahedronAtlas->GetTexture(), COGL_TEXTURE3_SLOT);
+			m_pFullScreenQuad->Draw();
+		}
+		else
+		{
+			COGLBindLock lock3(m_pOctahedronAtlas->GetRefTexture(), COGL_TEXTURE3_SLOT);
+			m_pFullScreenQuad->Draw();
+		}
+				
 		glEnable(GL_DEPTH_TEST);
 		glDisable(GL_BLEND);
+
+		glBindSampler(3, m_pGLPointSampler->GetResourceIdentifier());
 	}
 	catch(std::bad_alloc)
 	{
@@ -843,7 +900,7 @@ void Renderer::DrawLights(std::vector<AVPL*> avpls)
 		
 			glDepthMask(GL_FALSE);
 			glDisable(GL_DEPTH_TEST);
-			m_pPointCloud->Draw(positionData, colorData, pcp.size());		
+			m_pPointCloud->Draw(positionData, colorData, (int)pcp.size());		
 			glDepthMask(GL_TRUE);
 			glEnable(GL_DEPTH_TEST);
 		}

@@ -38,11 +38,7 @@ public:
 
 private:
 	glm::vec4* AccessAtlas(uint x, uint y, uint tile_x, uint tile_y, glm::vec4* pAtlas);
-
-	/*
-		samples texel with ss^2 samples
-	*/
-	glm::vec4 SampleTexel(uint x, uint y, const int sqrt_num_ss_samples, const float& N, AVPL* avpl);
+	glm::vec4 SampleTexel(uint x, uint y, const int sqrt_num_ss_samples, const float& N, AVPL* avpl, bool border);
 
 	COGLTexture2D* m_pOGLAtlasRef;
 	COGLTexture2D* m_pOGLAtlas;
@@ -55,6 +51,7 @@ private:
 	COCLKernel* m_pOCLKernel;
 	COCLKernel* m_pOCLKernelClear;
 	COCLBuffer* m_pAvplBuffer;
+	COCLBuffer* m_pLocalBuffer;
 };
 
 #endif _C_OCTAHEDRON_ATLAS_H_

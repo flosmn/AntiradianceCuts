@@ -3,6 +3,8 @@
 
 #include "AntTweakBar.h"
 
+#include <Windows.h>
+
 class CConfigManager;
 
 typedef unsigned int uint;
@@ -16,7 +18,7 @@ public:
 	bool Init(uint window_width, uint window_height);
 	void Release();
 
-	bool HandleEvent(void* wnd, uint msg, uint wParam, uint lParam);
+	bool HandleEvent(void* wnd, uint msg, WPARAM wParam, LPARAM lParam);
 	void Render(float fps);
 
 private:

@@ -76,10 +76,8 @@ struct INFO
 {
 	int numLights;
 	int drawLightingOfLight;
-	bool filterAVPLAtlas;
-	float debugColorB;
-	float texelOffsetX;
-	float texelOffsetY;
+	int filterAVPLAtlas;
+	float padd;
 };
 
 struct AREA_LIGHT

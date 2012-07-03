@@ -12,8 +12,7 @@ struct AVPL_BUFFER
 float3 GetDirForTexCoord(float2 texCoord);
 float2 GetTexCoordForDir(float3 dir);
 
-float4 SampleTexel(uint x, uint y, int tile_dim, const int sqrt_num_ss_samples, const float N, struct AVPL_BUFFER avpl);
-float4 SampleTex(uint x, uint y, int tile_dim, const float N, struct AVPL_BUFFER avpl);
+float4 SampleTexel(uint x, uint y, int tile_dim, const int sqrt_num_ss_samples, const float N, struct AVPL_BUFFER avpl, bool border);
 float3 GetIntensity(float3 direction, struct AVPL_BUFFER avpl);
 float3 GetAntiintensity(float3 direction, struct AVPL_BUFFER avpl, float N);
 
@@ -24,14 +23,12 @@ __kernel void Fill(
 	int num_avpls,
 	int sqrt_num_ss_samples,
 	int N,
+	int border,
+	__local float4* localBuffer,
 	__global struct AVPL_BUFFER* pAvplBuffer)
 {
 	const int numColumns = atlas_dim / tile_dim;
-
-	int2 global_id;
-	global_id.x = get_global_id(0);
-	global_id.y = get_global_id(1);
-		
+	
 	int2 group_id;
 	group_id.x = get_group_id(0);
 	group_id.y = get_group_id(1);
@@ -47,44 +44,119 @@ __kernel void Fill(
 	int avplIndex = group_id.y * numColumns + group_id.x;
 	if(group_id.y * numColumns + group_id.x > num_avpls - 1)
 		return;
-			
+	
 	int iter_x = tile_dim / local_size.x;
 	int iter_y = tile_dim / local_size.y;
-
-	int b = 0;
+	
+	int b = border > 0 ? 1 : 0;
 	for(int x = 0; x < iter_x; ++x)
 	{
 		for(int y = 0; y < iter_y; ++y)
-		{
+		{	
 			int2 localCoords = (int2)(x * local_size.x + local_id.x, y * local_size.y + local_id.y);
+			float4 color;
 			
-			float4 color = (float4)(0.f);
-			if(sqrt_num_ss_samples == 1)
+			// skip border
+			if(localCoords.x < b || localCoords.x >= tile_dim - b || 
+				localCoords.y < b || localCoords.y >= tile_dim - b)
 			{
-				color = SampleTex(localCoords.x, localCoords.y, tile_dim, N, pAvplBuffer[avplIndex]);
+				color = (float4)(1.f, 0.f, 0.f, 1.f);
 			}
 			else
 			{
-				color = SampleTexel(localCoords.x, localCoords.y, tile_dim, sqrt_num_ss_samples, N, pAvplBuffer[avplIndex]);
+				color = SampleTexel(localCoords.x-b, localCoords.y-b, tile_dim, sqrt_num_ss_samples, N, pAvplBuffer[avplIndex], border);
 			}
 			
-			
+			// store in local memory
+			localBuffer[localCoords.y * tile_dim + localCoords.x] = color;
+		}
+	}
+	
+	
+	barrier(CLK_LOCAL_MEM_FENCE);
+	
+	if(b > 0)
+	{
+		// top border
+		for(int x = 0; x < iter_x; ++x)
+		{
+			int2 localCoords = (int2)(x * local_size.x + local_id.x, 0);
+			int2 localLookUpCoords = (int2)((tile_dim-1) - (x * local_size.x + local_id.x), 1);
+			localBuffer[localCoords.y * tile_dim + localCoords.x] = localBuffer[localLookUpCoords.y * tile_dim + localLookUpCoords.x];
+		}
+
+		// bottom border
+		for(int x = 0; x < iter_x; ++x)
+		{
+			int2 localCoords = (int2)(x * local_size.x + local_id.x, tile_dim - 1);
+			int2 localLookUpCoords = (int2)((tile_dim-1) - (x * local_size.x + local_id.x), tile_dim - 2);
+			localBuffer[localCoords.y * tile_dim + localCoords.x] = localBuffer[localLookUpCoords.y * tile_dim + localLookUpCoords.x];
+		}
+
+		// left border
+		for(int y = 0; y < iter_y; ++y)
+		{
+			int2 localCoords = (int2)(0, y * local_size.y + local_id.y);
+			int2 localLookUpCoords = (int2)(1, (tile_dim-1) - (y * local_size.y + local_id.y));
+			localBuffer[localCoords.y * tile_dim + localCoords.x] = localBuffer[localLookUpCoords.y * tile_dim + localLookUpCoords.x];
+		}
+
+		// right border
+		for(int y = 0; y < iter_y; ++y)
+		{
+			int2 localCoords = (int2)(tile_dim-1, y * local_size.y + local_id.y);
+			int2 localLookUpCoords = (int2)(tile_dim-2, (tile_dim-1) - (y * local_size.y + local_id.y));
+			localBuffer[localCoords.y * tile_dim + localCoords.x] = localBuffer[localLookUpCoords.y * tile_dim + localLookUpCoords.x];
+		}
+
+		//corners
+		if(local_id.x == 0 && local_id.y == 0)
+		{
+			int2 localCoords; 
+			int2 localLookUpCoords;
+
+			localCoords = (int2)(0, 0);
+			localLookUpCoords = (int2)(tile_dim-2, tile_dim-2);
+			localBuffer[localCoords.y * tile_dim + localCoords.x] = localBuffer[localLookUpCoords.y * tile_dim + localLookUpCoords.x];
+
+			localCoords = (int2)(0, tile_dim-1);
+			localLookUpCoords = (int2)(tile_dim-2, 1);
+			localBuffer[localCoords.y * tile_dim + localCoords.x] = localBuffer[localLookUpCoords.y * tile_dim + localLookUpCoords.x];
+
+			localCoords = (int2)(tile_dim-1, 0);
+			localLookUpCoords = (int2)(1, tile_dim-2);
+			localBuffer[localCoords.y * tile_dim + localCoords.x] = localBuffer[localLookUpCoords.y * tile_dim + localLookUpCoords.x];
+
+			localCoords = (int2)(tile_dim-1, tile_dim-1);
+			localLookUpCoords = (int2)(1, 1);
+			localBuffer[localCoords.y * tile_dim + localCoords.x] = localBuffer[localLookUpCoords.y * tile_dim + localLookUpCoords.x];
+		}
+	}
+	
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	// write result into image
+	for(int x = 0; x < iter_x; ++x)
+	{
+		for(int y = 0; y < iter_y; ++y)
+		{	
+			int2 localCoords = (int2)(x * local_size.x + local_id.x, y * local_size.y + local_id.y);			
 			int2 globalCoords = localCoords + (int2)(group_id.x * tile_dim, group_id.y * tile_dim);
-									
+
+			float4 color = localBuffer[localCoords.y * tile_dim + localCoords.x];
 			write_imagef(image, globalCoords, color);
 		}
 	}
-
-	// border
-	
 }
 
-float4 SampleTexel(uint x, uint y, int tile_dim, const int sqrt_num_ss_samples, const float N, struct AVPL_BUFFER avpl)
+float4 SampleTexel(uint x, uint y, int tile_dim, const int sqrt_num_ss_samples, const float N, struct AVPL_BUFFER avpl, bool border)
 {
+	uint b = border ? 1 : 0;
+	const int num_ss_samples = sqrt_num_ss_samples * sqrt_num_ss_samples;
+
+	const float texel_size = 1.f / (float)(tile_dim - 2 * b);
 	const float delta = 1.f / (float)(sqrt_num_ss_samples + 1);
 
-	const int num_ss_samples = sqrt_num_ss_samples * sqrt_num_ss_samples;
-	
 	float3 A = (float3)(0.f);
 	float3 I = (float3)(0.f);
 
@@ -92,33 +164,17 @@ float4 SampleTexel(uint x, uint y, int tile_dim, const int sqrt_num_ss_samples, 
 	{
 		for(int j = 0; j < sqrt_num_ss_samples; ++j)
 		{
-			float2 texCoord = 1.f/(float)(tile_dim) * (float2)((float)(x + (i+1) * delta), (float)(y + (j+1) * delta));
+			float2 texCoord = texel_size * (float2)((float)(x + (i+1) * delta), (float)(y + (j+1) * delta));
 			float3 direction = normalize(GetDirForTexCoord(texCoord));
+			
 			A += GetAntiintensity(direction, avpl, N);
 			I += GetIntensity(direction, avpl);
 		}
-	}	
+	}		
 		
 	A *= 1.f/(float)(num_ss_samples);
 	I *= 1.f/(float)(num_ss_samples);
 			
-	return (float4)(I - A, 1.f);
-}
-
-float4 SampleTex(uint x, uint y, int tile_dim, const float N, struct AVPL_BUFFER avpl)
-{
-	const float delta = 0.5f;
-
-	float2 texCoord = 1.f/(float)(tile_dim) * (float2)((float)(x + delta), (float)(y + delta));
-	
-	float3 direction = normalize(GetDirForTexCoord(texCoord));
-
-	float3 A = (float3)(0.f);
-	float3 I = (float3)(0.f);
-		
-	A += GetAntiintensity(direction, avpl, N);
-	I += GetIntensity(direction, avpl);
-					
 	return (float4)(I - A, 1.f);
 }
 
