@@ -68,7 +68,7 @@ bool COctahedronAtlas::Init(uint atlasDim, uint tileDim, uint maxNumAVPLs)
 	m_pOCLKernel->SetKernelArg(0, sizeof(cl_mem), m_pOCLAtlas->GetCLTexture());
 	m_pOCLKernel->SetKernelArg(1, sizeof(int), &m_TileDim);
 	m_pOCLKernel->SetKernelArg(2, sizeof(int), &m_AtlasDim);
-	m_pOCLKernel->SetKernelArg(8, sizeof(cl_mem), m_pAvplBuffer->GetCLBuffer());
+	m_pOCLKernel->SetKernelArg(7, sizeof(cl_mem), m_pAvplBuffer->GetCLBuffer());
 		
 	m_pOCLKernelClear->SetKernelArg(0, sizeof(cl_mem), m_pOCLAtlas->GetCLTexture());
 
@@ -122,7 +122,6 @@ void COctahedronAtlas::FillAtlasGPU(AVPL_BUFFER* pBufferData, uint numAVPLs, con
 	m_pOCLKernel->SetKernelArg(4, sizeof(int), &sqrt_num_ss_samples);
 	m_pOCLKernel->SetKernelArg(5, sizeof(int), &n);
 	m_pOCLKernel->SetKernelArg(6, sizeof(int), &b);
-	m_pOCLKernel->SetKernelArg(7, 4 * sizeof(float) * m_TileDim * m_TileDim, NULL);
 
 	m_pOCLAtlas->Lock();
 	

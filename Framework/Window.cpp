@@ -56,6 +56,7 @@ float CalcFPS();
 void Render()
 {
 	g_pRenderer->Render();
+	//g_pRenderer->ClusteringTestRender();
 
 	g_pGUI->Render(CalcFPS());
 
@@ -66,6 +67,7 @@ bool Init()
 {
 	int t = (int)(time(NULL));
 	RandInit(t);
+	srand(0);
 
 	GLenum err = glewInit();
 	if (GLEW_OK != err)
@@ -78,7 +80,7 @@ bool Init()
 	std::cout << "OpenGL version: " << glGetString(GL_VERSION) << std::endl;
 	std::cout << "GLSL version: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
 	
-	g_pCamera = new Camera(window_width, window_height, 0.1f, 2000.0f);
+	g_pCamera = new Camera(window_width, window_height, 0.1f, 5000.0f);
 	g_pRenderer = new Renderer(g_pCamera);
 	g_pConfigManager = new CConfigManager(g_pRenderer);
 	g_pGUI = new CGUI(g_pConfigManager);

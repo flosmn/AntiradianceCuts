@@ -28,6 +28,7 @@ class CRenderTarget;
 class COctahedronMap;
 class COctahedronAtlas;
 class CModel;
+class CClusterTree;
 
 class COGLUniformBuffer;
 class COGLSampler;
@@ -67,6 +68,8 @@ public:
 
 	void NewDebugLights();
 	
+	void ClusteringTestRender();
+
 private:
 	// functions of the render phase
 	void SetUpRender();
@@ -96,6 +99,7 @@ private:
 	void ExportPartialResult();
 
 	Camera *camera;
+	Camera *m_pClusterRenderCamera;
 	Scene* scene;
 	CShadowMap* m_pShadowMap;
 	CGBuffer* m_pGBuffer;
@@ -156,7 +160,7 @@ private:
 	COCLContext* m_pCLContext;
 	
 	CModel* m_pOctahedron;
-	
+
 	int m_Frame;
 	int m_CurrentPath;
 		
@@ -167,6 +171,9 @@ private:
 	int m_MaxNumAVPLs;
 
 	std::vector<AVPL*> m_DebugAVPLs;
+	std::vector<AVPL*> m_ClusterTestAVPLs;
+
+	CClusterTree* m_pClusterTree;
 };
 
 #endif

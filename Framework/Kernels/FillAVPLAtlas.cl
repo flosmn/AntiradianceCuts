@@ -24,7 +24,6 @@ __kernel void Fill(
 	int sqrt_num_ss_samples,
 	int N,
 	int border,
-	__local float4* localBuffer,
 	__global struct AVPL_BUFFER* pAvplBuffer)
 {
 	const int numColumns = atlas_dim / tile_dim;
@@ -60,91 +59,75 @@ __kernel void Fill(
 			if(localCoords.x < b || localCoords.x >= tile_dim - b || 
 				localCoords.y < b || localCoords.y >= tile_dim - b)
 			{
-				color = (float4)(1.f, 0.f, 0.f, 1.f);
+				continue;
 			}
 			else
 			{
 				color = SampleTexel(localCoords.x-b, localCoords.y-b, tile_dim, sqrt_num_ss_samples, N, pAvplBuffer[avplIndex], border);
 			}
 			
-			// store in local memory
-			localBuffer[localCoords.y * tile_dim + localCoords.x] = color;
-		}
-	}
-	
-	
-	barrier(CLK_LOCAL_MEM_FENCE);
-	
-	if(b > 0)
-	{
-		// top border
-		for(int x = 0; x < iter_x; ++x)
-		{
-			int2 localCoords = (int2)(x * local_size.x + local_id.x, 0);
-			int2 localLookUpCoords = (int2)((tile_dim-1) - (x * local_size.x + local_id.x), 1);
-			localBuffer[localCoords.y * tile_dim + localCoords.x] = localBuffer[localLookUpCoords.y * tile_dim + localLookUpCoords.x];
-		}
-
-		// bottom border
-		for(int x = 0; x < iter_x; ++x)
-		{
-			int2 localCoords = (int2)(x * local_size.x + local_id.x, tile_dim - 1);
-			int2 localLookUpCoords = (int2)((tile_dim-1) - (x * local_size.x + local_id.x), tile_dim - 2);
-			localBuffer[localCoords.y * tile_dim + localCoords.x] = localBuffer[localLookUpCoords.y * tile_dim + localLookUpCoords.x];
-		}
-
-		// left border
-		for(int y = 0; y < iter_y; ++y)
-		{
-			int2 localCoords = (int2)(0, y * local_size.y + local_id.y);
-			int2 localLookUpCoords = (int2)(1, (tile_dim-1) - (y * local_size.y + local_id.y));
-			localBuffer[localCoords.y * tile_dim + localCoords.x] = localBuffer[localLookUpCoords.y * tile_dim + localLookUpCoords.x];
-		}
-
-		// right border
-		for(int y = 0; y < iter_y; ++y)
-		{
-			int2 localCoords = (int2)(tile_dim-1, y * local_size.y + local_id.y);
-			int2 localLookUpCoords = (int2)(tile_dim-2, (tile_dim-1) - (y * local_size.y + local_id.y));
-			localBuffer[localCoords.y * tile_dim + localCoords.x] = localBuffer[localLookUpCoords.y * tile_dim + localLookUpCoords.x];
-		}
-
-		//corners
-		if(local_id.x == 0 && local_id.y == 0)
-		{
-			int2 localCoords; 
-			int2 localLookUpCoords;
-
-			localCoords = (int2)(0, 0);
-			localLookUpCoords = (int2)(tile_dim-2, tile_dim-2);
-			localBuffer[localCoords.y * tile_dim + localCoords.x] = localBuffer[localLookUpCoords.y * tile_dim + localLookUpCoords.x];
-
-			localCoords = (int2)(0, tile_dim-1);
-			localLookUpCoords = (int2)(tile_dim-2, 1);
-			localBuffer[localCoords.y * tile_dim + localCoords.x] = localBuffer[localLookUpCoords.y * tile_dim + localLookUpCoords.x];
-
-			localCoords = (int2)(tile_dim-1, 0);
-			localLookUpCoords = (int2)(1, tile_dim-2);
-			localBuffer[localCoords.y * tile_dim + localCoords.x] = localBuffer[localLookUpCoords.y * tile_dim + localLookUpCoords.x];
-
-			localCoords = (int2)(tile_dim-1, tile_dim-1);
-			localLookUpCoords = (int2)(1, 1);
-			localBuffer[localCoords.y * tile_dim + localCoords.x] = localBuffer[localLookUpCoords.y * tile_dim + localLookUpCoords.x];
-		}
-	}
-	
-	barrier(CLK_LOCAL_MEM_FENCE);
-
-	// write result into image
-	for(int x = 0; x < iter_x; ++x)
-	{
-		for(int y = 0; y < iter_y; ++y)
-		{	
-			int2 localCoords = (int2)(x * local_size.x + local_id.x, y * local_size.y + local_id.y);			
 			int2 globalCoords = localCoords + (int2)(group_id.x * tile_dim, group_id.y * tile_dim);
-
-			float4 color = localBuffer[localCoords.y * tile_dim + localCoords.x];
 			write_imagef(image, globalCoords, color);
+
+			if(border > 0)
+			{
+				if(localCoords.y == 1)
+				{
+					int2 go = (int2)(group_id.x * tile_dim, group_id.y * tile_dim);
+					int2 gc2 = (int2)((tile_dim-1)-localCoords.x, 0) + go;
+					write_imagef(image, gc2, color);
+
+					if (localCoords.x == 1) {
+						gc2 = (int2)(tile_dim-1, tile_dim-1) + go;
+						write_imagef(image, gc2, color);
+					} else if (localCoords.x == tile_dim-2) {
+						gc2 = (int2)(0, tile_dim-1) + go;
+						write_imagef(image, gc2, color);
+					}
+				}
+				if(localCoords.y == tile_dim-2)
+				{
+					int2 go = (int2)(group_id.x * tile_dim, group_id.y * tile_dim);
+					int2 gc2 = (int2)((tile_dim-1)-localCoords.x, tile_dim-1) + go;
+					write_imagef(image, gc2, color);
+
+					if (localCoords.x == 1) {
+						gc2 = (int2)(tile_dim-1, 0) + go;
+						write_imagef(image, gc2, color);
+					} else if (localCoords.x == tile_dim-2) {
+						gc2 = (int2)(0, 0) + go;
+						write_imagef(image, gc2, color);
+					}
+				}
+				if(localCoords.x == 1)
+				{
+					int2 go = (int2)(group_id.x * tile_dim, group_id.y * tile_dim);
+					int2 gc2 = (int2)(0, (tile_dim-1)-localCoords.y) + go;
+					write_imagef(image, gc2, color);
+
+					if (localCoords.y == 1) {
+						gc2 = (int2)(tile_dim-1, tile_dim-1) + go;
+						write_imagef(image, gc2, color);
+					} else if (localCoords.y == tile_dim-2) {
+						gc2 = (int2)(tile_dim-1, 0) + go;
+						write_imagef(image, gc2, color);
+					}
+				}
+				if(localCoords.x == tile_dim-2)
+				{
+					int2 go = (int2)(group_id.x * tile_dim, group_id.y * tile_dim);
+					int2 gc2 = (int2)(tile_dim-1, (tile_dim-1)-localCoords.y) + go;
+					write_imagef(image, gc2, color);
+
+					if (localCoords.y == 1) {
+						gc2 = (int2)(0, tile_dim-1) + go;
+						write_imagef(image, gc2, color);
+					} else if (localCoords.y == tile_dim-2) {
+						gc2 = (int2)(0, 0) + go;
+						write_imagef(image, gc2, color);
+					}
+				}
+			}
 		}
 	}
 }

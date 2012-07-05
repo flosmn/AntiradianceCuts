@@ -34,6 +34,8 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->NumSqrtAtlasSamples = m_pConfVarsGUI->NumSqrtAtlasSamples = 1;
 	m_pConfVars->TexelOffsetX = m_pConfVarsGUI->TexelOffsetX = 0.f;
 	m_pConfVars->TexelOffsetY = m_pConfVarsGUI->TexelOffsetY = 0.f;
+
+	m_pConfVars->ClusterDepth = m_pConfVarsGUI->ClusterDepth = 0;
 }
 
 CConfigManager::~CConfigManager()
@@ -200,6 +202,12 @@ void CConfigManager::Update()
 		m_pConfVars->TexelOffsetY = m_pConfVarsGUI->TexelOffsetY;
 		configureLighting = true;
 		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->ClusterDepth != m_pConfVars->ClusterDepth)
+	{
+		m_pConfVars->ClusterDepth = m_pConfVarsGUI->ClusterDepth;
 		clearLighting = true;
 	}
 

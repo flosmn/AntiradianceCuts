@@ -170,6 +170,7 @@
       <Filter>GUI&amp;Config</Filter>
     </ClCompile>
     <ClCompile Include="CPointCloud.cpp" />
+    <ClCompile Include="CClusterTree.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Render.h" />
@@ -349,6 +350,7 @@
       <Filter>GUI&amp;Config</Filter>
     </ClInclude>
     <ClInclude Include="CPointCloud.h" />
+    <ClInclude Include="CClusterTree.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">

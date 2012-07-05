@@ -28,6 +28,8 @@ struct CONF_VARS
 	int NumSqrtAtlasSamples;
 	float TexelOffsetX;
 	float TexelOffsetY;
+
+	int ClusterDepth;
 };
 
 class CConfigManager

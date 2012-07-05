@@ -32,6 +32,9 @@ public:
 	void Fill(AVPL_STRUCT& avpl);
 	void Fill(AVPL_BUFFER& avpl_buffer);
 
+	void SetColor(glm::vec3 c) { m_DebugColor = c; }
+	glm::vec3 GetColor() { return m_DebugColor; }
+
 private:
 	glm::vec3 m_Position;
 	glm::vec3 m_Orientation;
