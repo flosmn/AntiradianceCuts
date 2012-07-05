@@ -129,6 +129,7 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
     <ClCompile Include="CGBuffer.cpp" />
     <ClCompile Include="CGUI.cpp" />
     <ClCompile Include="CKdTreeAccelerator.cpp" />
+    <ClCompile Include="CLightTree.cpp" />
     <ClCompile Include="COctahedronAtlas.cpp" />
     <ClCompile Include="COctahedronMap.cpp" />
     <ClCompile Include="CPbrtKdTreeAccelerator.cpp" />
@@ -187,6 +188,7 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
     <ClInclude Include="CGBuffer.h" />
     <ClInclude Include="CGUI.h" />
     <ClInclude Include="CKdTreeAccelerator.h" />
+    <ClInclude Include="CLightTree.h" />
     <ClInclude Include="COctahedronAtlas.h" />
     <ClInclude Include="COctahedronMap.h" />
     <ClInclude Include="CPbrtKdTreeAccelerator.h" />

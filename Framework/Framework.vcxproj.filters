@@ -171,6 +171,7 @@
     </ClCompile>
     <ClCompile Include="CPointCloud.cpp" />
     <ClCompile Include="CClusterTree.cpp" />
+    <ClCompile Include="CLightTree.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Render.h" />
@@ -351,6 +352,7 @@
     </ClInclude>
     <ClInclude Include="CPointCloud.h" />
     <ClInclude Include="CClusterTree.h" />
+    <ClInclude Include="CLightTree.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">
