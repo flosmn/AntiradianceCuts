@@ -11,24 +11,13 @@ class AVPL;
 
 typedef unsigned int uint;
 
-struct CLUSTER
-{
-	CLUSTER* left;
-	CLUSTER* right;
-
-	uint size;
-	BBox bbox;
-	glm::vec3 intensity;
-	glm::vec3 normal;
-};
-
 class CLightTree
 {
 public:
 	CLightTree();
 	~CLightTree();
 
-	void BuildTree(const std::vector<AVPL*>& avpls);
+	void BuildTree(const std::vector<AVPL*>& avpls, const float& weightNormals);
 
 private:
 	

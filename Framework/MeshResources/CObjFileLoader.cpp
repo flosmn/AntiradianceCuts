@@ -86,7 +86,7 @@ void CObjFileLoader::CreateMeshGeometry(CTempMesh* pTempMesh, CMeshGeometry* pMe
 		setVertices.insert(face->vertex2);
 	}
 
-	uint nGLVertices = setVertices.size();
+	uint nGLVertices = (uint)setVertices.size();
 	glm::vec4* pGLPositions = nullptr;
 	glm::vec3* pGLNormals = nullptr;
 	glm::vec3* pGLTexCoords = nullptr;
@@ -151,7 +151,7 @@ void CObjFileLoader::CreateMeshGeometry(CTempMesh* pTempMesh, CMeshGeometry* pMe
 	}
 
 	pMeshGeometry->SetNumberOfVertices(nGLVertices);
-	pMeshGeometry->SetNumberOfFaces(pTempMesh->m_Triangles.size());
+	pMeshGeometry->SetNumberOfFaces((uint)pTempMesh->m_Triangles.size());
 	pMeshGeometry->SetMeshMaterial(pTempMesh->m_Material);
 	pMeshGeometry->SetIndexData(pGLIndexData);
 	

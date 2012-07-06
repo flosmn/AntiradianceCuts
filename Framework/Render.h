@@ -29,6 +29,7 @@ class COctahedronMap;
 class COctahedronAtlas;
 class CModel;
 class CClusterTree;
+class CLightTree;
 
 class COGLUniformBuffer;
 class COGLSampler;
@@ -174,6 +175,7 @@ private:
 	std::vector<AVPL*> m_ClusterTestAVPLs;
 
 	CClusterTree* m_pClusterTree;
+	CLightTree* m_pLightTree;
 };
 
 #endif
