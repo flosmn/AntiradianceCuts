@@ -60,7 +60,7 @@ void CKdTreeAccelerator::BuildTree()
 
 	// start to recursively build the tree
 	BuildTreeRecursive(0, m_BoundingBox, primitiveBounds, overlappingPrimitives,
-		m_Primitives.size(), m_MaxDepth, edges, prims0, prims1, 0);
+		(int)m_Primitives.size(), m_MaxDepth, edges, prims0, prims1, 0);
 
 	// release allocated memory
 	for(int i = 0; i < 3; ++i)

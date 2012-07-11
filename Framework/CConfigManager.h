@@ -9,7 +9,9 @@ struct CONF_VARS
 	int UseToneMapping;
 	int UseDebugMode;
 	int DrawAVPLAtlas;
+	int DrawAVPLClusterAtlas;
 	int GatherWithAVPLAtlas;
+	int GatherWithAVPLClustering;
 	int DrawDebugTextures;
 	int DrawLights;
 	int FilterAvplAtlasLinear;
@@ -30,6 +32,8 @@ struct CONF_VARS
 	float TexelOffsetY;
 
 	int ClusterDepth;
+	int ClusterMethod;
+	float ClusterWeightNormals;
 };
 
 class CConfigManager

@@ -30,9 +30,24 @@ public:
 		return res;
 	}
 
+	float Distance(glm::vec3 p) const {
+		glm::vec3 cp; // closest point on bbox to p
+		cp.x = (p.x < pMin.x) ? pMin.x : (p.x > pMax.x) ? pMax.x : p.x;
+		cp.y = (p.y < pMin.y) ? pMin.y : (p.y > pMax.y) ? pMax.y : p.y;
+		cp.z = (p.z < pMin.z) ? pMin.z : (p.z > pMax.z) ? pMax.z : p.z;
+		return glm::length(p - cp);
+	}
+
 	float SurfaceArea() const {
 		glm::vec3 d = pMax - pMin;
         return 2.f * (d.x * d.y + d.x * d.z + d.y * d.z);
+    }
+
+	bool Intersects(const BBox &other) const {
+      return 
+        (pMin.x < other.pMax.x) && (pMax.x > other.pMin.x) &&
+        (pMin.y < other.pMax.y) && (pMax.y > other.pMin.y) &&
+        (pMin.z < other.pMax.z) && (pMax.z > other.pMin.z);
     }
 
 	// Returns the axis with the maximum extend (0 = x, 1=y, 2 = z axis)

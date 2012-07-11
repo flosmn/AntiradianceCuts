@@ -13,13 +13,15 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 
 	m_pConfVars->UseAntiradiance = m_pConfVarsGUI->UseAntiradiance = 1;
 	m_pConfVars->UseToneMapping = m_pConfVarsGUI->UseToneMapping = 0;
-	m_pConfVars->UseDebugMode = m_pConfVarsGUI->UseDebugMode = 0;
+	m_pConfVars->UseDebugMode = m_pConfVarsGUI->UseDebugMode = 1;
 	m_pConfVars->DrawAVPLAtlas = m_pConfVarsGUI->DrawAVPLAtlas = 0;
-	m_pConfVars->GatherWithAVPLAtlas = m_pConfVarsGUI->GatherWithAVPLAtlas = 0;
+	m_pConfVars->DrawAVPLClusterAtlas = m_pConfVarsGUI->DrawAVPLClusterAtlas = 0;
+	m_pConfVars->GatherWithAVPLAtlas = m_pConfVarsGUI->GatherWithAVPLAtlas = 1;
+	m_pConfVars->GatherWithAVPLClustering = m_pConfVarsGUI->GatherWithAVPLClustering = 1;
 	m_pConfVars->DrawDebugTextures = m_pConfVarsGUI->DrawDebugTextures = 0;
 	m_pConfVars->DrawLights = m_pConfVarsGUI->DrawLights = 0;
 	m_pConfVars->FilterAvplAtlasLinear = m_pConfVarsGUI->FilterAvplAtlasLinear = 0;
-	m_pConfVars->FillAvplAltasOnGPU = m_pConfVarsGUI->FillAvplAltasOnGPU = 0;
+	m_pConfVars->FillAvplAltasOnGPU = m_pConfVarsGUI->FillAvplAltasOnGPU = 1;
 
 	m_pConfVars->GeoTermLimit = m_pConfVarsGUI->GeoTermLimit = 0.001f;
 	m_pConfVars->Gamma = m_pConfVarsGUI->Gamma = 2.2f;
@@ -36,6 +38,8 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->TexelOffsetY = m_pConfVarsGUI->TexelOffsetY = 0.f;
 
 	m_pConfVars->ClusterDepth = m_pConfVarsGUI->ClusterDepth = 0;
+	m_pConfVars->ClusterMethod = m_pConfVarsGUI->ClusterMethod = 0;
+	m_pConfVars->ClusterWeightNormals = m_pConfVarsGUI->ClusterWeightNormals = 0.5f;
 }
 
 CConfigManager::~CConfigManager()
@@ -98,6 +102,12 @@ void CConfigManager::Update()
 		configureLighting = true;
 	}
 
+	if(m_pConfVarsGUI->DrawAVPLClusterAtlas != m_pConfVars->DrawAVPLClusterAtlas)
+	{
+		m_pConfVars->DrawAVPLClusterAtlas = m_pConfVarsGUI->DrawAVPLClusterAtlas;
+		configureLighting = true;
+	}
+
 	if(m_pConfVarsGUI->DrawDebugTextures != m_pConfVars->DrawDebugTextures)
 	{
 		m_pConfVars->DrawDebugTextures = m_pConfVarsGUI->DrawDebugTextures;
@@ -128,6 +138,14 @@ void CConfigManager::Update()
 	if(m_pConfVarsGUI->GatherWithAVPLAtlas != m_pConfVars->GatherWithAVPLAtlas)
 	{
 		m_pConfVars->GatherWithAVPLAtlas = m_pConfVarsGUI->GatherWithAVPLAtlas;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->GatherWithAVPLClustering != m_pConfVars->GatherWithAVPLClustering)
+	{
+		m_pConfVars->GatherWithAVPLClustering = m_pConfVarsGUI->GatherWithAVPLClustering;
 		configureLighting = true;
 		clearAccumBuffer = true;
 		clearLighting = true;
@@ -208,6 +226,18 @@ void CConfigManager::Update()
 	if(m_pConfVarsGUI->ClusterDepth != m_pConfVars->ClusterDepth)
 	{
 		m_pConfVars->ClusterDepth = m_pConfVarsGUI->ClusterDepth;
+		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->ClusterMethod != m_pConfVars->ClusterMethod)
+	{
+		m_pConfVars->ClusterMethod = m_pConfVarsGUI->ClusterMethod;
+		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->ClusterWeightNormals != m_pConfVars->ClusterWeightNormals)
+	{
+		m_pConfVars->ClusterWeightNormals = m_pConfVarsGUI->ClusterWeightNormals;
 		clearLighting = true;
 	}
 

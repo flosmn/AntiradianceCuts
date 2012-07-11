@@ -172,6 +172,7 @@
     <ClCompile Include="CPointCloud.cpp" />
     <ClCompile Include="CClusterTree.cpp" />
     <ClCompile Include="CLightTree.cpp" />
+    <ClCompile Include="CSimpleKdTree.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Render.h" />
@@ -353,6 +354,8 @@
     <ClInclude Include="CPointCloud.h" />
     <ClInclude Include="CClusterTree.h" />
     <ClInclude Include="CLightTree.h" />
+    <ClInclude Include="LightTreeTypes.h" />
+    <ClInclude Include="CSimpleKdTree.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">
@@ -423,6 +426,9 @@
     </None>
     <None Include="Kernels\OctahedronUtil.cl">
       <Filter>Kernels</Filter>
+    </None>
+    <None Include="Shaders\GatherWithClustering.frag">
+      <Filter>Shaders</Filter>
     </None>
   </ItemGroup>
 </Project>

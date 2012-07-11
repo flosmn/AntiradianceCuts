@@ -78,7 +78,7 @@ Renderer::Renderer(Camera* _camera) {
 	m_pPostProcessRenderTarget = new CRenderTarget();
 	m_pPostProcess = new CPostprocess();
 
-	m_pClusterTree = new CClusterTree();
+	m_pClusterTree = new ClusterTree::CClusterTree();
 	m_pLightTree = new CLightTree();
 	
 	m_pTextureViewer = new CTextureViewer();
@@ -103,6 +103,7 @@ Renderer::Renderer(Camera* _camera) {
 
 	m_pGatherProgram = new CProgram("Renderer.m_pGatherProgram", "Shaders\\Gather.vert", "Shaders\\Gather.frag");
 	m_pGatherWithAtlas = new CProgram("Renderer.m_pGatherProgram", "Shaders\\Gather.vert", "Shaders\\GatherWithAtlas.frag");
+	m_pGatherWithClustering = new CProgram("Renderer.m_pGatherProgram", "Shaders\\Gather.vert", "Shaders\\GatherWithClustering.frag");
 	m_pNormalizeProgram = new CProgram("Renderer.m_pNormalizeProgram", "Shaders\\Gather.vert", "Shaders\\Normalize.frag");
 	m_pShadeProgram = new CProgram("Renderer.m_pShadeProgram", "Shaders\\Gather.vert", "Shaders\\Shade.frag");
 
@@ -119,6 +120,7 @@ Renderer::Renderer(Camera* _camera) {
 	m_pPointCloud = new CPointCloud();
 
 	m_pOGLLightBuffer = new COGLTextureBuffer("Renderer.m_pOGLLightBuffer");
+	m_pOGLClusterBuffer = new COGLTextureBuffer("Renderer.m_pOGLClusterBuffer");
 	
 	m_pAVPLPositions = new COGLTextureBuffer("Renderer.m_pAVPLPositions");
 		
@@ -138,6 +140,7 @@ Renderer::~Renderer() {
 		
 	SAFE_DELETE(m_pGatherProgram);
 	SAFE_DELETE(m_pGatherWithAtlas);
+	SAFE_DELETE(m_pGatherWithClustering);
 	SAFE_DELETE(m_pNormalizeProgram);
 	SAFE_DELETE(m_pShadeProgram);
 	
@@ -175,6 +178,7 @@ Renderer::~Renderer() {
 	SAFE_DELETE(m_pAVPLPositions);
 
 	SAFE_DELETE(m_pOGLLightBuffer);
+	SAFE_DELETE(m_pOGLClusterBuffer);
 	
 	SAFE_DELETE(m_pOctahedronAtlas);
 	SAFE_DELETE(m_pOctahedronMap);
@@ -208,6 +212,7 @@ bool Renderer::Init()
 
 	V_RET_FOF(m_pGatherProgram->Init());
 	V_RET_FOF(m_pGatherWithAtlas->Init());
+	V_RET_FOF(m_pGatherWithClustering->Init());
 	V_RET_FOF(m_pNormalizeProgram->Init());
 	V_RET_FOF(m_pShadeProgram->Init());
 	V_RET_FOF(m_pAreaLightProgram->Init());
@@ -252,6 +257,18 @@ bool Renderer::Init()
 	m_pGatherWithAtlas->BindUniformBuffer(m_pUBCamera, "camera");
 	m_pGatherWithAtlas->BindUniformBuffer(m_pUBAtlasInfo, "atlas_info");
 
+	m_pGatherWithClustering->BindSampler(0, m_pGLPointSampler);
+	m_pGatherWithClustering->BindSampler(1, m_pGLPointSampler);
+	m_pGatherWithClustering->BindSampler(2, m_pGLPointSampler);
+	m_pGatherWithClustering->BindSampler(3, m_pGLPointSampler);
+	m_pGatherWithClustering->BindSampler(4, m_pGLPointSampler);
+	m_pGatherWithClustering->BindSampler(5, m_pGLPointSampler);
+
+	m_pGatherWithClustering->BindUniformBuffer(m_pUBInfo, "info_block");
+	m_pGatherWithClustering->BindUniformBuffer(m_pUBConfig, "config");
+	m_pGatherWithClustering->BindUniformBuffer(m_pUBCamera, "camera");
+	m_pGatherWithClustering->BindUniformBuffer(m_pUBAtlasInfo, "atlas_info");
+
 	m_pGatherProgram->BindUniformBuffer(m_pUBInfo, "info_block");
 	m_pGatherProgram->BindUniformBuffer(m_pUBConfig, "config");
 	m_pGatherProgram->BindUniformBuffer(m_pUBCamera, "camera");
@@ -288,7 +305,7 @@ bool Renderer::Init()
 	time(&m_StartTime);
 
 	int dim_atlas = 4096;
-	int dim_tile = 128;
+	int dim_tile = 32;
 		
 	ATLAS_INFO atlas_info;
 	atlas_info.dim_atlas = dim_atlas;
@@ -303,7 +320,8 @@ bool Renderer::Init()
 	V_RET_FOF(m_pAVPLPositions->Init(sizeof(AVPL_POSITION) * m_MaxNumAVPLs, GL_STATIC_DRAW));
 
 	V_RET_FOF(m_pOGLLightBuffer->Init(sizeof(AVPL_BUFFER) * m_MaxNumAVPLs, GL_STATIC_DRAW));
-	
+	V_RET_FOF(m_pOGLClusterBuffer->Init(sizeof(CLUSTER_BUFFER) * (2 * m_MaxNumAVPLs - 1), GL_STATIC_DRAW));
+
 	m_pOctahedronAtlas->Init(dim_atlas, dim_tile, m_MaxNumAVPLs);
 	
 	V_RET_FOF(m_pOctahedron->Init("octahedron"));
@@ -315,54 +333,50 @@ bool Renderer::Init()
 	InitDebugLights();
 		
 	ClearAccumulationBuffer();
-	
-	for(int i = 0; i < 500; ++i)
+#if 1
+	for(int i = 0; i < 16000; ++i)
 	{
 		glm::vec3 pos = glm::vec3(1000 * Rand01(), 1000 * Rand01(), 400 * Rand01()); 
 		AVPL* avpl = new AVPL(pos, glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f), glm::vec3(0.f, 0.f, -1.f), 0);
 		m_ClusterTestAVPLs.push_back(avpl);
 	}
-	
-	/*
+#else
 	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
 	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
-																															
+	
 	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(0.f, 2.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
 	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(1.f, 2.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
-																																
+	
 	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(0.f, 0.f, 4.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
 	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(1.f, 0.f, 4.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
-																																
+	
 	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(0.f, 2.f, 4.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
 	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(1.f, 2.f, 4.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
 	
-																										
 	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(9.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
 	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(10.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
-																															
+	
 	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(9.f, 2.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
 	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(10.f, 2.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
-																															
+	
 	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(9.f, 0.f, 4.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
 	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(10.f, 0.f, 4.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
-																															
+	
 	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(9.f, 2.f, 4.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
-	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(10.f, 2.f, 4.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
-	*/
-	camera->Init(glm::vec3(500.f, 500.f, -1500.f), glm::vec3(500.f, 500.f, 200.f), 1.f);
-
-	//m_pClusterTree->BuildTree(m_DebugAVPLs);
-	//m_pClusterTree->ColorAVPLs(m_DebugAVPLs, m_pConfManager->GetConfVars()->ClusterDepth);
-
+	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(10.f, 2.f, 4.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));	
+#endif
+	
+	//camera->Init(glm::vec3(500.f, 500.f, -1500.f), glm::vec3(500.f, 500.f, 200.f), 1.f);
+	/*
 	CTimer timer(CTimer::CPU);
 	timer.Start();
 
-	m_pLightTree->BuildTreeTweakCP(m_ClusterTestAVPLs, 0.f);
-	//m_pLightTree->Color(m_ClusterTestAVPLs, m_pConfManager->GetConfVars()->ClusterDepth);
+	m_pLightTree->BuildTreeTweakNN(m_DebugAVPLs, m_pConfManager->GetConfVars()->ClusterWeightNormals);
+	m_pLightTree->Color(m_DebugAVPLs, m_pConfManager->GetConfVars()->ClusterDepth);
 
 	timer.Stop();
-	std::cout << "Building light tree with " << m_ClusterTestAVPLs.size() << " data points took " << timer.GetTime() << "ms" << std::endl;
-		
+	std::cout << "TweakNN: Building light tree with " << m_DebugAVPLs.size() << " data points took " << timer.GetTime() << "ms" << std::endl;
+	*/
 	return true;
 }
 
@@ -379,6 +393,7 @@ void Renderer::Release()
 	m_pAVPLPositions->Release();
 
 	m_pOGLLightBuffer->Release();	
+	m_pOGLClusterBuffer->Release();
 
 	m_pLightDebugRenderTarget->Release();
 	m_pPostProcessRenderTarget->Release();
@@ -402,6 +417,7 @@ void Renderer::Release()
 	m_pNormalizeProgram->Release();
 	m_pGatherProgram->Release();
 	m_pGatherWithAtlas->Release();
+	m_pGatherWithClustering->Release();
 	m_pShadeProgram->Release();
 	
 	m_pGLPointSampler->Release();
@@ -465,7 +481,10 @@ void Renderer::Render()
 			{
 				if(m_pConfManager->GetConfVars()->GatherWithAVPLAtlas)
 				{
-					GatherWithAtlas(m_DebugAVPLs);
+					if(m_pConfManager->GetConfVars()->GatherWithAVPLClustering)
+						GatherWithClustering(m_DebugAVPLs);
+					else	
+						GatherWithAtlas(m_DebugAVPLs);
 				}
 				else
 				{
@@ -475,7 +494,7 @@ void Renderer::Render()
 				if(m_pConfManager->GetConfVars()->DrawLights)
 					DrawLights(m_DebugAVPLs);
 
-				m_CurrentPath++;
+				m_CurrentPath += m_pConfManager->GetConfVars()->NumPaths;
 
 				m_Finished = true;
 			}
@@ -573,14 +592,22 @@ void Renderer::Render()
 	if(m_pConfManager->GetConfVars()->DrawAVPLAtlas)
 	{
 		if(m_pConfManager->GetConfVars()->FillAvplAltasOnGPU)
-			m_pTextureViewer->DrawTexture(m_pOctahedronAtlas->GetTexture(), 0, 0, camera->GetWidth(), camera->GetHeight());
-		else
 		{
-			m_pTextureViewer->DrawTexture(m_pOctahedronAtlas->GetRefTexture(), 0, 0, camera->GetWidth(), camera->GetHeight());
+			m_pTextureViewer->DrawTexture(m_pOctahedronAtlas->GetAVPLAtlas(), 0, 0, camera->GetWidth(), camera->GetHeight());
 		}
+		else
+			m_pTextureViewer->DrawTexture(m_pOctahedronAtlas->GetAVPLAtlasCPU(), 0, 0, camera->GetWidth(), camera->GetHeight());
 	}
-
-	if(m_CurrentPath % 10000 == 0 && m_CurrentPath > 0)
+	
+	if(m_pConfManager->GetConfVars()->DrawAVPLClusterAtlas)
+	{
+		if(m_pConfManager->GetConfVars()->FillAvplAltasOnGPU)
+			m_pTextureViewer->DrawTexture(m_pOctahedronAtlas->GetAVPLClusterAtlas(), 0, 0, camera->GetWidth(), camera->GetHeight());
+		else
+			m_pTextureViewer->DrawTexture(m_pOctahedronAtlas->GetAVPLClusterAtlasCPU(), 0, 0, camera->GetWidth(), camera->GetHeight());
+	}
+	
+	if(m_CurrentPath % 100000 == 0 && m_CurrentPath > 0)
 	{
 		std::stringstream ss;
 		ss << "result-" << m_CurrentPath << "paths" << ".pfm";
@@ -777,12 +804,12 @@ void Renderer::GatherWithAtlas(std::vector<AVPL*> avpls)
 
 		if(m_pConfManager->GetConfVars()->FillAvplAltasOnGPU)
 		{
-			m_pOctahedronAtlas->FillAtlasGPU(avplBuffer, (int)clampAvpls.size(), m_pConfManager->GetConfVars()->NumSqrtAtlasSamples,
+			m_pOctahedronAtlas->FillAtlasGPU(avplBuffer,  m_pLightTree->GetClustering(), (int)clampAvpls.size(), m_pConfManager->GetConfVars()->NumSqrtAtlasSamples,
 				float(m_pConfManager->GetConfVars()->ConeFactor), m_pConfManager->GetConfVars()->FilterAvplAtlasLinear == 1 ? true : false);
 		}
 		else
 		{
-			m_pOctahedronAtlas->FillAtlas(clampAvpls, m_pConfManager->GetConfVars()->NumSqrtAtlasSamples,
+			m_pOctahedronAtlas->FillAtlas(clampAvpls, m_pLightTree->GetClustering(), m_pConfManager->GetConfVars()->NumSqrtAtlasSamples,
 				float(m_pConfManager->GetConfVars()->ConeFactor), m_pConfManager->GetConfVars()->FilterAvplAtlasLinear == 1 ? true : false);
 		}
 
@@ -817,12 +844,12 @@ void Renderer::GatherWithAtlas(std::vector<AVPL*> avpls)
 		
 		if(m_pConfManager->GetConfVars()->FillAvplAltasOnGPU == 1)
 		{
-			COGLBindLock lock3(m_pOctahedronAtlas->GetTexture(), COGL_TEXTURE3_SLOT);
+			COGLBindLock lock3(m_pOctahedronAtlas->GetAVPLAtlas(), COGL_TEXTURE3_SLOT);
 			m_pFullScreenQuad->Draw();
 		}
 		else
 		{
-			COGLBindLock lock3(m_pOctahedronAtlas->GetRefTexture(), COGL_TEXTURE3_SLOT);
+			COGLBindLock lock3(m_pOctahedronAtlas->GetAVPLAtlasCPU(), COGL_TEXTURE3_SLOT);
 			m_pFullScreenQuad->Draw();
 		}
 				
@@ -830,6 +857,118 @@ void Renderer::GatherWithAtlas(std::vector<AVPL*> avpls)
 		glDisable(GL_BLEND);
 
 		glBindSampler(3, m_pGLPointSampler->GetResourceIdentifier());
+
+		clampAvpls.clear();
+	}
+	catch(std::bad_alloc)
+	{
+		std::cout << "bad_alloc exception at Renderer::GatherWithAtlas()" << std::endl;
+		return;
+	}
+}
+
+void Renderer::GatherWithClustering(std::vector<AVPL*> avpls)
+{
+	std::vector<AVPL*> clampAvpls;
+
+	if((int)avpls.size() > m_MaxNumAVPLs)
+		std::cout << "To many avpls. Some are not considered" << std::endl;
+
+	for(int i = 0; i < std::min((int)avpls.size(), m_MaxNumAVPLs); ++i)
+	{
+		clampAvpls.push_back(avpls[i]);
+	}
+
+	try
+	{
+		// fill light information
+		AVPL_BUFFER* avplBuffer = new AVPL_BUFFER[clampAvpls.size()];
+		memset(avplBuffer, 0, sizeof(AVPL_BUFFER) * clampAvpls.size());
+		for(uint i = 0; i < clampAvpls.size(); ++i)
+		{
+			AVPL_BUFFER buffer;
+			clampAvpls[i]->Fill(buffer);
+			avplBuffer[i] = buffer;
+		}
+		m_pOGLLightBuffer->SetContent(avplBuffer, sizeof(AVPL_BUFFER) * clampAvpls.size());
+	
+		// fill cluster information
+		std::vector<CLUSTER*> clustering = m_pLightTree->GetClustering();
+		CLUSTER* head = m_pLightTree->GetHead();
+		CLUSTER_BUFFER* clusterBuffer = new CLUSTER_BUFFER[clustering.size()];
+		memset(clusterBuffer, 0, sizeof(CLUSTER_BUFFER) * clustering.size());
+		for(uint i = 0; i < clustering.size(); ++i)
+		{
+			CLUSTER_BUFFER buffer;
+			clustering[i]->Fill(&buffer);
+			clusterBuffer[i] = buffer;
+		}
+		m_pOGLClusterBuffer->SetContent(clusterBuffer, sizeof(CLUSTER_BUFFER) * clustering.size());
+		delete [] clusterBuffer;
+
+		// create the avpl and cluster atlas
+		m_pOctahedronAtlas->Clear();
+		if(m_pConfManager->GetConfVars()->FillAvplAltasOnGPU)
+		{
+			m_pOctahedronAtlas->FillAtlasGPU(avplBuffer,  m_pLightTree->GetClustering(), (int)clampAvpls.size(), m_pConfManager->GetConfVars()->NumSqrtAtlasSamples,
+				float(m_pConfManager->GetConfVars()->ConeFactor), m_pConfManager->GetConfVars()->FilterAvplAtlasLinear == 1 ? true : false);
+		}
+		else
+		{
+			m_pOctahedronAtlas->FillAtlas(clampAvpls, m_pLightTree->GetClustering(), m_pConfManager->GetConfVars()->NumSqrtAtlasSamples,
+				float(m_pConfManager->GetConfVars()->ConeFactor), m_pConfManager->GetConfVars()->FilterAvplAtlasLinear == 1 ? true : false);
+		}
+
+		delete [] avplBuffer;
+
+		INFO info;
+		info.numLights = (int)clampAvpls.size();
+		info.drawLightingOfLight = m_pConfManager->GetConfVars()->DrawLightingOfLight;
+		info.filterAVPLAtlas = m_pConfManager->GetConfVars()->FilterAvplAtlasLinear;
+		m_pUBInfo->UpdateData(&info);
+
+		glDisable(GL_DEPTH_TEST);
+		glEnable(GL_BLEND);	
+		glBlendFunc(GL_ONE, GL_ONE);
+		
+		CRenderTargetLock lockRenderTarget(m_pGatherRenderTarget);
+
+		COGLBindLock lockProgram(m_pGatherWithClustering->GetGLProgram(), COGL_PROGRAM_SLOT);
+
+		COGLBindLock lock0(m_pGBuffer->GetPositionTextureWS(), COGL_TEXTURE0_SLOT);
+		COGLBindLock lock1(m_pGBuffer->GetNormalTexture(), COGL_TEXTURE1_SLOT);
+		COGLBindLock lock2(m_pOGLLightBuffer, COGL_TEXTURE2_SLOT);
+		COGLBindLock lock3(m_pOGLClusterBuffer, COGL_TEXTURE3_SLOT);
+
+		if(m_pConfManager->GetConfVars()->FilterAvplAtlasLinear)
+		{
+			glBindSampler(4, m_pGLLinearSampler->GetResourceIdentifier());
+			glBindSampler(5, m_pGLLinearSampler->GetResourceIdentifier());
+		}
+		else
+		{
+			glBindSampler(4, m_pGLPointSampler->GetResourceIdentifier());
+			glBindSampler(5, m_pGLPointSampler->GetResourceIdentifier());
+		}
+		
+		if(m_pConfManager->GetConfVars()->FillAvplAltasOnGPU == 1)
+		{
+			COGLBindLock lock4(m_pOctahedronAtlas->GetAVPLAtlas(), COGL_TEXTURE4_SLOT);
+			COGLBindLock lock5(m_pOctahedronAtlas->GetAVPLClusterAtlas(), COGL_TEXTURE5_SLOT);
+			m_pFullScreenQuad->Draw();
+		}
+		else
+		{
+			COGLBindLock lock4(m_pOctahedronAtlas->GetAVPLAtlasCPU(), COGL_TEXTURE4_SLOT);
+			COGLBindLock lock5(m_pOctahedronAtlas->GetAVPLClusterAtlasCPU(), COGL_TEXTURE5_SLOT);
+			m_pFullScreenQuad->Draw();
+		}
+				
+		glEnable(GL_DEPTH_TEST);
+		glDisable(GL_BLEND);
+
+		glBindSampler(4, m_pGLPointSampler->GetResourceIdentifier());
+		glBindSampler(5, m_pGLPointSampler->GetResourceIdentifier());
 
 		clampAvpls.clear();
 	}
@@ -941,7 +1080,7 @@ void Renderer::DrawLights(std::vector<AVPL*> avpls)
 			m_pUBTransform->UpdateData(&transform);
 		
 			glDepthMask(GL_FALSE);
-			glDisable(GL_DEPTH_TEST);
+			//glDisable(GL_DEPTH_TEST);
 			m_pPointCloud->Draw(positionData, colorData, (int)pcp.size());		
 			glDepthMask(GL_TRUE);
 			glEnable(GL_DEPTH_TEST);
@@ -1011,8 +1150,23 @@ void Renderer::ClearLighting()
 	m_Finished = false;
 		
 	ClearAccumulationBuffer();
-
-	m_pLightTree->Color(m_ClusterTestAVPLs, m_pConfManager->GetConfVars()->ClusterDepth); 
+	
+	if(m_pConfManager->GetConfVars()->ClusterMethod == 0)
+	{
+		m_pLightTree->Release();
+		m_pLightTree->BuildTreeTweakNN(m_DebugAVPLs, 0.5f);
+	}
+	else if(m_pConfManager->GetConfVars()->ClusterMethod == 1)
+	{
+		m_pLightTree->Release();
+		m_pLightTree->BuildTreeTweakCP(m_DebugAVPLs, 0.5f);
+	}
+	else
+	{
+		m_pLightTree->Release();
+		m_pLightTree->BuildTreeNaive(m_DebugAVPLs, 0.5f);
+	}	
+	m_pLightTree->Color(m_DebugAVPLs, m_pConfManager->GetConfVars()->ClusterDepth); 
 }
 
 void Renderer::Stats() 
@@ -1061,7 +1215,8 @@ void Renderer::Export()
 	m_Export->ExportPFM(m_pShadeRenderTarget->GetBuffer(0), "shade_result.pfm");
 	m_Export->ExportPFM(m_pLightDebugRenderTarget->GetBuffer(0), "lights.pfm");
 	m_Export->ExportPFM(m_pPostProcessRenderTarget->GetBuffer(0), "pp_result.pfm");
-	m_Export->ExportPFM(m_pOctahedronAtlas->GetTexture(), "directions.pfm");
+	m_Export->ExportPFM(m_pOctahedronAtlas->GetAVPLAtlas(), "avplatlas.pfm");
+	m_Export->ExportPFM(m_pOctahedronAtlas->GetAVPLClusterAtlas(), "avplclusteratlas.pfm");
 }
 
 void Renderer::ExportPartialResult()
@@ -1092,10 +1247,18 @@ void Renderer::InitDebugLights()
 {
 	m_DebugAVPLs = scene->CreatePaths(m_pConfManager->GetConfVars()->NumPaths, 
 		m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
+	
+	m_pLightTree->Release();
+	
+	CTimer timer(CTimer::CPU);
+	timer.Start();
 
-	//m_pClusterTree->Release();
-	//m_pClusterTree->BuildTree(m_DebugAVPLs);
-	//m_pClusterTree->ColorAVPLs(m_DebugAVPLs, m_pConfManager->GetConfVars()->ClusterDepth);
+	m_pLightTree->BuildTreeTweakNN(m_DebugAVPLs, m_pConfManager->GetConfVars()->ClusterWeightNormals);
+	m_pLightTree->Color(m_DebugAVPLs, m_pConfManager->GetConfVars()->ClusterDepth);
+
+	timer.Stop();
+	std::cout << "TweakNN: Building light tree with " << m_DebugAVPLs.size() << " data points took " << timer.GetTime() << "ms" << std::endl;
+	
 }
 
 void Renderer::SetConfigManager(CConfigManager* pConfManager)

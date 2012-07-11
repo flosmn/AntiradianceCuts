@@ -13,6 +13,8 @@ class COCLProgram;
 class COCLKernel;
 class COCLBuffer;
 
+struct CLUSTER;
+
 class AVPL;
 
 #include "Structs.h"
@@ -28,30 +30,45 @@ public:
 	bool Init(uint atlasDim, uint tileDim, uint maxNumAVPLs);
 	void Release();
 	
-	void FillAtlas(std::vector<AVPL*> avpls, const int sqrt_num_ss_samples, const float& N, bool border);
-	void FillAtlasGPU(AVPL_BUFFER* pBufferData, uint numAVPLs, const int sqrt_num_ss_samples, const float& N, bool border);
+	void FillAtlas(std::vector<AVPL*> avpls, std::vector<CLUSTER*> clustering, const int sqrt_num_ss_samples, const float& N, bool border);
+	void FillAtlasGPU(AVPL_BUFFER* pBufferData, std::vector<CLUSTER*> clustering, uint numAVPLs, const int sqrt_num_ss_samples, const float& N, bool border);
 	
-	COGLTexture2D* GetTexture();
-	COGLTexture2D* GetRefTexture();
-
+	COGLTexture2D* GetAVPLAtlas();
+	COGLTexture2D* GetAVPLAtlasDebug() { return m_pOGLAtlasDebug; };
+	COGLTexture2D* GetAVPLAtlasCPU();
+		
+	COGLTexture2D* GetAVPLClusterAtlas();
+	COGLTexture2D* GetAVPLClusterAtlasCPU();
+	
 	void Clear();
 
 private:
 	glm::vec4* AccessAtlas(uint x, uint y, uint tile_x, uint tile_y, glm::vec4* pAtlas);
 	glm::vec4 SampleTexel(uint x, uint y, const int sqrt_num_ss_samples, const float& N, AVPL* avpl, bool border);
 
-	COGLTexture2D* m_pOGLAtlasRef;
+	COGLTexture2D* m_pOGLAtlasCPU;
 	COGLTexture2D* m_pOGLAtlas;
+	COGLTexture2D* m_pOGLAtlasDebug;
+	COGLTexture2D* m_pOGLClusterAtlasCPU;
+	COGLTexture2D* m_pOGLClusterAtlas;
+
 	COCLTexture2D* m_pOCLAtlas;
+	COCLTexture2D* m_pOCLClusterAtlas;
+
 	uint m_AtlasDim;
 	uint m_TileDim;
 
 	COCLContext* m_pOCLContext;
 	COCLProgram* m_pOCLProgram;
-	COCLKernel* m_pOCLKernel;
 	COCLKernel* m_pOCLKernelClear;
+	COCLKernel* m_pOCLCalcAvplAtlasKernel;
+	COCLKernel* m_pOCLCalcAvplClusterAtlasKernel;
+	COCLKernel* m_pOCLCopyToImageKernel;
 	COCLBuffer* m_pAvplBuffer;
-	COCLBuffer* m_pLocalBuffer;
+	COCLBuffer* m_pClusteringBuffer;
+	COCLBuffer* m_pAtlasBuffer;
+	COCLBuffer* m_pAtlasClusterBuffer;
+	COCLBuffer* m_pIndexBuffer;
 };
 
 #endif _C_OCTAHEDRON_ATLAS_H_

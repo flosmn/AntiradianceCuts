@@ -125,7 +125,7 @@ CPbrtKdTreeAccel::CPbrtKdTreeAccel(const std::vector<CPrimitive*>& p,
         primNums[i] = i;
 
     // Start recursive construction of kd-tree
-    buildTree(0, bounds, primBounds, primNums, primitives.size(),
+    buildTree(0, bounds, primBounds, primNums, (uint)primitives.size(),
               maxDepth, edges, prims0, prims1);
 
     // Free working memory for kd-tree construction

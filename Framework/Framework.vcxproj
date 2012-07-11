@@ -137,6 +137,7 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
     <ClCompile Include="CProgram.cpp" />
     <ClCompile Include="CRenderTarget.cpp" />
     <ClCompile Include="CShadowMap.cpp" />
+    <ClCompile Include="CSimpleKdTree.cpp" />
     <ClCompile Include="CTestFramework.cpp" />
     <ClCompile Include="CTimer.cpp" />
     <ClCompile Include="AVPL.cpp" />
@@ -196,6 +197,7 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
     <ClInclude Include="CProgram.h" />
     <ClInclude Include="CRenderTarget.h" />
     <ClInclude Include="CShadowMap.h" />
+    <ClInclude Include="CSimpleKdTree.h" />
     <ClInclude Include="CTestFramework.h" />
     <ClInclude Include="CTimer.h" />
     <ClInclude Include="CTriangle.h" />
@@ -203,6 +205,7 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
     <ClInclude Include="guicon.h" />
     <ClInclude Include="Intersection.h" />
     <ClInclude Include="AVPL.h" />
+    <ClInclude Include="LightTreeTypes.h" />
     <ClInclude Include="Macros.h" />
     <ClInclude Include="CPostprocess.h" />
     <ClInclude Include="MeshResources\CFullScreenQuad.h" />
@@ -274,6 +277,7 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
     <None Include="Shaders\Gather.vert" />
     <None Include="Shaders\GatherRadianceWithSM.frag" />
     <None Include="Shaders\GatherWithAtlas.frag" />
+    <None Include="Shaders\GatherWithClustering.frag" />
     <None Include="Shaders\Normalize.frag" />
     <None Include="Shaders\PointCloud.frag" />
     <None Include="Shaders\PointCloud.vert" />

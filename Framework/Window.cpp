@@ -2,6 +2,8 @@
 #define _DEBUG
 #endif
 
+//#define WAIT_ON_EXIT
+
 #pragma comment(linker, "/subsystem:windows")
 
 #include <glm/glm.hpp>
@@ -55,8 +57,8 @@ float CalcFPS();
 
 void Render()
 {
-	//g_pRenderer->Render();
-	g_pRenderer->ClusteringTestRender();
+	g_pRenderer->Render();
+	//g_pRenderer->ClusteringTestRender();
 
 	g_pGUI->Render(CalcFPS());
 
@@ -366,6 +368,10 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 			DispatchMessage(&msg);
 		}
 	}
+#ifdef WAIT_ON_EXIT
+	int i = 0;
+	std::cin >> i;
+#endif
 
 	if (fullScreen)
 	{

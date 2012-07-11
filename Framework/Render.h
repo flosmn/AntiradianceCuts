@@ -5,6 +5,9 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
+#include "CSimpleKdTree.h"
+#include "CClusterTree.h"
+
 #include <vector>
 #include <string>
 
@@ -28,7 +31,6 @@ class CRenderTarget;
 class COctahedronMap;
 class COctahedronAtlas;
 class CModel;
-class CClusterTree;
 class CLightTree;
 
 class COGLUniformBuffer;
@@ -78,6 +80,7 @@ private:
 	
 	void Gather(std::vector<AVPL*> path);
 	void GatherWithAtlas(std::vector<AVPL*> path);
+	void GatherWithClustering(std::vector<AVPL*> path);
 	void Normalize();
 	void Shade();	
 
@@ -112,6 +115,7 @@ private:
 		
 	CProgram* m_pGatherProgram;
 	CProgram* m_pGatherWithAtlas;
+	CProgram* m_pGatherWithClustering;
 	CProgram* m_pNormalizeProgram;
 	CProgram* m_pShadeProgram;
 		
@@ -120,6 +124,7 @@ private:
 	CPostprocess* m_pPostProcess;
 
 	COGLTextureBuffer* m_pOGLLightBuffer;
+	COGLTextureBuffer* m_pOGLClusterBuffer;
 	
 	COGLTextureBuffer* m_pAVPLPositions;
 
@@ -173,9 +178,10 @@ private:
 
 	std::vector<AVPL*> m_DebugAVPLs;
 	std::vector<AVPL*> m_ClusterTestAVPLs;
-
-	CClusterTree* m_pClusterTree;
+	
+	ClusterTree::CClusterTree* m_pClusterTree;
 	CLightTree* m_pLightTree;
+	CSimpleKdTree* m_pSimpleKdTree;
 };
 
 #endif

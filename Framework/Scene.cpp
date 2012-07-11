@@ -149,9 +149,30 @@ AVPL* Scene::ContinueAVPLPath(AVPL* pred, glm::vec3 direction, float pdf, int N,
 	const float epsilon = 0.005f;
 	Ray ray(pred_pos + epsilon * direction, direction);
 	
-	Intersection intersection;
-	float t = 0.f;
-	if(m_pKdTreeAccelerator->Intersect(ray, &t, &intersection)) 
+	Intersection intersection_kd;
+	Intersection intersection_naive;
+	float t_kd = 0.f;
+	float t_naive = 0.f;
+	
+	bool intersect_kd = m_pKdTreeAccelerator->Intersect(ray, &t_kd, &intersection_kd);
+	bool intersect_naive = IntersectRaySceneSimple(ray, &t_naive, &intersection_naive);
+
+	if(intersect_kd != intersect_naive)
+	{
+		std::cout << "naive and ks intersection are not equal" << std::endl;
+	}
+	else if(intersection_kd.GetPosition() != intersection_naive.GetPosition())
+	{
+		std::cout << "naive and ks intersection positions are not equal" << std::endl;
+	}
+	else if(t_kd != t_naive)
+	{
+		std::cout << "naive and ks intersection t's are not equal" << std::endl;
+	}
+
+	Intersection intersection = intersection_kd;
+	float t = t_kd;
+	if(intersect_kd)
 	{
 		// gather information for the new VPL
 		glm::vec3 pos = intersection.GetPosition();
@@ -160,7 +181,7 @@ AVPL* Scene::ContinueAVPLPath(AVPL* pred, glm::vec3 direction, float pdf, int N,
 				
 		glm::vec3 intensity = rho/PI * pred->GetIntensity(glm::normalize(direction)) / pdf;	
 		
-		const float area = 2 * PI * ( 1 - cos(PI/float(N+1)) );
+		const float area = 2 * PI * ( 1 - cos(PI/float(N)) );
 		
 		glm::vec3 antiintensity = 1.f / float(nAdditionalAVPLs + 1) * pred->GetIntensity(glm::normalize(direction)) / (pdf * area);
 			

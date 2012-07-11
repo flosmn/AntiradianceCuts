@@ -28,6 +28,7 @@ bool CGUI::Init(uint window_width, uint window_height)
 	
 	TwAddVarRW(m_pTwBar, "Use Antiradiance", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->UseAntiradiance), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Gather With AVPL Atlas", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->GatherWithAVPLAtlas), "min=0 max=1 step=1");
+	TwAddVarRW(m_pTwBar, "Gather With AVPL Clustering", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->GatherWithAVPLClustering), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Filter AVPL Atlas", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->FilterAvplAtlasLinear), " min=0 max=1 step=1 ");
 	TwAddVarRW(m_pTwBar, "Fill AVPL Atlas On GPU", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->FillAvplAltasOnGPU), " min=0 max=1 step=1 ");
 	
@@ -41,6 +42,7 @@ bool CGUI::Init(uint window_width, uint window_height)
 	TwAddSeparator(m_pTwBar, "", "");
 	
 	TwAddVarRW(m_pTwBar, "Draw AVPL atlas", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawAVPLAtlas), "min=0 max=1 step=1");
+	TwAddVarRW(m_pTwBar, "Draw AVPL cluster atlas", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawAVPLClusterAtlas), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Use Debug Mode", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->UseDebugMode), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Draw LOL", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawLightingOfLight), " min=-1 max=100 step=1 ");
 	TwAddVarRW(m_pTwBar, "Draw Lights", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawLights), " min=0 max=1 step=1 ");
@@ -59,6 +61,8 @@ bool CGUI::Init(uint window_width, uint window_height)
 	TwAddVarRW(m_pTwBar, "Texel Offset Y", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->TexelOffsetY), " min=0.0 max=10.0 step=0.1 ");
 
 	TwAddVarRW(m_pTwBar, "Vis. Cluster Depth", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->ClusterDepth), " min=0.0 max=1000.0 step=1 ");
+	TwAddVarRW(m_pTwBar, "Cluster Method", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->ClusterMethod), " min=0.0 max=10.0 step=1 ");
+	TwAddVarRW(m_pTwBar, "Cluster Weight Normals", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->ClusterWeightNormals), "min=0 max=1 step=0.1");
 
 	return true;
 }

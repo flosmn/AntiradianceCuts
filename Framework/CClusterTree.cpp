@@ -11,7 +11,7 @@
 
 const float SQRT_3 = std::sqrtf(3.f);
 
-
+using namespace ClusterTree;
 
 struct C
 {

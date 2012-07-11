@@ -66,6 +66,8 @@ layout(binding=1) uniform sampler2D samplerNormalWS;
 layout(binding=2) uniform samplerBuffer samplerLightBuffer;
 layout(binding=3) uniform sampler2D samplerLightAtlas;
 
+void ProcessLight(in int i, in vec3 vPositionWS, in vec3 vNormalWS, out vec4 radiance, out vec4 antiradiance);
+
 float G(vec3 p1, vec3 n1, vec3 p2, vec3 n3);
 float G_CLAMP(vec3 p1, vec3 n1, vec3 p2, vec3 n3);
 
@@ -85,47 +87,14 @@ void main()
 	outputDiff = vec4(0.f);
 	outputRadiance = vec4(0.f);
 	outputAntiradiance = vec4(0.f);
-
-	int columns = uAtlasInfo.dim_atlas / uAtlasInfo.dim_tile;
-
-	int size = 5 * 4; // sizeof(AVPL_BUFFER)
+			
 	for(int i = 0; i < uInfo.numLights; ++i)
 	{		
 		vec4 radiance = vec4(0.f);
 		vec4 antiradiance = vec4(0.f);
 		vec4 diff = vec4(0.f);
 		
-		const vec3 p = vec3(
-			texelFetch(samplerLightBuffer, i * size + 8).r,
-			texelFetch(samplerLightBuffer, i * size + 9).r,
-			texelFetch(samplerLightBuffer, i * size + 10).r);
-
-		const vec3 direction = normalize(vPositionWS - p);
-		
-		vec2 texel_local;
-		if(uInfo.filterAVPLAtlas > 0)
-		{
-			texel_local = (uAtlasInfo.dim_tile-2) * GetTexCoordForDir(direction) + vec2(1.f, 1.f);
-		}
-		else
-		{
-			texel_local = uAtlasInfo.dim_tile * GetTexCoordForDir(direction);
-		}
-		
-		const int row = i / columns;
-		const int column = i % columns;
-		const vec2 globalOffset = vec2(column * uAtlasInfo.dim_tile, row * uAtlasInfo.dim_tile);
-		const vec2 texel_global = texel_local + globalOffset;
-		
-		vec4 sam = texture2D(samplerLightAtlas, (1.f/float(uAtlasInfo.dim_atlas)) * texel_global);
-		
-		radiance = max(vec4(0.f), sam);
-		antiradiance = -min(vec4(0.f), sam);
-		
-		const float dist = length(vPositionWS - p);
-		const float cos_theta = clamp(dot(vNormalWS, -direction), 0, 1);
-		radiance = clamp(cos_theta / (dist * dist), 0, uConfig.GeoTermLimit) * radiance;
-		antiradiance = (cos_theta) / (dist * dist) * antiradiance;
+		ProcessLight(i, vPositionWS, vNormalWS, radiance, antiradiance);		
 		
 		outputDiff += radiance - antiradiance;
 		outputRadiance += radiance;
@@ -135,6 +104,50 @@ void main()
 	outputDiff.w = 1.f;
 	outputRadiance.w = 1.f;
 	outputAntiradiance.w = 1.f;
+}
+
+void ProcessLight(in int i, in vec3 vPositionWS, in vec3 vNormalWS, out vec4 radiance, out vec4 antiradiance)
+{
+	vec4 rad = vec4(0.f);
+	vec4 antirad = vec4(0.f);
+
+	int size = 5 * 4; // sizeof(AVPL_BUFFER)
+	const vec3 p = vec3(
+		texelFetch(samplerLightBuffer, i * size + 8).r,
+		texelFetch(samplerLightBuffer, i * size + 9).r,
+		texelFetch(samplerLightBuffer, i * size + 10).r);
+
+	const vec3 direction = normalize(vPositionWS - p);
+	
+	vec2 texel_local;
+	if(uInfo.filterAVPLAtlas > 0)
+	{
+		texel_local = (uAtlasInfo.dim_tile-2) * GetTexCoordForDir(direction) + vec2(1.f, 1.f);
+	}
+	else
+	{
+		texel_local = uAtlasInfo.dim_tile * GetTexCoordForDir(direction);
+	}
+	
+	int columns = uAtlasInfo.dim_atlas / uAtlasInfo.dim_tile;
+	const int row = i / columns;
+	const int column = i % columns;
+	const vec2 globalOffset = vec2(column * uAtlasInfo.dim_tile, row * uAtlasInfo.dim_tile);
+	const vec2 texel_global = texel_local + globalOffset;
+	
+	vec4 sam = texture2D(samplerLightAtlas, (1.f/float(uAtlasInfo.dim_atlas)) * texel_global);
+	
+	rad = max(vec4(0.f), sam);
+	antirad = -min(vec4(0.f), sam);
+	
+	const float dist = length(vPositionWS - p);
+	const float cos_theta = clamp(dot(vNormalWS, -direction), 0, 1);
+	rad = clamp(cos_theta / (dist * dist), 0, uConfig.GeoTermLimit) * rad;
+	
+	antirad = (cos_theta) / (dist * dist) * antirad;
+
+	antiradiance = antirad;
+	radiance = rad;
 }
 
 float G_CLAMP(in vec3 p1, in vec3 n1, in vec3 p2, in vec3 n2)

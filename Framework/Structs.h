@@ -47,6 +47,23 @@ struct AVPL_BUFFER
 	glm::vec4 w_A;	// AntiintensityDirection;	
 };
 
+struct CLUSTER_BUFFER
+{
+	glm::vec3 mean;
+	int id;
+	
+	glm::vec3 intensity;
+	int avplIndex;
+	
+	glm::vec3 normal;
+	int depth;
+
+	int size;
+	int left_id;
+	int right_id;
+	int padd;
+};
+
 struct CONFIG
 {
 	float GeoTermLimit;
@@ -100,6 +117,14 @@ struct TEST_STRUCT
 {
 	glm::vec4 color1;
 	glm::vec4 color2;
+};
+
+struct CLUSTERING
+{
+	int leftChildId;
+	int rightChildId;
+	int isLeaf;
+	int isAlreadyCalculated;
 };
 
 #endif // _STRUCTS_H_
