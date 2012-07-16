@@ -164,9 +164,49 @@ COGLTexture2D* COctahedronAtlas::GetAVPLClusterAtlasCPU()
 	return m_pOGLClusterAtlasCPU;
 }
 
-void COctahedronAtlas::FillAtlasGPU(AVPL_BUFFER* pBufferData, std::vector<CLUSTER*> clustering, uint numAVPLs, const int sqrt_num_ss_samples, const float& N, bool border)
+void COctahedronAtlas::FillAtlasGPU(AVPL_BUFFER* pBufferData, uint numAVPLs, const int sqrt_num_ss_samples, const float& N, bool border)
 {
-	int numInnerNodes = int(clustering.size() - numAVPLs);
+	size_t local_work_size[2];
+	local_work_size[0] = m_TileDim < 16 ? m_TileDim : 16;
+	local_work_size[1] = m_TileDim < 16 ? m_TileDim : 16;
+	
+	int numColumns = m_AtlasDim / m_TileDim;
+	int numRows = numAVPLs / numColumns + 1;
+	
+	size_t global_work_size[2];
+	global_work_size[0] = local_work_size[0] * numColumns;
+	global_work_size[1] = local_work_size[1] * numRows;
+	
+	m_pAvplBuffer->SetBufferData(pBufferData, sizeof(AVPL_BUFFER) * numAVPLs, true);
+	
+	int index = 0;
+	m_pIndexBuffer->SetBufferData(&index, sizeof(int), false);
+
+	int n = int(N);
+	int b = int(border);
+	
+	m_pOCLCalcAvplAtlasKernel->SetKernelArg(3, sizeof(int), &numAVPLs);
+	m_pOCLCalcAvplAtlasKernel->SetKernelArg(4, sizeof(int), &sqrt_num_ss_samples);
+	m_pOCLCalcAvplAtlasKernel->SetKernelArg(5, sizeof(int), &n);
+	m_pOCLCalcAvplAtlasKernel->SetKernelArg(6, sizeof(int), &b);
+	m_pOCLCalcAvplClusterAtlasKernel->SetKernelArg(5, sizeof(int), &numAVPLs);
+	m_pOCLCopyToImageKernel->SetKernelArg(3, sizeof(int), &numAVPLs);	
+			
+	m_pOCLCalcAvplAtlasKernel->CallKernel(2, 0, global_work_size, local_work_size);
+		
+	clFinish(*(m_pOCLContext->GetCLCommandQueue()));
+	
+	m_pOCLCopyToImageKernel->SetKernelArg(0, sizeof(cl_mem), m_pOCLAtlas->GetCLTexture());
+	m_pOCLCopyToImageKernel->SetKernelArg(4, sizeof(cl_mem), m_pAtlasBuffer->GetCLBuffer());
+
+	m_pOCLAtlas->Lock();
+	m_pOCLCopyToImageKernel->CallKernel(2, 0, global_work_size, local_work_size);
+	m_pOCLAtlas->Unlock();
+}
+
+void COctahedronAtlas::FillClusterAtlasGPU(AVPL_BUFFER* pBufferData, CLUSTER* pClustering, int clusteringSize, uint numAVPLs, const int sqrt_num_ss_samples, const float& N, bool border)
+{
+	int numInnerNodes = int(clusteringSize - numAVPLs);
 	
 	size_t local_work_size[2];
 	local_work_size[0] = m_TileDim < 16 ? m_TileDim : 16;
@@ -184,8 +224,8 @@ void COctahedronAtlas::FillAtlasGPU(AVPL_BUFFER* pBufferData, std::vector<CLUSTE
 	global_work_size_clustering[0] = local_work_size[0] * numColumns;
 	global_work_size_clustering[1] = local_work_size[1] * numRowsClustering;
 
-	CLUSTERING* pClusteringData = new CLUSTERING[clustering.size()];
-	for(uint i = 0; i < clustering.size(); ++i)
+	CLUSTERING* pClusteringData = new CLUSTERING[clusteringSize];
+	for(int i = 0; i < clusteringSize; ++i)
 	{
 		CLUSTERING c;
 		if(i < numAVPLs)
@@ -199,14 +239,14 @@ void COctahedronAtlas::FillAtlasGPU(AVPL_BUFFER* pBufferData, std::vector<CLUSTE
 		{
 			c.isAlreadyCalculated = 0;
 			c.isLeaf = 0;
-			c.leftChildId = clustering[i]->left->id;
-			c.rightChildId = clustering[i]->right->id;
+			c.leftChildId = pClustering[i].left->id;
+			c.rightChildId = pClustering[i].right->id;
 		}
 
 		pClusteringData[i] = c;
 	}
 
-	m_pClusteringBuffer->SetBufferData(pClusteringData, sizeof(CLUSTERING) * clustering.size(), true);
+	m_pClusteringBuffer->SetBufferData(pClusteringData, sizeof(CLUSTERING) * clusteringSize, true);
 	m_pAvplBuffer->SetBufferData(pBufferData, sizeof(AVPL_BUFFER) * numAVPLs, true);
 	
 	delete [] pClusteringData;
@@ -246,7 +286,85 @@ void COctahedronAtlas::FillAtlasGPU(AVPL_BUFFER* pBufferData, std::vector<CLUSTE
 	m_pOCLClusterAtlas->Unlock();
 }
 
-void COctahedronAtlas::FillAtlas(std::vector<AVPL*> avpls, std::vector<CLUSTER*> clustering, const int sqrt_num_ss_samples, const float& N, bool border)
+void COctahedronAtlas::FillAtlas(std::vector<AVPL*> avpls, const int sqrt_num_ss_samples, const float& N, bool border)
+{
+	uint maxIndex = (uint)avpls.size();
+	if(avpls.size() * m_TileDim * m_TileDim > m_AtlasDim * m_AtlasDim)
+	{
+		maxIndex = (m_AtlasDim * m_AtlasDim) / (m_TileDim * m_TileDim);
+		std::cout << "Warning: AVPL info does not fit into atlas!!!" << std::endl;
+	}
+	
+	try
+	{
+		glm::vec4* pData = new glm::vec4[m_AtlasDim * m_AtlasDim];
+		glm::vec4* pClusterData = new glm::vec4[m_AtlasDim * m_AtlasDim];
+		memset(pData, 0, m_AtlasDim * m_AtlasDim * sizeof(glm::vec4));
+		memset(pClusterData, 0, m_AtlasDim * m_AtlasDim * sizeof(glm::vec4));
+		
+		uint columns = m_AtlasDim / m_TileDim;
+
+		uint b = border ? 1 : 0;
+
+		for(uint index = 0; index < maxIndex; ++index)
+		{
+			uint tile_x = index % columns;
+			uint tile_y = index / columns;		
+					
+			for(uint x = b; x < m_TileDim-b; ++x)
+			{
+				for(uint y = b; y < m_TileDim-b; ++y)
+				{
+					*AccessAtlas(x, y, tile_x, tile_y, pData) = SampleTexel(x-b, y-b, sqrt_num_ss_samples, N, avpls[index], border);
+				}
+			}
+					
+			if(border)
+			{
+				// top border
+				for(uint x = 1; x < m_TileDim - 1; ++x)
+				{
+					*AccessAtlas(x, m_TileDim-1, tile_x, tile_y, pData) = *AccessAtlas(m_TileDim-1 - x, m_TileDim-2, tile_x, tile_y, pData);
+				}
+
+				// bottom border
+				for(uint x = 1; x < m_TileDim - 1; ++x)
+				{
+					*AccessAtlas(x, 0, tile_x, tile_y, pData) = *AccessAtlas(m_TileDim-1 - x, 1, tile_x, tile_y, pData);
+				}
+
+				// left border
+				for(uint y = 1; y < m_TileDim - 1; ++y)
+				{
+					*AccessAtlas(0, y, tile_x, tile_y, pData) = *AccessAtlas(1, m_TileDim-1 - y, tile_x, tile_y, pData);
+				}
+
+				// right border
+				for(uint y = 1; y < m_TileDim - 1; ++y)
+				{
+					*AccessAtlas(m_TileDim - 1,	y, tile_x, tile_y, pData) = *AccessAtlas(m_TileDim - 2, m_TileDim-1 - y, tile_x, tile_y, pData);
+				}
+
+				// corners
+				*AccessAtlas(0,				0,				tile_x, tile_y, pData) = *AccessAtlas(m_TileDim-2,	m_TileDim-2,	tile_x, tile_y, pData);
+				*AccessAtlas(m_TileDim - 1, m_TileDim - 1,	tile_x, tile_y, pData) = *AccessAtlas(1,			1,				tile_x, tile_y, pData);
+				*AccessAtlas(0,				m_TileDim - 1,	tile_x, tile_y, pData) = *AccessAtlas(m_TileDim-2,	1,				tile_x, tile_y, pData);
+				*AccessAtlas(m_TileDim - 1, 0,				tile_x, tile_y, pData) = *AccessAtlas(1,			m_TileDim-2,	tile_x, tile_y, pData);
+			}
+			
+		}
+		
+		m_pOGLAtlasCPU->SetPixelData(pData);
+		
+		delete [] pData;
+	}
+	catch(std::bad_alloc)
+	{
+		std::cout << "bad_alloc exception at COctahedronAtlas::FillAtlas()" << std::endl;
+	}
+}
+
+void COctahedronAtlas::FillClusterAtlas(std::vector<AVPL*> avpls, CLUSTER* pClustering, int clusteringSize, const int sqrt_num_ss_samples, const float& N, bool border)
 {
 	uint maxIndex = (uint)avpls.size();
 	if(avpls.size() * m_TileDim * m_TileDim > m_AtlasDim * m_AtlasDim)
@@ -315,14 +433,14 @@ void COctahedronAtlas::FillAtlas(std::vector<AVPL*> avpls, std::vector<CLUSTER*>
 		}
 		
 		// compute cluster information
-		int numClusterNodes = int(clustering.size() - avpls.size());
+		int numClusterNodes = int(clusteringSize - avpls.size());
 		int offsetClusterNodes = int(avpls.size());
 
 		for(int i = 0; i < numClusterNodes; ++i)
 		{
-			int innerNodeIndex = clustering[i + offsetClusterNodes]->id - int(avpls.size());
-			int leftChildIndex = clustering[i + offsetClusterNodes]->left->id;
-			int rightChildIndex = clustering[i + offsetClusterNodes]->right->id;
+			int innerNodeIndex = pClustering[i + offsetClusterNodes].id - int(avpls.size());
+			int leftChildIndex = pClustering[i + offsetClusterNodes].left->id;
+			int rightChildIndex = pClustering[i + offsetClusterNodes].right->id;
 
 			bool leftChildInnerNode = false;
 			bool rightChildInnerNode = false;
@@ -421,8 +539,8 @@ glm::vec4* COctahedronAtlas::AccessAtlas(uint x, uint y, uint tile_x, uint tile_
 void COctahedronAtlas::Clear()
 {
 	size_t local_work_size[2];
-	local_work_size[0] = m_TileDim < m_pOCLContext->GetMaxWorkGroupDimensions2DSquare()[0] ? m_TileDim : m_pOCLContext->GetMaxWorkGroupDimensions2DSquare()[0];
-	local_work_size[1] = m_TileDim < m_pOCLContext->GetMaxWorkGroupDimensions2DSquare()[1] ? m_TileDim : m_pOCLContext->GetMaxWorkGroupDimensions2DSquare()[1];
+	local_work_size[0] = 16; //m_TileDim < m_pOCLContext->GetMaxWorkGroupDimensions2DSquare()[0] ? m_TileDim : m_pOCLContext->GetMaxWorkGroupDimensions2DSquare()[0];
+	local_work_size[1] = 16; //m_TileDim < m_pOCLContext->GetMaxWorkGroupDimensions2DSquare()[1] ? m_TileDim : m_pOCLContext->GetMaxWorkGroupDimensions2DSquare()[1];
 		
 	size_t global_work_size[2];
 	global_work_size[0] = m_AtlasDim;

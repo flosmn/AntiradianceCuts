@@ -30,9 +30,12 @@ public:
 	bool Init(uint atlasDim, uint tileDim, uint maxNumAVPLs);
 	void Release();
 	
-	void FillAtlas(std::vector<AVPL*> avpls, std::vector<CLUSTER*> clustering, const int sqrt_num_ss_samples, const float& N, bool border);
-	void FillAtlasGPU(AVPL_BUFFER* pBufferData, std::vector<CLUSTER*> clustering, uint numAVPLs, const int sqrt_num_ss_samples, const float& N, bool border);
-	
+	void FillClusterAtlas(std::vector<AVPL*> avpls, CLUSTER* pClustering, int clusteringSize, const int sqrt_num_ss_samples, const float& N, bool border);
+	void FillClusterAtlasGPU(AVPL_BUFFER* pBufferData, CLUSTER* pClustering, int clusteringSize, uint numAVPLs, const int sqrt_num_ss_samples, const float& N, bool border);
+
+	void FillAtlas(std::vector<AVPL*> avpls, const int sqrt_num_ss_samples, const float& N, bool border);
+	void FillAtlasGPU(AVPL_BUFFER* pBufferData, uint numAVPLs, const int sqrt_num_ss_samples, const float& N, bool border);
+
 	COGLTexture2D* GetAVPLAtlas();
 	COGLTexture2D* GetAVPLAtlasDebug() { return m_pOGLAtlasDebug; };
 	COGLTexture2D* GetAVPLAtlasCPU();

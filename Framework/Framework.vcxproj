@@ -134,6 +134,7 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
     <ClCompile Include="COctahedronMap.cpp" />
     <ClCompile Include="CPbrtKdTreeAccelerator.cpp" />
     <ClCompile Include="CPointCloud.cpp" />
+    <ClCompile Include="CPriorityQueue.cpp" />
     <ClCompile Include="CProgram.cpp" />
     <ClCompile Include="CRenderTarget.cpp" />
     <ClCompile Include="CShadowMap.cpp" />
@@ -194,6 +195,7 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
     <ClInclude Include="COctahedronMap.h" />
     <ClInclude Include="CPbrtKdTreeAccelerator.h" />
     <ClInclude Include="CPointCloud.h" />
+    <ClInclude Include="CPriorityQueue.h" />
     <ClInclude Include="CProgram.h" />
     <ClInclude Include="CRenderTarget.h" />
     <ClInclude Include="CShadowMap.h" />

@@ -14,9 +14,10 @@ struct CONF_VARS
 	int GatherWithAVPLClustering;
 	int DrawDebugTextures;
 	int DrawLights;
+	int DrawCutSizes;
 	int FilterAvplAtlasLinear;
 	int FillAvplAltasOnGPU;
-
+	
 	float GeoTermLimit;
 	float Gamma;
 	float Exposure;
@@ -31,9 +32,11 @@ struct CONF_VARS
 	float TexelOffsetX;
 	float TexelOffsetY;
 
+	int LightTreeCutDepth;
 	int ClusterDepth;
 	int ClusterMethod;
 	float ClusterWeightNormals;
+	float ClusterRefinementThreshold;
 };
 
 class CConfigManager

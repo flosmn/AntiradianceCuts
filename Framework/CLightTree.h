@@ -7,11 +7,13 @@ class AVPL;
 
 #include "BBox.h"
 #include "LightTreeTypes.h"
+#include "CPriorityQueue.h"
 
-#include <queue>
 #include <vector>
 
 class CSimpleKdTree;
+class CPriorityQueue;
+class CTimer;
 
 typedef unsigned int uint;
 
@@ -34,6 +36,7 @@ public:
 private:
 
 	void Traverse(CLUSTER* cluster);
+	void TraverseIterative(CLUSTER* cluster);
 	void Release(CLUSTER* cluster);
 	void Color(const std::vector<AVPL*>& avpls, const int cutDepth, CLUSTER* cluster, const int currentDepth, const int colorIndex);
 	void GetAllLeafs(CLUSTER* cluster, std::vector<CLUSTER*>& leafs);
@@ -42,8 +45,7 @@ private:
 	void CreateInitialClusters(const std::vector<AVPL*>& avpls, std::unordered_set<CLUSTER*, HASH_CLUSTER, EQ_CLUSTER>& toCluster, uint* cluster_id);
 	
 	void CreateClusterPairs(
-		const std::unordered_set<CLUSTER*, HASH_CLUSTER, EQ_CLUSTER>& toCluster, 
-		std::priority_queue<CLUSTER_PAIR, std::vector<CLUSTER_PAIR>, std::greater<std::vector<CLUSTER_PAIR>::value_type>>& clusterPairs,
+		const std::unordered_set<CLUSTER*, HASH_CLUSTER, EQ_CLUSTER>& toCluster,
 		const float weightNormals, bool useAccelerator);
 
 	CLUSTER* MergeClusters(CLUSTER* c1, CLUSTER* c2, uint* cluster_id);
@@ -52,7 +54,6 @@ private:
 
 	CLUSTER_PAIR FindBestClusterPair(
 		const std::unordered_set<CLUSTER*, HASH_CLUSTER, EQ_CLUSTER>& toCluster,
-		std::priority_queue<CLUSTER_PAIR, std::vector<CLUSTER_PAIR>, std::greater<std::vector<CLUSTER_PAIR>::value_type>>& clusterPairs, 
 		const float weightNormals, bool useAccelerator);
 	
 	CLUSTER* m_Head;
@@ -66,6 +67,14 @@ private:
 	std::vector<CLUSTER*> m_Clustering;
 
 	CSimpleKdTree* m_pNNAccelerator;
+	PriorityQueue::CPriorityQueue* m_pPriorityQueue;
+
+	double topTime;
+	double popTime;
+	double findTime;
+	double findNNTime;
+	double pushTime;
+	CTimer* findBestCPTimer;
 };
 
 #endif C_LIGHT_TREE_H_

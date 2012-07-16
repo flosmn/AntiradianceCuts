@@ -10,6 +10,9 @@
 
 typedef unsigned int uint;
 
+struct CLUSTER_PAIR;
+struct CLUSTER;
+
 struct CLUSTER
 {
 	CLUSTER() {
@@ -32,22 +35,22 @@ struct CLUSTER
 	
 	void Fill(CLUSTER_BUFFER* buffer)
 	{
-		buffer->avplIndex = avplIndex;
-		buffer->depth = depth;
-		buffer->id = id;
+		buffer->avplIndex = float(avplIndex);
+		buffer->depth = float(depth);
+		buffer->id = float(id);
 		buffer->intensity = intensity;
 		buffer->mean = mean;
 		buffer->normal = normal;
-		buffer->size = size;
+		buffer->size = float(size);
 
 		if(left)
-			buffer->left_id = left->id;
+			buffer->left_id = float(left->id);
 		else
-			buffer->left_id = -1;
+			buffer->left_id = -1.f;
 		if(right)
-			buffer->right_id = right->id;
+			buffer->right_id = float(right->id);
 		else
-			buffer->right_id = -1;
+			buffer->right_id = -1.f;
 	}
 
 	bool operator<(const CLUSTER c) const {
@@ -82,12 +85,12 @@ struct CLUSTER
 	{
 		if(c1 == 0) return std::numeric_limits<float>::max();
 
-		const float I = glm::length(intensity + c1->intensity);
+		//const float I = glm::length(intensity + c1->intensity);
 		const BBox b = BBox::Union(bbox, c1->bbox);
 		const float A = glm::length(b.pMax - b.pMin);
-		const float B = glm::dot(c1->normal, normal);
+		//const float B = glm::dot(c1->normal, normal);
 
-		const float dist = I * ( A * A + weightNormals * weightNormals * (1 - B) * (1 - B));
+		const float dist = A; //I * ( A * A + weightNormals * weightNormals * (1 - B) * (1 - B));
 		return dist;
 	}
 
@@ -114,25 +117,46 @@ struct CLUSTER_PAIR
 
 	CLUSTER_PAIR(CLUSTER* c1_param, CLUSTER* c2_param, const float dist_param)
 		: c1(c1_param), c2(c2_param), dist(dist_param) { }
-
-	CLUSTER* c1;
-	CLUSTER* c2;
-
+		
 	bool operator==(const CLUSTER_PAIR cp) const {
 		return (c1->id == cp.c1->id && c2->id == cp.c2->id);
+	}
+
+	bool operator==(const CLUSTER_PAIR* cp) const {
+		return (c1->id == cp->c1->id && c2->id == cp->c2->id);
 	}
 
 	bool operator<(const CLUSTER_PAIR &cp) const
 	{
 		return dist < cp.dist;	
 	}
+	
+	bool operator<(const CLUSTER_PAIR* cp) const
+	{
+		return dist < cp->dist;	
+	}
 
 	bool operator>(const CLUSTER_PAIR &cp) const
 	{
 		return dist > cp.dist;	
 	}
+		
+	bool operator>(const CLUSTER_PAIR* cp) const
+	{
+		return dist > cp->dist;	
+	}
 
+	CLUSTER* c1;
+	CLUSTER* c2;
 	float dist;
+};
+
+struct CLUSTER_PAIR_COMPARE
+{
+    bool operator()(const CLUSTER_PAIR* lhs, const CLUSTER_PAIR* rhs) const
+    {
+		return lhs->dist > rhs->dist;
+    }
 };
 
 struct HASH_CLUSTER

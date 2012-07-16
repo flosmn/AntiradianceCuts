@@ -8,9 +8,14 @@ layout(std140) uniform;
 uniform info_block
 {
 	int numLights;
+	int numClusters;
 	int drawLightingOfLight;
 	int filterAVPLAtlas;
-	float padd;
+	
+	int lightTreeCutDepth;
+	int padd0;
+	int padd1;
+	int padd2;
 } uInfo;
 
 uniform config

@@ -49,19 +49,19 @@ struct AVPL_BUFFER
 
 struct CLUSTER_BUFFER
 {
+	float id;					// 0
 	glm::vec3 mean;
-	int id;
-	
+		
+	float avplIndex;			// 4
 	glm::vec3 intensity;
-	int avplIndex;
 	
+	float depth;				// 8
 	glm::vec3 normal;
-	int depth;
-
-	int size;
-	int left_id;
-	int right_id;
-	int padd;
+	
+	float size;				// 12
+	float left_id;			// 13
+	float right_id;			// 14
+	float padd;				// 15
 };
 
 struct CONFIG
@@ -92,9 +92,14 @@ struct POINT_CLOUD_POINT
 struct INFO
 {
 	int numLights;
+	int numClusters;
 	int drawLightingOfLight;
 	int filterAVPLAtlas;
-	float padd;
+	
+	int lightTreeCutDepth;
+	float clusterRefinementThreshold;
+	int padd1;
+	int padd2;
 };
 
 struct AREA_LIGHT

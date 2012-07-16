@@ -147,7 +147,7 @@ private:
 	COGLUniformBuffer* m_pUBAtlasInfo;
 
 	COGLTexture2D* m_pDepthBuffer;
-
+	
 	COGLContext* m_pOGLContext;
 
 	CProgram* m_pCreateGBufferProgram;

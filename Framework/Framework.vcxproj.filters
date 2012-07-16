@@ -173,6 +173,7 @@
     <ClCompile Include="CClusterTree.cpp" />
     <ClCompile Include="CLightTree.cpp" />
     <ClCompile Include="CSimpleKdTree.cpp" />
+    <ClCompile Include="CPriorityQueue.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Render.h" />
@@ -356,6 +357,7 @@
     <ClInclude Include="CLightTree.h" />
     <ClInclude Include="LightTreeTypes.h" />
     <ClInclude Include="CSimpleKdTree.h" />
+    <ClInclude Include="CPriorityQueue.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">

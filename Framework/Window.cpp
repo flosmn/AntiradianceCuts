@@ -57,8 +57,8 @@ float CalcFPS();
 
 void Render()
 {
-	g_pRenderer->Render();
-	//g_pRenderer->ClusteringTestRender();
+	//g_pRenderer->Render();
+	g_pRenderer->ClusteringTestRender();
 
 	g_pGUI->Render(CalcFPS());
 

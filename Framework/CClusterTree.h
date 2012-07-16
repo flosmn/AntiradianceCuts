@@ -2,64 +2,53 @@
 #define _C_CLUSTER_TREE_H_
 
 #include <glm/glm.hpp>
+#include "LightTreeTypes.h"
 
 #include <vector>
 
 class AVPL;
+class CTimer;
 
 namespace ClusterTree
 {
-	struct DATA_POINT
-	{
-		int key;
-		glm::vec3 position;
-		glm::vec3 normal;
-	};
-	
-	struct Node
-	{
-		Node* leftChild;
-		Node* rightChild;
-		int kvp_index; // key-value-pair index
-		int id;
-	};
-	
 	class CClusterTree
 	{
 	public:
 		CClusterTree();
 		~CClusterTree();
 	
-		void BuildTree(std::vector<AVPL*>& avpls);
-		void Traverse(Node* node);
+		void BuildTree(const std::vector<AVPL*>& avpls);
+		void Color(const std::vector<AVPL*>& avpls, const int cutDepth);
+
 		void Release();
-		void Release(Node* node);
 		
-		Node* GetHead();
-	
-		void ColorAVPLs(std::vector<AVPL*>& avpls, int depth);
-	
+		CLUSTER* GetHead();
+		CLUSTER* GetClustering() const { return m_pClustering; }
+		int GetClusteringSize() const { return m_numClusters; }
+		
 	private:
-		void BuildTree(DATA_POINT* data_points, int num_data_points);
+		CLUSTER* BuildTreeRecurse(int* clusterIds, int numClusters, int depth);
+		void CreateLeafClusters(const std::vector<AVPL*>& avpls);
+		BBox GetBoundingBox(int* clusterIds, int numClusters);
+		CLUSTER* MergeClusters(CLUSTER* leftChild, CLUSTER* rightChild, int depth);
+
+		void Traverse(CLUSTER* cluster);
+		void Release(CLUSTER* cluster);
+		void Color(const std::vector<AVPL*>& avpls, const int cutDepth, CLUSTER* cluster, const int currentDepth, const int colorIndex);
+		void GetAllLeafs(CLUSTER* cluster, std::vector<CLUSTER*>& leafs);
+		void SetDepths(CLUSTER* n, int depth);
 	
-		float SIM(const DATA_POINT& p1, const DATA_POINT& p2);
-	
-		void ColorNodes(std::vector<AVPL*>& avpls, int level, Node* node, int depth, int colorIndex);
-		void GetAllLeafs(Node* node, std::vector<Node*>& leafs);
-	
-		void InitColors();
-	
-		bool IsLeaf(Node* node);
-	
+		CLUSTER* m_Head;
+
 		glm::vec3 GetRandomColor();
-	
-		Node* m_Head;
-	
-		int m_NumDataPoints;
-		DATA_POINT* m_pDataPoints;
-	
-		int m_NumColors;
+		void InitColors();
+
 		glm::vec3* m_pColors;
+		int m_NumColors;
+		int m_ClusterId;
+		int m_numClusters;
+
+		CLUSTER* m_pClustering;
 	};
 }
 

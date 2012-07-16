@@ -16,10 +16,11 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->UseDebugMode = m_pConfVarsGUI->UseDebugMode = 1;
 	m_pConfVars->DrawAVPLAtlas = m_pConfVarsGUI->DrawAVPLAtlas = 0;
 	m_pConfVars->DrawAVPLClusterAtlas = m_pConfVarsGUI->DrawAVPLClusterAtlas = 0;
-	m_pConfVars->GatherWithAVPLAtlas = m_pConfVarsGUI->GatherWithAVPLAtlas = 1;
-	m_pConfVars->GatherWithAVPLClustering = m_pConfVarsGUI->GatherWithAVPLClustering = 1;
+	m_pConfVars->GatherWithAVPLAtlas = m_pConfVarsGUI->GatherWithAVPLAtlas = 0;
+	m_pConfVars->GatherWithAVPLClustering = m_pConfVarsGUI->GatherWithAVPLClustering = 0;
 	m_pConfVars->DrawDebugTextures = m_pConfVarsGUI->DrawDebugTextures = 0;
 	m_pConfVars->DrawLights = m_pConfVarsGUI->DrawLights = 0;
+	m_pConfVars->DrawCutSizes = m_pConfVarsGUI->DrawCutSizes = 0;
 	m_pConfVars->FilterAvplAtlasLinear = m_pConfVarsGUI->FilterAvplAtlasLinear = 0;
 	m_pConfVars->FillAvplAltasOnGPU = m_pConfVarsGUI->FillAvplAltasOnGPU = 1;
 
@@ -37,9 +38,11 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->TexelOffsetX = m_pConfVarsGUI->TexelOffsetX = 0.f;
 	m_pConfVars->TexelOffsetY = m_pConfVarsGUI->TexelOffsetY = 0.f;
 
+	m_pConfVars->LightTreeCutDepth = m_pConfVarsGUI->LightTreeCutDepth = -1;
 	m_pConfVars->ClusterDepth = m_pConfVarsGUI->ClusterDepth = 0;
 	m_pConfVars->ClusterMethod = m_pConfVarsGUI->ClusterMethod = 0;
 	m_pConfVars->ClusterWeightNormals = m_pConfVarsGUI->ClusterWeightNormals = 0.5f;
+	m_pConfVars->ClusterRefinementThreshold = m_pConfVarsGUI->ClusterRefinementThreshold = 0.01f;
 }
 
 CConfigManager::~CConfigManager()
@@ -112,6 +115,11 @@ void CConfigManager::Update()
 	{
 		m_pConfVars->DrawDebugTextures = m_pConfVarsGUI->DrawDebugTextures;
 		configureLighting = true;
+	}
+
+	if(m_pConfVarsGUI->DrawCutSizes != m_pConfVars->DrawCutSizes)
+	{
+		m_pConfVars->DrawCutSizes = m_pConfVarsGUI->DrawCutSizes;
 	}
 
 	if(m_pConfVarsGUI->DrawLights != m_pConfVars->DrawLights)
@@ -223,6 +231,13 @@ void CConfigManager::Update()
 		clearLighting = true;
 	}
 
+	if(m_pConfVarsGUI->LightTreeCutDepth != m_pConfVars->LightTreeCutDepth)
+	{
+		m_pConfVars->LightTreeCutDepth = m_pConfVarsGUI->LightTreeCutDepth;
+		configureLighting = true;
+		clearAccumBuffer = true;
+	}
+
 	if(m_pConfVarsGUI->ClusterDepth != m_pConfVars->ClusterDepth)
 	{
 		m_pConfVars->ClusterDepth = m_pConfVarsGUI->ClusterDepth;
@@ -239,6 +254,13 @@ void CConfigManager::Update()
 	{
 		m_pConfVars->ClusterWeightNormals = m_pConfVarsGUI->ClusterWeightNormals;
 		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->ClusterRefinementThreshold != m_pConfVars->ClusterRefinementThreshold)
+	{
+		m_pConfVars->ClusterRefinementThreshold = m_pConfVarsGUI->ClusterRefinementThreshold;
+		configureLighting = true;
+		clearAccumBuffer = true;
 	}
 
 	if(clearLighting) m_pRenderer->ClearLighting();
