@@ -160,9 +160,6 @@
     <ClCompile Include="COctahedronMap.cpp">
       <Filter>Octahedron</Filter>
     </ClCompile>
-    <ClCompile Include="CTimer.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
     <ClCompile Include="CTestFramework.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
@@ -171,9 +168,12 @@
     </ClCompile>
     <ClCompile Include="CPointCloud.cpp" />
     <ClCompile Include="CClusterTree.cpp" />
-    <ClCompile Include="CLightTree.cpp" />
     <ClCompile Include="CSimpleKdTree.cpp" />
     <ClCompile Include="CPriorityQueue.cpp" />
+    <ClCompile Include="CTimer.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="CLightTree.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Render.h" />
@@ -322,9 +322,6 @@
     <ClInclude Include="OctahedronUtil.h">
       <Filter>Octahedron</Filter>
     </ClInclude>
-    <ClInclude Include="CTimer.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
     <ClInclude Include="CTestFramework.h">
       <Filter>Utils</Filter>
     </ClInclude>
@@ -358,6 +355,9 @@
     <ClInclude Include="LightTreeTypes.h" />
     <ClInclude Include="CSimpleKdTree.h" />
     <ClInclude Include="CPriorityQueue.h" />
+    <ClInclude Include="CTimer.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">

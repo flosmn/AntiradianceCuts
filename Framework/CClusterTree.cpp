@@ -5,7 +5,6 @@
 #include <algorithm>
 
 #include "AVPL.h"
-#include "CTimer.h"
 #include "Utils\Rand.h"
 
 using namespace ClusterTree;

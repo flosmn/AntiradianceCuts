@@ -42,6 +42,8 @@ struct CLUSTER
 		buffer->mean = mean;
 		buffer->normal = normal;
 		buffer->size = float(size);
+		buffer->pMin = bbox.pMin;
+		buffer->pMax = bbox.pMax;
 
 		if(left)
 			buffer->left_id = float(left->id);

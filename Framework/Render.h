@@ -20,7 +20,6 @@ class AVPL;
 
 class CAccumulationBuffer;
 class CGBuffer;
-class CTimer;
 class CProgram;
 class CLightViewer;
 class CTextureViewer;
@@ -32,6 +31,7 @@ class COctahedronMap;
 class COctahedronAtlas;
 class CModel;
 class CLightTree;
+class CTimer;
 
 class COGLUniformBuffer;
 class COGLSampler;
@@ -178,10 +178,12 @@ private:
 
 	std::vector<AVPL*> m_DebugAVPLs;
 	std::vector<AVPL*> m_ClusterTestAVPLs;
-	
-	ClusterTree::CClusterTree* m_pClusterTree;
+		
 	CLightTree* m_pLightTree;
-	CSimpleKdTree* m_pSimpleKdTree;
+
+	CTimer* m_pOCLTimer;
+	CTimer* m_pOGLTimer;
+	CTimer* m_pCPUTimer;
 };
 
 #endif

@@ -236,6 +236,7 @@ void CConfigManager::Update()
 		m_pConfVars->LightTreeCutDepth = m_pConfVarsGUI->LightTreeCutDepth;
 		configureLighting = true;
 		clearAccumBuffer = true;
+		clearLighting = true;
 	}
 
 	if(m_pConfVarsGUI->ClusterDepth != m_pConfVars->ClusterDepth)

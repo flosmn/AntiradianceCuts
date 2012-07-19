@@ -1,7 +1,5 @@
 #include "CPriorityQueue.h"
 
-#include "CTimer.h"
-
 #include <iostream>
 
 using namespace PriorityQueue;
@@ -17,18 +15,7 @@ CPriorityQueue::CPriorityQueue(int size)
 	m_pClusterPairsMap = new CLUSTER_PAIR[m_ClusterPairMapSize];
 	
 	m_pIndexUsed = new int[m_ClusterPairMapSize];
-	memset(m_pIndexUsed, 0, m_ClusterPairMapSize * sizeof(int));
-
-	m_pTimer = new CTimer(CTimer::CPU);
-	m_pTimer2 = new CTimer(CTimer::CPU);
-	
-	m_InsertTime = 0.;
-	m_InsertHeapifyTime = 0.;
-	m_InsertIncreaseTime = 0.;
-	m_InsertRestTime = 0.;
-	m_InsertMap = 0.;
-	m_DeleteTime = 0.;
-	
+	memset(m_pIndexUsed, 0, m_ClusterPairMapSize * sizeof(int));	
 }
 
 CPriorityQueue::~CPriorityQueue()
@@ -39,35 +26,24 @@ CPriorityQueue::~CPriorityQueue()
 		delete [] m_pClusterPairsMap;
 	if(m_pIndexUsed)
 		delete [] m_pIndexUsed;
-
-	delete m_pTimer;
 }
 
 void CPriorityQueue::Release()
 {
-	memset(m_pIndexUsed, 0, m_ClusterPairMapSize * sizeof(int));
+	if(m_pIndexUsed)
+		memset(m_pIndexUsed, 0, m_ClusterPairMapSize * sizeof(int));
 	
 	m_ClusterPairMapPointer = 0;
 	m_numElements = 0;
 	
 	m_pElements = new ELEMENT[m_Size];
-
-	m_InsertTime = 0.;
-	m_DeleteTime = 0.;
 }
 
 void CPriorityQueue::Insert(const CLUSTER_PAIR& cp)
-{
-	m_pTimer->Start();
-	
-	m_pTimer2->Start();
+{	
 	if(m_numElements >= m_Size)
 		IncreaseHeapSize();
-	m_pTimer2->Stop();
-	m_InsertIncreaseTime += m_pTimer2->GetTime();
-
-	m_pTimer2->Start();
-	
+		
 	while(m_pIndexUsed[m_ClusterPairMapPointer] != 0)
 		m_ClusterPairMapPointer = (m_ClusterPairMapPointer + 1) % m_ClusterPairMapSize;
 
@@ -75,29 +51,15 @@ void CPriorityQueue::Insert(const CLUSTER_PAIR& cp)
 	m_pClusterPairsMap[m_ClusterPairMapPointer] = cp;
 	m_pIndexUsed[m_ClusterPairMapPointer] = 1;
 
-	m_pTimer2->Stop();
-	m_InsertMap += m_pTimer2->GetTime();
-
-	m_pTimer2->Start();
 	m_pElements[m_numElements] = e;
     
 	m_numElements++;
-	m_pTimer2->Stop();
-	m_InsertRestTime += m_pTimer2->GetTime();
-
-	m_pTimer2->Start();
-	HeapifyUp(m_numElements - 1);
-	m_pTimer2->Stop();
-	m_InsertHeapifyTime += m_pTimer2->GetTime();
 	
-	m_pTimer->Stop();
-	m_InsertTime += m_pTimer->GetTime();
+	HeapifyUp(m_numElements - 1);
 }
 
 CLUSTER_PAIR CPriorityQueue::DeleteMin()
 {
-	m_pTimer->Start();
-
 	ELEMENT min = m_pElements[0];
 	CLUSTER_PAIR cp = m_pClusterPairsMap[min.index];
 	m_pIndexUsed[min.index] = 0;
@@ -108,9 +70,6 @@ CLUSTER_PAIR CPriorityQueue::DeleteMin()
 	
 	HeapifyDown(0);
 	
-	m_pTimer->Stop();
-	m_DeleteTime += m_pTimer->GetTime();
-
 	return cp;
 }
 
@@ -176,14 +135,4 @@ void CPriorityQueue::IncreaseHeapSize()
 	m_pElements = new ELEMENT[m_Size];
 	memcpy(m_pElements, pOldElements, oldSize * sizeof(ELEMENT));
 	delete [] pOldElements;
-}
-
-void CPriorityQueue::PrintTimes()
-{
-	std::cout << "Insert: " << m_InsertTime << "ms" << std::endl;
-	std::cout << "Insert Heapify: " << m_InsertHeapifyTime << "ms" << std::endl;
-	std::cout << "Insert Increase: " << m_InsertIncreaseTime << "ms" << std::endl;
-	std::cout << "Insert Map: " << m_InsertMap << "ms" << std::endl;
-	std::cout << "Insert Rest: " << m_InsertRestTime << "ms" << std::endl;
-	std::cout << "Delete: " << m_DeleteTime << "ms" << std::endl;
 }

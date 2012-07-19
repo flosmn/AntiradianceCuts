@@ -93,7 +93,7 @@ void main()
 		const vec3 w_A = vec3(texelFetch(samplerLightBuffer, i * size + 16).r,
 			texelFetch(samplerLightBuffer, i * size + 17).r,
 			texelFetch(samplerLightBuffer, i * size + 18).r);
-
+		
 		// calc radiance
 		if(length(I) > 0.f)
 		{
@@ -101,7 +101,7 @@ void main()
 			vec4 Irradiance = I * G;	
 			radiance = Irradiance;
 		}
-
+		
 		// calc antiradiance
 		if(length(A) > 0.f)
 		{
@@ -125,7 +125,7 @@ void main()
 				}
 			}
 		}
-
+		
 		diff = (radiance - antiradiance);
 
 		outputDiff += diff;

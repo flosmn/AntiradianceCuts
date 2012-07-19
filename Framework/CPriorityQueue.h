@@ -3,8 +3,6 @@
 
 #include "LightTreeTypes.h"
 
-class CTimer;
-
 namespace PriorityQueue
 {
 
@@ -48,15 +46,6 @@ private:
 	ELEMENT* m_pElements;
 	int m_numElements;
 	int m_Size;
-
-	double m_InsertTime;
-	double m_InsertHeapifyTime;
-	double m_InsertIncreaseTime;
-	double m_InsertRestTime;
-	double m_InsertMap;
-	double m_DeleteTime;
-	CTimer* m_pTimer;
-	CTimer* m_pTimer2;
 };
 
 };

@@ -18,6 +18,7 @@ CLightTree::CLightTree()
 {
 	m_NumColors = 40;
 	m_Head = 0;
+	m_ClusteringSize = 0;
 
 	topTime = 0.;
 	popTime = 0.;
@@ -30,6 +31,7 @@ CLightTree::CLightTree()
 	InitColors();
 
 	m_pPriorityQueue = 0;
+	m_pClusters = 0;
 	m_pNNAccelerator = new CSimpleKdTree();
 }
 
@@ -42,35 +44,42 @@ CLightTree::~CLightTree()
 void CLightTree::BuildTreeNaive(const std::vector<AVPL*>& avpls, const float weightNormals)
 {
 	uint cluster_id = 0;
-
+	m_numToCluster = 0;
+	
 	if(m_pPriorityQueue)
 		delete m_pPriorityQueue;
 	m_pPriorityQueue = new PriorityQueue::CPriorityQueue((int)avpls.size());
-		
-	std::unordered_set<CLUSTER*, HASH_CLUSTER, EQ_CLUSTER> toCluster; 
+	
+	m_ClusteringSize = 2 * (int)avpls.size() - 1;
+	m_pClusters = new CLUSTER[m_ClusteringSize];
+	m_pToCluster = new int[m_ClusteringSize];
+	memset(m_pToCluster, 0, m_ClusteringSize * sizeof(int));
+	
+	m_Clustering.reserve(m_ClusteringSize);
 
-	CreateInitialClusters(avpls, toCluster, &cluster_id);
+	CreateInitialClusters(avpls, &cluster_id);
 	
 	// no clustering needed
-	if(toCluster.size() == 1)
-		m_Head = *(toCluster.begin());
+	if(m_numToCluster == 1)
+		m_Head = &(m_pClusters[0]);
 
-	while(toCluster.size() > 1)
+	while(m_numToCluster > 1)
 	{
 		while(!m_pPriorityQueue->Empty()) m_pPriorityQueue->DeleteMin();
 		
-		CreateClusterPairs(toCluster, weightNormals, false);
+		CreateClusterPairs(m_Clustering, weightNormals, false);
 		
-		CLUSTER_PAIR best_cp = FindBestClusterPair(toCluster, weightNormals, false);
+		CLUSTER_PAIR best_cp = FindBestClusterPair(weightNormals, false);
 
 		CLUSTER* c1 = best_cp.c1;
 		CLUSTER* c2 = best_cp.c2;
 
 		m_Head = MergeClusters(c1, c2, &cluster_id);
 
-		toCluster.erase(best_cp.c1);
-		toCluster.erase(best_cp.c2);
-		toCluster.insert(m_Head);
+		m_pToCluster[best_cp.c1->id] = 0;
+		m_pToCluster[best_cp.c2->id] = 0;
+		m_pToCluster[m_Head->id] = 1;
+		m_numToCluster--;
 	}
 
 	SetDepths(GetHead(), 0);
@@ -79,44 +88,48 @@ void CLightTree::BuildTreeNaive(const std::vector<AVPL*>& avpls, const float wei
 void CLightTree::BuildTreeTweakCP(const std::vector<AVPL*>& avpls, const float weightNormals)
 {
 	uint cluster_id = 0;
-
+	m_numToCluster = 0;
+	
 	if(m_pPriorityQueue)
 		delete m_pPriorityQueue;
 	m_pPriorityQueue = new PriorityQueue::CPriorityQueue((int)avpls.size());
 	
-	std::unordered_set<CLUSTER*, HASH_CLUSTER, EQ_CLUSTER> toCluster;
+	m_ClusteringSize = 2 * (int)avpls.size() - 1;
+	m_pClusters = new CLUSTER[m_ClusteringSize];
+	m_pToCluster = new int[m_ClusteringSize];
+	memset(m_pToCluster, 0, m_ClusteringSize * sizeof(int));
 	
-	CreateInitialClusters(avpls, toCluster, &cluster_id);
-
-	std::vector<CLUSTER*> cluster;
-	std::copy(toCluster.begin(), toCluster.end(), back_inserter(cluster));
+	m_Clustering.reserve(m_ClusteringSize);
 	
-	CreateClusterPairs(toCluster, weightNormals, false);
+	CreateInitialClusters(avpls, &cluster_id);
+	
+	CreateClusterPairs(m_Clustering, weightNormals, false);
 	
 	// no clustering needed
-	if(toCluster.size() == 1)
-		m_Head = *(toCluster.begin());
+	if(m_numToCluster == 1)
+		m_Head = &(m_pClusters[0]);
 
-	while(toCluster.size() > 1)
+	while(m_numToCluster > 1)
 	{				
-		CLUSTER_PAIR best_cp = FindBestClusterPair(toCluster, weightNormals, false);
+		CLUSTER_PAIR best_cp = FindBestClusterPair(weightNormals, false);
 		
 		CLUSTER* c1 = best_cp.c1;
 		CLUSTER* c2 = best_cp.c2;
 
 		m_Head = MergeClusters(c1, c2, &cluster_id);
 		
-		toCluster.erase(best_cp.c1);
-		toCluster.erase(best_cp.c2);
-		toCluster.insert(m_Head);
+		m_pToCluster[best_cp.c1->id] = 0;
+		m_pToCluster[best_cp.c2->id] = 0;
+		m_pToCluster[m_Head->id] = 1;
+		m_numToCluster--;
 		
-		if(toCluster.size() > 1)
+		if(m_numToCluster > 1)
 		{
 			// find the nearest neighbor of the new cluster
 			CLUSTER_PAIR cp;
 			{
 				float dist = 0.f;
-				CLUSTER* nn = FindNearestNeighbour(m_Head, &dist, toCluster, weightNormals);
+				CLUSTER* nn = FindNearestNeighbour(m_Head, m_Clustering, &dist, weightNormals);
 				cp.c1 = m_Head;
 				cp.c2 = nn;
 				cp.dist = dist;
@@ -131,50 +144,54 @@ void CLightTree::BuildTreeTweakCP(const std::vector<AVPL*>& avpls, const float w
 void CLightTree::BuildTreeTweakNN(const std::vector<AVPL*>& avpls, const float weightNormals)
 {
 	uint cluster_id = 0;
-
+	m_numToCluster = 0;
+	
 	if(m_pPriorityQueue)
 		delete m_pPriorityQueue;
 	m_pPriorityQueue = new PriorityQueue::CPriorityQueue((int)avpls.size());
 	
-	std::unordered_set<CLUSTER*, HASH_CLUSTER, EQ_CLUSTER> toCluster;
+	m_ClusteringSize = 2 * (int)avpls.size() - 1;
+	m_pClusters = new CLUSTER[m_ClusteringSize];
+	m_pToCluster = new int[m_ClusteringSize];
+	memset(m_pToCluster, 0, m_ClusteringSize * sizeof(int));
 	
+	m_Clustering.reserve(m_ClusteringSize);
+			
 	CTimer timer(CTimer::CPU);
 	CTimer timer2(CTimer::CPU);
 
 	timer.Start();
-	CreateInitialClusters(avpls, toCluster, &cluster_id);
+	CreateInitialClusters(avpls, &cluster_id);
 	timer.Stop();
-	std::cout << "Create Initial clusters took: " << timer.GetTime() << "ms." << std::endl;
-
-	std::vector<CLUSTER*> cluster;
-	std::copy(toCluster.begin(), toCluster.end(), back_inserter(cluster));
-	
-	timer.Start();
-	m_pNNAccelerator->BuildTree(cluster);
-	timer.Stop();
-	std::cout << "kd-tree creation took: " << timer.GetTime() << "ms." << std::endl;	
+	//std::cout << "Create Initial clusters took: " << timer.GetTime() << "ms." << std::endl;
 
 	timer.Start();
-	CreateClusterPairs(toCluster, weightNormals, true);
+	m_pNNAccelerator->BuildTree(m_Clustering);
 	timer.Stop();
-	std::cout << "Cluster pair creation took: " << timer.GetTime() << "ms." << std::endl;
+	//std::cout << "kd-tree creation took: " << timer.GetTime() << "ms." << std::endl;	
+
+	timer.Start();
+	CreateClusterPairs(m_Clustering, weightNormals, true);
+ 	timer.Stop();
+	//std::cout << "Cluster pair creation took: " << timer.GetTime() << "ms." << std::endl;
 	
 	timer.Start();
 
 	// no clustering needed
-	if(toCluster.size() == 1)
-		m_Head = *(toCluster.begin());
+	if(m_numToCluster == 1)
+		m_Head = &(m_pClusters[0]);
 
 	double fbcpTime = 0.;
 	double fnnTime = 0.f;
 	double mergekdTime = 0.f;
 	double mergeTime = 0.f;
 	double insertTime = 0.f;
+	double deleteinsertTime = 0.f;
 
-	while(toCluster.size() > 1)
+	while(m_numToCluster > 1)
 	{				
 		timer2.Start();
-		CLUSTER_PAIR best_cp = FindBestClusterPair(toCluster, weightNormals, true);
+		CLUSTER_PAIR best_cp = FindBestClusterPair(weightNormals, true);
 		timer2.Stop();
 		fbcpTime += timer2.GetTime();
 
@@ -190,12 +207,16 @@ void CLightTree::BuildTreeTweakNN(const std::vector<AVPL*>& avpls, const float w
 		m_pNNAccelerator->MergeClusters(m_Head, c1, c2);
 		timer2.Stop();
 		mergekdTime += timer2.GetTime();
-
-		toCluster.erase(best_cp.c1);
-		toCluster.erase(best_cp.c2);
-		toCluster.insert(m_Head);
 		
-		if(toCluster.size() > 1)
+		timer2.Start();
+		m_pToCluster[best_cp.c1->id] = 0;
+		m_pToCluster[best_cp.c2->id] = 0;
+		m_pToCluster[m_Head->id] = 1;
+		m_numToCluster--;
+		timer2.Stop();
+		deleteinsertTime += timer2.GetTime();
+
+		if(m_numToCluster > 1)
 		{
 			// find the nearest neighbor of the new cluster
 			CLUSTER_PAIR cp;
@@ -218,6 +239,7 @@ void CLightTree::BuildTreeTweakNN(const std::vector<AVPL*>& avpls, const float w
 		}
 	}
 	timer.Stop();
+	/*
 	std::cout << "Recursive tree construction took: " << timer.GetTime() << "ms." << std::endl;
 	std::cout << "FindBestClusterPair took: " << fbcpTime << "ms." << std::endl;
 	std::cout << "FindBestClusterPair: top took: " << topTime << "ms." << std::endl;
@@ -225,28 +247,29 @@ void CLightTree::BuildTreeTweakNN(const std::vector<AVPL*>& avpls, const float w
 	std::cout << "FindBestClusterPair: find took: " << findTime << "ms." << std::endl;
 	std::cout << "FindBestClusterPair: findNN took: " << findNNTime << "ms." << std::endl;
 	std::cout << "FindBestClusterPair: push took: " << pushTime << "ms." << std::endl;
+	std::cout << "delete insert time took: " << deleteinsertTime << "ms." << std::endl;
 	std::cout << "MergeClusters took: " << mergeTime << "ms." << std::endl;
 	std::cout << "MergeClustersKd took: " << mergekdTime << "ms." << std::endl;
 	std::cout << "FindNearestNeighbourWithAccelerator took: " << fnnTime << "ms." << std::endl;
 	std::cout << "Insert took: " << insertTime << "ms." << std::endl;
-
-	m_pPriorityQueue->PrintTimes();
-
+	*/
+	
 	SetDepths(GetHead(), 0);
 
 	m_pNNAccelerator->Release();
 }
 
-void CLightTree::CreateInitialClusters(const std::vector<AVPL*>& avpls, std::unordered_set<CLUSTER*, HASH_CLUSTER, EQ_CLUSTER>& toCluster, uint* cluster_id)
+void CLightTree::CreateInitialClusters(const std::vector<AVPL*>& avpls, uint* cluster_id)
 {
 	for(size_t i = 0; i < avpls.size(); ++i)
 	{
-		CLUSTER* c = new CLUSTER();
-
+		int id = (*cluster_id)++;
+		CLUSTER* c = &(m_pClusters[id]);
+		
 		BBox bbox;
 		c->mean = bbox.pMin = bbox.pMax = avpls[i]->GetPosition();
 		c->bbox = bbox;
-		c->id = (*cluster_id)++;
+		c->id = id;
 		c->avplIndex = (int)i;
 		c->intensity = avpls[i]->GetMaxIntensity() + avpls[i]->GetMaxAntiintensity();
 		c->normal = avpls[i]->GetOrientation();
@@ -254,19 +277,19 @@ void CLightTree::CreateInitialClusters(const std::vector<AVPL*>& avpls, std::uno
 		c->right = 0;
 		c->size = 1;
 
-		toCluster.insert(c);
+		m_pToCluster[id] = 1;
+		m_numToCluster++;
 		m_Clustering.push_back(c);
 	}
 }
 
-void CLightTree::CreateClusterPairs(const std::unordered_set<CLUSTER*, HASH_CLUSTER, EQ_CLUSTER>& toCluster, 
-	const float weightNormals, bool useAccelerator)
+void CLightTree::CreateClusterPairs(std::vector<CLUSTER*> clusters, const float weightNormals, bool useAccelerator)
 {
-	std::unordered_set<CLUSTER*, HASH_CLUSTER, EQ_CLUSTER>::iterator clusterIterator1;
-	std::unordered_set<CLUSTER*, HASH_CLUSTER, EQ_CLUSTER>::iterator clusterIterator2;
+	std::vector<CLUSTER*>::iterator clusterIterator1;
+	std::vector<CLUSTER*>::iterator clusterIterator2;
 		
 	int index = 0;
-	for(clusterIterator1 = toCluster.begin(); clusterIterator1 != toCluster.end(); ++ clusterIterator1)
+	for(clusterIterator1 = clusters.begin(); clusterIterator1 != clusters.end(); ++ clusterIterator1)
 	{
 		CLUSTER* c1 = *clusterIterator1;
 		
@@ -276,7 +299,7 @@ void CLightTree::CreateClusterPairs(const std::unordered_set<CLUSTER*, HASH_CLUS
 		if(useAccelerator) 
 			nn = FindNearestNeighbourWithAccelerator(c1, &dist, weightNormals);
 		else
-			nn = FindNearestNeighbour(c1, &dist, toCluster, weightNormals);
+			nn = FindNearestNeighbour(c1, clusters, &dist, weightNormals);
 
 		// insert cluster-pair in priority-queue
 		CLUSTER_PAIR cp(c1, nn, dist);
@@ -290,8 +313,9 @@ CLUSTER* CLightTree::MergeClusters(CLUSTER* c1, CLUSTER* c2, uint* cluster_id)
 	const float s2 = float(c2->size);
 	const float norm = 1.f / (s1 + s2);
 		
-	CLUSTER* newCluster = new CLUSTER();
-	newCluster->id = (*cluster_id)++;
+	int id = (*cluster_id)++;
+	CLUSTER* newCluster = &(m_pClusters[id]);
+	newCluster->id = id;
 	newCluster->avplIndex = -1;
 	newCluster->intensity = c1->intensity + c2->intensity;
 	newCluster->mean = norm * (s1 * c1->mean + s2 * c2->mean);
@@ -306,17 +330,17 @@ CLUSTER* CLightTree::MergeClusters(CLUSTER* c1, CLUSTER* c2, uint* cluster_id)
 	return newCluster;
 }
 
-CLUSTER* CLightTree::FindNearestNeighbour(CLUSTER* c, float* dist, const std::unordered_set<CLUSTER*, HASH_CLUSTER, EQ_CLUSTER>& toCluster, const float weightNormals)
+CLUSTER* CLightTree::FindNearestNeighbour(CLUSTER* c, std::vector<CLUSTER*> clusters, float* dist, const float weightNormals)
 {
 	CLUSTER* nn = 0;
 	float min_dist = std::numeric_limits<float>::max();
 
-	std::unordered_set<CLUSTER*, HASH_CLUSTER, EQ_CLUSTER>::iterator clusterIterator;
-	for(clusterIterator = toCluster.begin(); clusterIterator != toCluster.end(); ++ clusterIterator)
+	std::vector<CLUSTER*>::iterator clusterIterator;
+	for(clusterIterator = clusters.begin(); clusterIterator != clusters.end(); ++ clusterIterator)
 	{
 		CLUSTER* cand = *clusterIterator;
 
-		if(*cand == *c) continue;
+		if(*cand == *c || m_pToCluster[cand->id] == 0) continue;
 
 		const float temp_dist = c->Distance(cand, weightNormals);
 		if(temp_dist <= min_dist)
@@ -343,8 +367,7 @@ CLUSTER* CLightTree::FindNearestNeighbourWithAccelerator(CLUSTER* c, float* dist
 	return nn;
 }
 
-CLUSTER_PAIR CLightTree::FindBestClusterPair(const std::unordered_set<CLUSTER*, HASH_CLUSTER, EQ_CLUSTER>& toCluster,
-	const float weightNormals, bool useAccelerator)
+CLUSTER_PAIR CLightTree::FindBestClusterPair(const float weightNormals, bool useAccelerator)
 {
 	CLUSTER_PAIR best_cp;
 	float min_dist = std::numeric_limits<float>::max();
@@ -362,15 +385,15 @@ CLUSTER_PAIR CLightTree::FindBestClusterPair(const std::unordered_set<CLUSTER*, 
 
 		// check if the cluster-pair is still valid
 		findBestCPTimer->Start();
-		bool find = toCluster.find(cp.c1) == toCluster.cend();
+		bool find = m_pToCluster[cp.c1->id] == 1;
 		findBestCPTimer->Stop();
 		findTime += findBestCPTimer->GetTime();
 
-		if(find)
+		if(m_pToCluster[cp.c1->id] == 0)
 		{
 			continue;
 		}
-		else if(toCluster.find(cp.c2) == toCluster.cend())
+		else if(m_pToCluster[cp.c2->id] == 0)
 		{
 			float dist = 0.f;
 			CLUSTER* nn;
@@ -378,7 +401,7 @@ CLUSTER_PAIR CLightTree::FindBestClusterPair(const std::unordered_set<CLUSTER*, 
 			if(useAccelerator) 
 				nn = FindNearestNeighbourWithAccelerator(cp.c1, &dist, weightNormals);
 			else
-				nn = FindNearestNeighbour(cp.c1, &dist, toCluster, weightNormals);
+				nn = FindNearestNeighbour(cp.c1, m_Clustering, &dist, weightNormals);
 			findBestCPTimer->Stop();
 			findNNTime += findBestCPTimer->GetTime();
 
@@ -476,9 +499,12 @@ void CLightTree::TraverseIterative(CLUSTER* cluster)
 void CLightTree::Release()
 {
 	m_Clustering.clear();
-	m_pPriorityQueue->Release();
+	
+	if(m_pPriorityQueue)
+		m_pPriorityQueue->Release();
 
-	Release(GetHead());
+	if(m_pClusters)
+		delete [] m_pClusters;
 }
 
 void CLightTree::Release(CLUSTER* cluster)

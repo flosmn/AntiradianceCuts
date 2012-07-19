@@ -62,6 +62,12 @@ struct CLUSTER_BUFFER
 	float left_id;			// 13
 	float right_id;			// 14
 	float padd;				// 15
+
+	glm::vec3 pMin;			// 16
+	float padd0;
+
+	glm::vec3 pMax;			// 20
+	float padd1;
 };
 
 struct CONFIG

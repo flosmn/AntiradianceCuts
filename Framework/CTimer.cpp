@@ -1,69 +1,54 @@
 #include "CTimer.h"
-#include <time.h>
 
-CTimer::CTimer(TIMERTYPE type)
-{	
-	m_Type = type;
-	m_Time = 0;
-	glGenQueries(1, &m_QueryStartGPU);
-	glGenQueries(1, &m_QueryEndGPU);
-}
+#include "OCLResources\COCLContext.h"
 
-CTimer::~CTimer()
-{
-	glDeleteQueries(1, &m_QueryStartGPU);
-	glDeleteQueries(1, &m_QueryEndGPU);
-}
+#include "gl/glew.h"
 
 void CTimer::Start()
 {
-	if(m_Type == GPU)
+	if(m_Type == OGL)
 	{
-		glQueryCounter(m_QueryStartGPU, GL_TIMESTAMP);
+		glFinish();
 	}
-	else
+	else if(m_Type == OCL)
 	{
-		m_ClockStartCPU = clock();
-	}	
+		if(!m_pContext)
+			std::cout << "OCLContext is null" << std::endl;
+		else
+			clFinish(*m_pContext->GetCLCommandQueue());
+	}
+
+	m_ClockStartCPU = clock();	
 }
 
 void CTimer::Stop()
 {
-	if (m_Type == GPU)
+	if(m_Type == OGL)
 	{
-		glQueryCounter(m_QueryEndGPU, GL_TIMESTAMP);
-		
-		WaitTillAvailable(m_QueryStartGPU);
-		WaitTillAvailable(m_QueryEndGPU);
-		
-		glGetQueryObjectuiv(m_QueryStartGPU, GL_QUERY_RESULT, &m_TimeStartGPU);
-		glGetQueryObjectuiv(m_QueryEndGPU, GL_QUERY_RESULT, &m_TimeEndGPU);
-		
-		GLuint time = (m_TimeEndGPU - m_TimeStartGPU)/1000;
+		glFinish();
 	}
-	else
+	else if(m_Type == OCL)
 	{
-		m_ClockEndCPU = clock();
-		clock_t diff = m_ClockEndCPU - m_ClockStartCPU;
-		if (diff < 0) {
-			std::cout << "Measured #clocks <0 !" << std::endl;
-		}
+		if(!m_pContext)
+			std::cout << "OCLContext is null" << std::endl;
 		else
-		{
-			m_Time = 1000.0 * double(diff) / (double(CLOCKS_PER_SEC));
-		}
-	}	
+			clFinish(*m_pContext->GetCLCommandQueue());
+	}
+
+	m_ClockEndCPU = clock();
+	clock_t diff = m_ClockEndCPU - m_ClockStartCPU;
+	
+	m_Time = 1000.0 * double(diff) / (double(CLOCKS_PER_SEC));	
+}
+
+void CTimer::Stop(std::string s)
+{
+	Stop();
+
+	std::cout << s << " took " << m_Time << "ms." << std::endl;
 }
 
 double CTimer::GetTime()
 {
 	return m_Time;
-}
-
-void CTimer::WaitTillAvailable(GLuint query)
-{
-	GLuint available = 0;
-    while (!available) {
-		glGetQueryObjectuiv(query, GL_QUERY_RESULT_AVAILABLE, &available);
-    }
 }

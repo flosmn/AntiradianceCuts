@@ -30,10 +30,10 @@ public:
 	bool Init(uint atlasDim, uint tileDim, uint maxNumAVPLs);
 	void Release();
 	
-	void FillClusterAtlas(std::vector<AVPL*> avpls, CLUSTER* pClustering, int clusteringSize, const int sqrt_num_ss_samples, const float& N, bool border);
-	void FillClusterAtlasGPU(AVPL_BUFFER* pBufferData, CLUSTER* pClustering, int clusteringSize, uint numAVPLs, const int sqrt_num_ss_samples, const float& N, bool border);
+	void FillClusterAtlas(const std::vector<AVPL*>& avpls, CLUSTER* pClustering, int clusteringSize);
+	void FillClusterAtlasGPU(CLUSTER* pClustering, uint clusteringSize, uint numAVPLs);
 
-	void FillAtlas(std::vector<AVPL*> avpls, const int sqrt_num_ss_samples, const float& N, bool border);
+	void FillAtlas(const std::vector<AVPL*>& avpls, const int sqrt_num_ss_samples, const float& N, bool border);
 	void FillAtlasGPU(AVPL_BUFFER* pBufferData, uint numAVPLs, const int sqrt_num_ss_samples, const float& N, bool border);
 
 	COGLTexture2D* GetAVPLAtlas();
@@ -72,6 +72,9 @@ private:
 	COCLBuffer* m_pAtlasBuffer;
 	COCLBuffer* m_pAtlasClusterBuffer;
 	COCLBuffer* m_pIndexBuffer;
+
+	glm::vec4* m_pData;
+	glm::vec4* m_pClusterData;
 };
 
 #endif _C_OCTAHEDRON_ATLAS_H_

@@ -8,7 +8,7 @@
 #include "BBox.h"
 
 #include <vector>
-#include <map>
+#include <unordered_map>
 
 class AVPL;
 
@@ -87,7 +87,10 @@ private:
 
 	Node* m_Head;
 
-	std::map<CLUSTER*, Node*> mapClusterToNode;
+	int* m_pLeftIndices;
+	int m_LeftIndicesLevel;
+
+	std::unordered_map<CLUSTER*, Node*> m_MapClusterToNode;
 };
 
 #endif // _C_SIMPLE_KD_TREE_H

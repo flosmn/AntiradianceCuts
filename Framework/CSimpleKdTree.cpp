@@ -4,12 +4,10 @@
 #include "AVPL.h"
 #include "CTimer.h"
 
-
 #include <algorithm>
 #include <unordered_set>
 #include <iostream>
 #include <iterator>
-#include <map>
 
 bool SORT_X(CLUSTER* p1, CLUSTER* p2)
 {
@@ -51,9 +49,10 @@ CSimpleKdTree::~CSimpleKdTree()
 
 void CSimpleKdTree::BuildTree(const std::vector<CLUSTER*>& data_points)
 {
-	CTimer timer(CTimer::CPU);
-	timer.Start();
-
+	m_pLeftIndices = new int[data_points.size()];
+	m_LeftIndicesLevel = 0;
+	m_MapClusterToNode = std::unordered_map<CLUSTER*, Node*>(2 * data_points.size());
+	
 	// create sorted vectors
 	std::vector<CLUSTER*> data_points_sorted_x;
 	std::vector<CLUSTER*> data_points_sorted_y;
@@ -70,17 +69,9 @@ void CSimpleKdTree::BuildTree(const std::vector<CLUSTER*>& data_points)
 	std::sort(data_points_sorted_x.begin(), data_points_sorted_x.end(), SORT_X);
 	std::sort(data_points_sorted_y.begin(), data_points_sorted_y.end(), SORT_Y);
 	std::sort(data_points_sorted_z.begin(), data_points_sorted_z.end(), SORT_Z);
-
-	timer.Stop();
-	//std::cout << "Build-Kd-Tree: Sorting took " << timer.GetTime() << "ms" << std::endl;
-
-	timer.Start();
-
+	
 	// start to build tree recursively
 	m_Head = BuildTree(data_points_sorted_x, data_points_sorted_y, data_points_sorted_z, 0);
-
-	timer.Stop();
-	//std::cout << "Build-Kd-Tree: Building took " << timer.GetTime() << "ms" << std::endl;
 }
 
 Node* CSimpleKdTree::BuildTree(
@@ -98,7 +89,7 @@ Node* CSimpleKdTree::BuildTree(
 		// create leaf node
 		CLUSTER* c = dp_split_axis[0];
 		n = new Node(0, 0, node_Id++, c, depth);
-		mapClusterToNode[c] = n;
+		m_MapClusterToNode[c] = n;
 	}
 	else if(dp_split_axis.size() == 0)
 	{
@@ -110,7 +101,8 @@ Node* CSimpleKdTree::BuildTree(
 		int numDataPoints = (int)dp_split_axis.size();
 		int medianIndex = numDataPoints / 2;
 		CLUSTER* median = dp_split_axis[medianIndex];
-		std::unordered_set<int> indices_left;
+		
+		m_LeftIndicesLevel++;
 
 		// create disjoint sets of points
 		std::vector<CLUSTER*> dp_split_axis_left;
@@ -119,12 +111,19 @@ Node* CSimpleKdTree::BuildTree(
 		std::vector<CLUSTER*> dp_split_axis_right;
 		std::vector<CLUSTER*> dp_other_axis_1_right;
 		std::vector<CLUSTER*> dp_other_axis_2_right;
-		
+
+		dp_split_axis_left.reserve(numDataPoints/2 + 1);
+		dp_other_axis_1_left.reserve(numDataPoints/2 + 1);
+		dp_other_axis_2_left.reserve(numDataPoints/2 + 1);
+		dp_split_axis_right.reserve(numDataPoints/2 + 1);
+		dp_other_axis_1_right.reserve(numDataPoints/2 + 1);
+		dp_other_axis_2_right.reserve(numDataPoints/2 + 1);
+				
 		for(int i = 0; i < medianIndex; ++i)
 		{
 			CLUSTER* dp = dp_split_axis[i];
 			dp_split_axis_left.push_back(dp);
-			indices_left.insert(indices_left.end(), dp->avplIndex);
+			m_pLeftIndices[dp->id] = m_LeftIndicesLevel;
 		}
 
 		for(int i = medianIndex + 1; i < numDataPoints; ++i)
@@ -139,7 +138,7 @@ Node* CSimpleKdTree::BuildTree(
 			dp = dp_other_axis_1[i];
 			if(dp != median)
 			{
-				if(indices_left.find(dp->avplIndex) != indices_left.cend())
+				if(m_pLeftIndices[dp->id] == m_LeftIndicesLevel)
 					dp_other_axis_1_left.push_back(dp);
 				else
 					dp_other_axis_1_right.push_back(dp);
@@ -148,7 +147,7 @@ Node* CSimpleKdTree::BuildTree(
 			dp = dp_other_axis_2[i];
 			if(dp != median)
 			{
-				if(indices_left.find(dp->avplIndex) != indices_left.cend())
+				if(m_pLeftIndices[dp->id] == m_LeftIndicesLevel)
 					dp_other_axis_2_left.push_back(dp);
 				else
 					dp_other_axis_2_right.push_back(dp);
@@ -169,7 +168,7 @@ Node* CSimpleKdTree::BuildTree(
 
 		// create inner node
 		n = new Node(left, right, node_Id++, median, depth);
-		mapClusterToNode[median] = n;
+		m_MapClusterToNode[median] = n;
 	}
 
 	return n;
@@ -206,8 +205,8 @@ CLUSTER* CSimpleKdTree::GetNearestNeigbour(Node* n, CLUSTER* query)
 			best_cand = GetNearestNeigbour(n->left, query);
 			
 			// check for NN in right subtree
-			//if(n->right && n->right->bbox.Distance(query->mean) <= Distance(best_cand, query))
-			if(!best_cand || (n->right && query->UpperBound(best_cand).Intersects(n->right->cluster->bbox)))
+			if(n->right && n->right->bbox.Distance(query->mean) <= Distance(best_cand, query))
+			//if(!best_cand || (n->right && query->UpperBound(best_cand).Intersects(n->right->cluster->bbox)))
 			{
 				best_cand = GetNN(best_cand, GetNearestNeigbour(n->right, query), query);
 			}
@@ -217,8 +216,8 @@ CLUSTER* CSimpleKdTree::GetNearestNeigbour(Node* n, CLUSTER* query)
 			best_cand = GetNearestNeigbour(n->right, query);
 			
 			// check for NN in right subtree
-			//if(n->left && n->left->bbox.Distance(query->mean) <= Distance(best_cand, query))
-			if(!best_cand || (n->left && query->UpperBound(best_cand).Intersects(n->left->cluster->bbox)))
+			if(n->left && n->left->bbox.Distance(query->mean) <= Distance(best_cand, query))
+			//if(!best_cand || (n->left && query->UpperBound(best_cand).Intersects(n->left->cluster->bbox)))
 			{
 				best_cand = GetNN(best_cand, GetNearestNeigbour(n->left, query), query);
 			}
@@ -251,7 +250,7 @@ CLUSTER* CSimpleKdTree::GetNN(CLUSTER* p1, CLUSTER* p2, CLUSTER* query)
 
 void CSimpleKdTree::Release()
 {
-	mapClusterToNode.clear();
+	m_MapClusterToNode.clear();
 
 	Release(GetHead());	
 }
@@ -292,8 +291,8 @@ void CSimpleKdTree::Traverse(Node* n)
 
 void CSimpleKdTree::MergeClusters(CLUSTER* merged, CLUSTER* c1, CLUSTER* c2)
 {
-	int d1 = mapClusterToNode[c1]->depth;
-	int d2 = mapClusterToNode[c2]->depth;
+	int d1 = m_MapClusterToNode[c1]->depth;
+	int d2 = m_MapClusterToNode[c2]->depth;
 	
 	CLUSTER* lower;
 	CLUSTER* higher;
@@ -309,11 +308,11 @@ void CSimpleKdTree::MergeClusters(CLUSTER* merged, CLUSTER* c1, CLUSTER* c2)
 		higher = c1;
 	}
 
-	Node* nHigher = mapClusterToNode[higher];
+	Node* nHigher = m_MapClusterToNode[higher];
 	nHigher->cluster = merged;
-	mapClusterToNode[merged] = nHigher;
+	m_MapClusterToNode[merged] = nHigher;
 	
-	Node* nLower = mapClusterToNode[lower];
+	Node* nLower = m_MapClusterToNode[lower];
 	nLower->valid = false;
 
 	if(nLower->parent)
@@ -331,8 +330,8 @@ void CSimpleKdTree::MergeClusters(CLUSTER* merged, CLUSTER* c1, CLUSTER* c2)
 		Release(nLower);
 	}
 	
-	mapClusterToNode[lower] = 0;
-	mapClusterToNode[higher] = 0;
+	m_MapClusterToNode[lower] = 0;
+	m_MapClusterToNode[higher] = 0;
 }
 
 Node* CSimpleKdTree::GetHead()

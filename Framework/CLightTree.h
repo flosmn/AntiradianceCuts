@@ -31,7 +31,8 @@ public:
 	void Release();
 
 	CLUSTER* GetHead();
-	std::vector<CLUSTER*> GetClustering() { return m_Clustering; }
+	CLUSTER* GetClustering() { return m_pClusters; }
+	int GetClusteringSize() { return m_ClusteringSize; }
 
 private:
 
@@ -42,19 +43,15 @@ private:
 	void GetAllLeafs(CLUSTER* cluster, std::vector<CLUSTER*>& leafs);
 	void SetDepths(CLUSTER* n, int depth);
 
-	void CreateInitialClusters(const std::vector<AVPL*>& avpls, std::unordered_set<CLUSTER*, HASH_CLUSTER, EQ_CLUSTER>& toCluster, uint* cluster_id);
+	void CreateInitialClusters(const std::vector<AVPL*>& avpls, uint* cluster_id);
 	
-	void CreateClusterPairs(
-		const std::unordered_set<CLUSTER*, HASH_CLUSTER, EQ_CLUSTER>& toCluster,
-		const float weightNormals, bool useAccelerator);
+	void CreateClusterPairs(std::vector<CLUSTER*> clusters, const float weightNormals, bool useAccelerator);
 
 	CLUSTER* MergeClusters(CLUSTER* c1, CLUSTER* c2, uint* cluster_id);
-	CLUSTER* FindNearestNeighbour(CLUSTER* c, float* dist, const std::unordered_set<CLUSTER*, HASH_CLUSTER, EQ_CLUSTER>& toCluster, const float weightNormals);
+	CLUSTER* FindNearestNeighbour(CLUSTER* c, std::vector<CLUSTER*> clusters, float* dist, const float weightNormals);
 	CLUSTER* FindNearestNeighbourWithAccelerator(CLUSTER* c, float* dist, const float weightNormals);
 
-	CLUSTER_PAIR FindBestClusterPair(
-		const std::unordered_set<CLUSTER*, HASH_CLUSTER, EQ_CLUSTER>& toCluster,
-		const float weightNormals, bool useAccelerator);
+	CLUSTER_PAIR FindBestClusterPair(const float weightNormals, bool useAccelerator);
 	
 	CLUSTER* m_Head;
 
@@ -66,6 +63,8 @@ private:
 
 	std::vector<CLUSTER*> m_Clustering;
 
+	CLUSTER* m_pClusters;
+
 	CSimpleKdTree* m_pNNAccelerator;
 	PriorityQueue::CPriorityQueue* m_pPriorityQueue;
 
@@ -75,6 +74,11 @@ private:
 	double findNNTime;
 	double pushTime;
 	CTimer* findBestCPTimer;
+
+	int* m_pToCluster;
+	int m_numToCluster;
+	int m_ClusteringSize;
+
 };
 
 #endif C_LIGHT_TREE_H_
