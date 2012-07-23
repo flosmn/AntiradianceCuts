@@ -68,6 +68,11 @@ bool CGUI::Init(uint window_width, uint window_height)
 	TwAddVarRW(m_pTwBar, "Cluster Weight Normals", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->ClusterWeightNormals), "min=0 max=1000 step=1");
 	TwAddVarRW(m_pTwBar, "Cluster Refinement Threshold", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->ClusterRefinementThreshold), "min=0.0 max=1.0 step=0.00000001");
 
+	TwAddSeparator(m_pTwBar, "", "");
+	TwAddVarRW(m_pTwBar, "Sep D/I Light", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->SeparateDirectIndirectLighting), " min=0 max=1 step=1 ");
+	TwAddVarRW(m_pTwBar, "Draw Direct Light", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawDirectLight), " min=0 max=1 step=1 ");
+	TwAddVarRW(m_pTwBar, "Draw Indirect Light", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawIndirectLight), " min=0 max=1 step=1 ");
+
 	return true;
 }
 

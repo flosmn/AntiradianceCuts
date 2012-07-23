@@ -39,6 +39,7 @@ class COGLSampler;
 class COGLTexture2D;
 class COGLTextureBuffer;
 class COGLContext;
+class COGLRenderTarget;
 
 class COCLContext;
 class COCLBuffer;
@@ -52,6 +53,7 @@ public:
 	void Release();
 
 	void Render();
+	void RenderDirectIndirectLight();
 
 	void SetOGLContext(COGLContext* pOGLContext) { m_pOGLContext = pOGLContext; }
 
@@ -79,23 +81,24 @@ private:
 	void SetUpRender();
 	void CreateGBuffer();
 	
-	void Gather(std::vector<AVPL*> path);
-	void GatherWithAtlas(std::vector<AVPL*> path);
-	void GatherWithClustering(std::vector<AVPL*> path);
-	void Normalize();
-	void Shade();	
+	void Gather(std::vector<AVPL*> path, CRenderTarget* pRenderTarget);
+	void GatherWithAtlas(std::vector<AVPL*> path, CRenderTarget* pRenderTarget);
+	void GatherWithClustering(std::vector<AVPL*> path, CRenderTarget* pRenderTarget);
+	void Normalize(CRenderTarget* pTarget, CRenderTarget* source);
+	void Shade(CRenderTarget* target, CRenderTarget* source);	
+	void Add(CRenderTarget* target, CRenderTarget* source1, CRenderTarget* source2);
 
 	void InitDebugLights();
 
 	std::vector<AVPL*> DetermineUsedAvpls(std::vector<AVPL*> path);
 	
-	void GatherRadianceWithShadowMap(std::vector<AVPL*> path);	
+	void GatherRadianceWithShadowMap(std::vector<AVPL*> path, CRenderTarget* pRenderTarget);	
 	void DebugRender();
 	void DrawAreaLight();
 	
 	void CreatePlaneHammersleySamples(int i);
 		
-	void GatherRadianceFromLightWithShadowMap(AVPL* avpl);
+	void GatherRadianceFromLightWithShadowMap(AVPL* avpl, CRenderTarget* pRenderTarget);
 	void FillShadowMap(AVPL* avpl);
 	void DrawLights(std::vector<AVPL*> avpl);
 	
@@ -113,12 +116,19 @@ private:
 	CRenderTarget* m_pGatherRenderTarget;
 	CRenderTarget* m_pNormalizeRenderTarget;
 	CRenderTarget* m_pShadeRenderTarget;
-		
+	CRenderTarget* m_pGatherDirectLightRenderTarget;
+	CRenderTarget* m_pGatherIndirectLightRenderTarget;
+	CRenderTarget* m_pNormalizeDirectLightRenderTarget;
+	CRenderTarget* m_pNormalizeIndirectLightRenderTarget;
+	CRenderTarget* m_pShadeDirectLightRenderTarget;
+	CRenderTarget* m_pShadeIndirectLightRenderTarget;
+	
 	CProgram* m_pGatherProgram;
 	CProgram* m_pGatherWithAtlas;
 	CProgram* m_pGatherWithClustering;
 	CProgram* m_pNormalizeProgram;
 	CProgram* m_pShadeProgram;
+	CProgram* m_pAddProgram;
 		
 	CRenderTarget* m_pLightDebugRenderTarget;
 	CRenderTarget* m_pPostProcessRenderTarget;

@@ -44,6 +44,10 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->ClusterMethod = m_pConfVarsGUI->ClusterMethod = 0;
 	m_pConfVars->ClusterWeightNormals = m_pConfVarsGUI->ClusterWeightNormals = 0.5f;
 	m_pConfVars->ClusterRefinementThreshold = m_pConfVarsGUI->ClusterRefinementThreshold = 0.01f;
+
+	m_pConfVars->SeparateDirectIndirectLighting = m_pConfVarsGUI->SeparateDirectIndirectLighting = 0;
+	m_pConfVars->DrawDirectLight = m_pConfVarsGUI->DrawDirectLight = 0;
+	m_pConfVars->DrawIndirectLight = m_pConfVarsGUI->DrawIndirectLight = 0;
 }
 
 CConfigManager::~CConfigManager()
@@ -104,6 +108,26 @@ void CConfigManager::Update()
 	{
 		m_pConfVars->UseLightTree = m_pConfVarsGUI->UseLightTree;
 		clearAccumBuffer = true;
+	}
+
+	if(m_pConfVarsGUI->SeparateDirectIndirectLighting != m_pConfVars->SeparateDirectIndirectLighting)
+	{
+		m_pConfVars->SeparateDirectIndirectLighting = m_pConfVarsGUI->SeparateDirectIndirectLighting;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->DrawDirectLight != m_pConfVars->DrawDirectLight)
+	{
+		m_pConfVars->DrawDirectLight = m_pConfVarsGUI->DrawDirectLight;
+		configureLighting = true;
+	}
+
+	if(m_pConfVarsGUI->DrawIndirectLight != m_pConfVars->DrawIndirectLight)
+	{
+		m_pConfVars->DrawIndirectLight = m_pConfVarsGUI->DrawIndirectLight;
+		configureLighting = true;
 	}
 
 	if(m_pConfVarsGUI->DrawAVPLAtlas != m_pConfVars->DrawAVPLAtlas)

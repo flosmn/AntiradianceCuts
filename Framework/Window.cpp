@@ -57,7 +57,11 @@ float CalcFPS();
 
 void Render()
 {
-	g_pRenderer->Render();
+	if(g_pConfigManager->GetConfVars()->SeparateDirectIndirectLighting)
+		g_pRenderer->RenderDirectIndirectLight();
+	else
+		g_pRenderer->Render();
+
 	//g_pRenderer->ClusteringTestRender();
 
 	g_pGUI->Render(CalcFPS());

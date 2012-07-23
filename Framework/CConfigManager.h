@@ -18,6 +18,9 @@ struct CONF_VARS
 	int FilterAvplAtlasLinear;
 	int FillAvplAltasOnGPU;
 	int UseLightTree;
+	int SeparateDirectIndirectLighting;
+	int DrawDirectLight;
+	int DrawIndirectLight;
 	
 	float GeoTermLimit;
 	float Gamma;
