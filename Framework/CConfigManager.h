@@ -17,6 +17,7 @@ struct CONF_VARS
 	int DrawCutSizes;
 	int FilterAvplAtlasLinear;
 	int FillAvplAltasOnGPU;
+	int UseLightTree;
 	
 	float GeoTermLimit;
 	float Gamma;

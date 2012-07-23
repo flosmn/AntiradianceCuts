@@ -38,7 +38,6 @@
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="AreaLight.cpp" />
     <ClCompile Include="CAccumulationBuffer.cpp" />
-    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CGBuffer.cpp" />
     <ClCompile Include="CProgram.cpp" />
     <ClCompile Include="CShadowMap.cpp" />
@@ -174,13 +173,16 @@
       <Filter>Utils</Filter>
     </ClCompile>
     <ClCompile Include="CLightTree.cpp" />
+    <ClCompile Include="LightTreeTypes.cpp">
+      <Filter>GUI&amp;Config</Filter>
+    </ClCompile>
+    <ClCompile Include="CCamera.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Render.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="AreaLight.h" />
     <ClInclude Include="CAccumulationBuffer.h" />
-    <ClInclude Include="Camera.h" />
     <ClInclude Include="CGBuffer.h" />
     <ClInclude Include="CProgram.h" />
     <ClInclude Include="CShadowMap.h" />
@@ -358,6 +360,7 @@
     <ClInclude Include="CTimer.h">
       <Filter>Utils</Filter>
     </ClInclude>
+    <ClInclude Include="CCamera.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">

@@ -5,12 +5,13 @@
 
 #include "..\Macros.h"
 #include "..\Structs.h"
-#include "..\Camera.h"
 
 #include "CSubModel.h"
 #include "CMeshGeometry.h"
 #include "CMeshMaterial.h"
 #include "CObjFileLoader.h"
+
+#include "..\CTimer.h"
 
 #include "..\Utils\GLErrorUtil.h"
 
@@ -49,6 +50,10 @@ bool CModel::Init(CMesh* mesh)
 
 bool CModel::Init(std::string name) 
 {
+	std::cout << "Start loading model " << name << std::endl;
+	CTimer timer(CTimer::CPU);
+	timer.Start();
+
 	CObjFileLoader* objFileLoader = new CObjFileLoader();
 	std::vector<CMeshGeometry*> m_MeshGeometries;
 	std::vector<CMeshMaterial*> m_MeshMaterials;
@@ -58,6 +63,9 @@ bool CModel::Init(std::string name)
 
 	objFileLoader->ParseObjFile(path, m_MeshGeometries, m_MeshMaterials);
 	
+	timer.Stop("ParseObjFile");
+	timer.Start();
+
 	if(m_MeshGeometries.size() < 1)
 	{
 		std::cout << "Number of meshes less than one. error" << std::endl;
@@ -70,6 +78,8 @@ bool CModel::Init(std::string name)
 		V_RET_FOF(pSubModel->Init(m_MeshGeometries[i]));
 		m_SubModels.push_back(pSubModel);
 	}
+
+	timer.Stop("InitMeshGeometries");
 	
 	SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
 	

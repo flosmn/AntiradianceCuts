@@ -95,7 +95,7 @@ struct CLUSTER
 		const float dist = A; //I * ( A * A + weightNormals * weightNormals * (1 - B) * (1 - B));
 		return dist;
 	}
-
+	
 	BBox UpperBound(const CLUSTER* c)
 	{
 		BBox temp = BBox::Union(bbox, c->bbox);
@@ -176,5 +176,9 @@ struct EQ_CLUSTER
         return c1->id==c2->id;
     }
 };
+
+bool SORT_X(CLUSTER* p1, CLUSTER* p2);
+bool SORT_Y(CLUSTER* p1, CLUSTER* p2);
+bool SORT_Z(CLUSTER* p1, CLUSTER* p2);
 
 #endif

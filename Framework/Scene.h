@@ -12,7 +12,7 @@ typedef unsigned int uint;
 
 #include <vector>
 
-class Camera;
+class CCamera;
 class AVPL;
 class AreaLight;
 class CKdTreeAccelerator;
@@ -25,7 +25,7 @@ class CModel;
 class Scene
 {
 public:
-	Scene(Camera* pCamera);
+	Scene(CCamera* pCamera);
 	~Scene();
 	
 	bool Init();
@@ -41,9 +41,10 @@ public:
 	void DrawAreaLight(COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBAreaLight);
 
 	void LoadCornellBox();
+	void LoadSibernik();
 	void LoadSimpleScene();
 		
-	Camera* GetCamera() { return m_Camera; }
+	CCamera* GetCamera() { return m_Camera; }
 
 	void ClearLighting();
 
@@ -71,7 +72,7 @@ private:
 	int m_CurrentBounce;
 	int m_NumLightPaths;
 
-	Camera* m_Camera;		
+	CCamera* m_Camera;		
 	AreaLight* m_AreaLight;
 
 	CKdTreeAccelerator* m_pKdTreeAccelerator;

@@ -51,9 +51,9 @@ public:
 class CMeshTriangleFace
 {
 public:
-	CMeshVertex* vertex0;
-	CMeshVertex* vertex1;
-	CMeshVertex* vertex2;
+	CMeshVertex vertex0;
+	CMeshVertex vertex1;
+	CMeshVertex vertex2;
 };
 
 struct CMeshVertex_Compare {

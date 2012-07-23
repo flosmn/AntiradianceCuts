@@ -81,8 +81,11 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>$(OPENCL_INC_PATH);C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v4.2\include;external/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_HAS_ITERATOR_DEBUGGING=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <BufferSecurityCheck>true</BufferSecurityCheck>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -123,7 +126,7 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
   <ItemGroup>
     <ClCompile Include="AreaLight.cpp" />
     <ClCompile Include="CAccumulationBuffer.cpp" />
-    <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="CCamera.cpp" />
     <ClCompile Include="CClusterTree.cpp" />
     <ClCompile Include="CConfigManager.cpp" />
     <ClCompile Include="CGBuffer.cpp" />
@@ -144,6 +147,7 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
     <ClCompile Include="AVPL.cpp" />
     <ClCompile Include="CTriangle.cpp" />
     <ClCompile Include="guicon.cpp" />
+    <ClCompile Include="LightTreeTypes.cpp" />
     <ClCompile Include="OCLResources\COCLTexture2D.cpp" />
     <ClCompile Include="CPostprocess.cpp" />
     <ClCompile Include="MeshResources\CFullScreenQuad.cpp" />
@@ -184,7 +188,7 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
     <ClInclude Include="AreaLight.h" />
     <ClInclude Include="BBox.h" />
     <ClInclude Include="CAccumulationBuffer.h" />
-    <ClInclude Include="Camera.h" />
+    <ClInclude Include="CCamera.h" />
     <ClInclude Include="CClusterTree.h" />
     <ClInclude Include="CConfigManager.h" />
     <ClInclude Include="CGBuffer.h" />

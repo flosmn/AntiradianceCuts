@@ -3,6 +3,8 @@
 #include "CMeshGeometry.h"
 #include "CMeshMaterial.h"
 
+#include "..\CTimer.h"
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -23,6 +25,11 @@ CObjFileLoader::~CObjFileLoader()
 void CObjFileLoader::ParseObjFile(std::string name, std::vector<CMeshGeometry*>& meshes,
 		std::vector<CMeshMaterial*>& materials)
 {
+	m_Positions.reserve(10000);
+	m_Normals.reserve(10000);
+	m_TexCoords.reserve(10000);
+	CTimer timer(CTimer::CPU);
+
 	char line[1024];
 
 	std::string mtlFileName = name;
@@ -44,6 +51,8 @@ void CObjFileLoader::ParseObjFile(std::string name, std::vector<CMeshGeometry*>&
 	}
 	mtlFile.close();
 
+	timer.Start();
+	
 	// parse .obj file
 	std::string objFileName = name;
 	objFileName.append(".obj");
@@ -63,6 +72,9 @@ void CObjFileLoader::ParseObjFile(std::string name, std::vector<CMeshGeometry*>&
 	}
 	objFile.close();
 
+	timer.Stop("ParseObjFile");
+	timer.Start();
+
 	// create CMeshGeometry out of TempMeshes
 	for(uint i = 0; i < m_TempMeshes.size(); ++i)
 	{
@@ -70,20 +82,22 @@ void CObjFileLoader::ParseObjFile(std::string name, std::vector<CMeshGeometry*>&
 		CreateMeshGeometry(m_TempMeshes[i], meshGeometry);
 		meshes.push_back(meshGeometry);
 	}
+
+	timer.Stop("CreateMeshGeometry");
 }
 
 void CObjFileLoader::CreateMeshGeometry(CTempMesh* pTempMesh, CMeshGeometry* pMeshGeometry)
 {
-	std::set<CMeshVertex*, CMeshVertex_Compare> setVertices;
-	std::set<CMeshVertex*, CMeshVertex_Compare>::iterator set_it;
+	std::set<CMeshVertex, CMeshVertex_Compare> setVertices;
+	std::set<CMeshVertex, CMeshVertex_Compare>::iterator set_it;
 
-	std::vector<CMeshTriangleFace*>::iterator face_it;
+	std::vector<CMeshTriangleFace>::iterator face_it;
 	for(face_it = pTempMesh->m_Triangles.begin(); face_it < pTempMesh->m_Triangles.end(); ++face_it)
 	{
-		CMeshTriangleFace* face = *face_it;
-		setVertices.insert(face->vertex0);
-		setVertices.insert(face->vertex1);
-		setVertices.insert(face->vertex2);
+		CMeshTriangleFace face = *face_it;
+		setVertices.insert(face.vertex0);
+		setVertices.insert(face.vertex1);
+		setVertices.insert(face.vertex2);
 	}
 
 	uint nGLVertices = (uint)setVertices.size();
@@ -103,7 +117,7 @@ void CObjFileLoader::CreateMeshGeometry(CTempMesh* pTempMesh, CMeshGeometry* pMe
 	uint index = 0;
 	for(set_it = setVertices.begin(); index < nGLVertices; ++set_it)
 	{
-		CMeshVertex vertex = **set_it;
+		CMeshVertex vertex = *set_it;
 		mapMeshVertexIndex[vertex] = index + 1;
 
 		if(m_Positions.size() > 0 && vertex.positionDataIndex != 0)
@@ -141,12 +155,12 @@ void CObjFileLoader::CreateMeshGeometry(CTempMesh* pTempMesh, CMeshGeometry* pMe
 	int face_index = 0;
 	for(face_it = pTempMesh->m_Triangles.begin(); face_it < pTempMesh->m_Triangles.end(); ++face_it)
 	{
-		CMeshTriangleFace* face = *face_it;
+		CMeshTriangleFace face = *face_it;
 
 		// obj. file orientation is counter GL orientation
-		pGLIndexData[3 * face_index + 0] = mapMeshVertexIndex[*(face->vertex2)] - 1;
-		pGLIndexData[3 * face_index + 1] = mapMeshVertexIndex[*(face->vertex1)] - 1;
-		pGLIndexData[3 * face_index + 2] = mapMeshVertexIndex[*(face->vertex0)] - 1;
+		pGLIndexData[3 * face_index + 0] = mapMeshVertexIndex[face.vertex2] - 1;
+		pGLIndexData[3 * face_index + 1] = mapMeshVertexIndex[face.vertex1] - 1;
+		pGLIndexData[3 * face_index + 2] = mapMeshVertexIndex[face.vertex0] - 1;
 		face_index++;
 	}
 
@@ -191,7 +205,7 @@ void CObjFileLoader::CreateMeshGeometry(CTempMesh* pTempMesh, CMeshGeometry* pMe
 		pMeshGeometry->SetTexCoordData(pGLTexCoords);	
 }
 
-bool CObjFileLoader::ParseObjFileLine(std::string line, const std::vector<CMeshMaterial*>& materials)
+bool CObjFileLoader::ParseObjFileLine(const std::string& line, const std::vector<CMeshMaterial*>& materials)
 {
 	std::string op;
 	if (line.empty())
@@ -254,14 +268,12 @@ bool CObjFileLoader::ParseObjFileLine(std::string line, const std::vector<CMeshM
 		else
 		{
 			// one triangle
-			CMeshTriangleFace* triangleFace = new CMeshTriangleFace();
-			CMeshVertex** vertices = new CMeshVertex*[3];
+			CMeshTriangleFace triangleFace;
+			CMeshVertex vertices[3];
 
 			// for each vertex
 			for(int i = 0; i < 3; ++i)
 			{
-				vertices[i] = new CMeshVertex();
-								
 				std::istringstream issToken(indexData[i]);
 				std::string token;
 
@@ -271,15 +283,15 @@ bool CObjFileLoader::ParseObjFileLine(std::string line, const std::vector<CMeshM
 					if(!std::getline( issToken, token, '/' )) break;
 					std::stringstream ss(std::stringstream::in  | std::stringstream::out);
 					ss.str(token);
-					if(j==0) ss >> vertices[i]->positionDataIndex;
-					if(j==1) ss >> vertices[i]->texCoordDataIndex;
-					if(j==2) ss >> vertices[i]->normalDataIndex;
+					if(j==0) ss >> vertices[i].positionDataIndex;
+					if(j==1) ss >> vertices[i].texCoordDataIndex;
+					if(j==2) ss >> vertices[i].normalDataIndex;
 				}
 			}
 			
-			triangleFace->vertex0 = vertices[0];
-			triangleFace->vertex1 = vertices[1];
-			triangleFace->vertex2 = vertices[2];
+			triangleFace.vertex0 = vertices[0];
+			triangleFace.vertex1 = vertices[1];
+			triangleFace.vertex2 = vertices[2];
 			
 			m_pCurrentTempMesh->m_Triangles.push_back(triangleFace);
 		}
@@ -307,7 +319,7 @@ bool CObjFileLoader::ParseObjFileLine(std::string line, const std::vector<CMeshM
 	return true;
 }
 
-bool CObjFileLoader::ParseMtlFileLine(std::string line, std::vector<CMeshMaterial*>& materials)
+bool CObjFileLoader::ParseMtlFileLine(const std::string& line, std::vector<CMeshMaterial*>& materials)
 {
 	std::string op;
 	if (line.empty())

@@ -12,7 +12,7 @@
 #include <string>
 
 class Scene;
-class Camera;
+class CCamera;
 class CConfigManager;
 class CShadowMap;
 class CPostprocess;
@@ -31,6 +31,7 @@ class COctahedronMap;
 class COctahedronAtlas;
 class CModel;
 class CLightTree;
+class CClusterTree;
 class CTimer;
 
 class COGLUniformBuffer;
@@ -44,7 +45,7 @@ class COCLBuffer;
 
 class Renderer {
 public:
-	Renderer(Camera* _camera);
+	Renderer(CCamera* _camera);
 	~Renderer();
 	
 	bool Init();
@@ -102,8 +103,8 @@ private:
 	
 	void ExportPartialResult();
 
-	Camera *camera;
-	Camera *m_pClusterRenderCamera;
+	CCamera *camera;
+	CCamera *m_pClusterRenderCamera;
 	Scene* scene;
 	CShadowMap* m_pShadowMap;
 	CGBuffer* m_pGBuffer;
@@ -180,6 +181,7 @@ private:
 	std::vector<AVPL*> m_ClusterTestAVPLs;
 		
 	CLightTree* m_pLightTree;
+	CClusterTree* m_pClusterTree;
 
 	CTimer* m_pOCLTimer;
 	CTimer* m_pOGLTimer;

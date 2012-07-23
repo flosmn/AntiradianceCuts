@@ -149,7 +149,7 @@ void ProcessLight(in int i, in vec3 vPositionWS, in vec3 vNormalWS, out vec4 rad
 	const float cos_theta = clamp(dot(vNormalWS, -direction), 0, 1);
 	rad = clamp(cos_theta / (dist * dist), 0, uConfig.GeoTermLimit) * rad;
 	
-	antirad = (cos_theta) / (dist * dist) * antirad;
+	antirad = clamp(cos_theta / (dist * dist), 0, uConfig.GeoTermLimit) * antirad;
 
 	antiradiance = antirad;
 	radiance = rad;

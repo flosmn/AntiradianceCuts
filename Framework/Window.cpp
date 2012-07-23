@@ -20,7 +20,7 @@
 #include "CConfigManager.h"
 
 #include "Render.h"
-#include "Camera.h"
+#include "CCamera.h"
 #include "OGLResources\COGLContext.h"
 #include "CTimer.h"
 
@@ -35,11 +35,11 @@
 typedef unsigned int uint;
 
 HDC g_HDC;
-int window_width = 640;
-int window_height = 480;
+int window_width = 1289;
+int window_height = 720;
 bool fullScreen = false;
 
-Camera* g_pCamera;
+CCamera* g_pCamera;
 Renderer* g_pRenderer;
 CConfigManager* g_pConfigManager;
 CGUI* g_pGUI;
@@ -82,7 +82,7 @@ bool Init()
 	std::cout << "OpenGL version: " << glGetString(GL_VERSION) << std::endl;
 	std::cout << "GLSL version: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
 	
-	g_pCamera = new Camera(window_width, window_height, 0.1f, 5000.0f);
+	g_pCamera = new CCamera(window_width, window_height, 0.1f, 5000.0f);
 	g_pRenderer = new Renderer(g_pCamera);
 	g_pConfigManager = new CConfigManager(g_pRenderer);
 	g_pGUI = new CGUI(g_pConfigManager);
@@ -450,6 +450,11 @@ bool HandleKeyEvent(WPARAM wParam)
 
 			g_pCamera->ZoomOut(0.5f);
 			g_pRenderer->ClearLighting();
+			return true; break;
+
+		case 'K':
+
+			g_pCamera->PrintConfig();
 			return true; break;
 			
 		default: break;

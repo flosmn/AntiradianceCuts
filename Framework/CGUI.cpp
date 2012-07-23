@@ -35,7 +35,7 @@ bool CGUI::Init(uint window_width, uint window_height)
 	TwAddSeparator(m_pTwBar, "", "");
 	
 	TwAddVarRW(m_pTwBar, "#Paths", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumPaths), " min=1 max=10000000000 step=1 ");
-	TwAddVarRW(m_pTwBar, "#Paths per frame", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumPathsPerFrame), " min=1 max=5000 step=1 ");
+	TwAddVarRW(m_pTwBar, "#Paths per frame", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumPathsPerFrame), " min=1 max=16000 step=1 ");
 	TwAddVarRW(m_pTwBar, "Cone Factor", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->ConeFactor), " min=1 max=1000 step=1 ");
 	TwAddVarRW(m_pTwBar, "#add. AVPL", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumAdditionalAVPLs), " min=0 max=2048 step=1 ");
 	
@@ -61,6 +61,7 @@ bool CGUI::Init(uint window_width, uint window_height)
 	TwAddVarRW(m_pTwBar, "Texel Offset X", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->TexelOffsetX), " min=0.0 max=10.0 step=0.1 ");
 	TwAddVarRW(m_pTwBar, "Texel Offset Y", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->TexelOffsetY), " min=0.0 max=10.0 step=0.1 ");
 
+	TwAddVarRW(m_pTwBar, "Cluster/Light tree", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->UseLightTree), " min=0 max=1 step=1 ");
 	TwAddVarRW(m_pTwBar, "Light Tree Cut Depth", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->LightTreeCutDepth), " min=-1 max=64 step=1 ");
 	TwAddVarRW(m_pTwBar, "Vis. Cluster Depth", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->ClusterDepth), " min=0 max=1000 step=1 ");
 	TwAddVarRW(m_pTwBar, "Cluster Method", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->ClusterMethod), " min=0 max=10 step=1 ");

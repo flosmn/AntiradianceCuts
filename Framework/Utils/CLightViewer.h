@@ -5,7 +5,7 @@
 
 #include "..\CProgram.h"
 
-class Camera;
+class CCamera;
 class AVPL;
 
 class CModel;
@@ -20,7 +20,7 @@ public:
 
 	bool Init();
 	void Release();
-	void DrawLight(AVPL* avpl, Camera* camera, COGLUniformBuffer* pUBTransform);
+	void DrawLight(AVPL* avpl, CCamera* camera, COGLUniformBuffer* pUBTransform);
 
 private:
 	CModel* m_pLightModel;

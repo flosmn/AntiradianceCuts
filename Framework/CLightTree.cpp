@@ -266,9 +266,10 @@ void CLightTree::CreateInitialClusters(const std::vector<AVPL*>& avpls, uint* cl
 		int id = (*cluster_id)++;
 		CLUSTER* c = &(m_pClusters[id]);
 		
+		glm::vec3 pos = avpls[i]->GetPosition();
 		BBox bbox;
-		c->mean = bbox.pMin = bbox.pMax = avpls[i]->GetPosition();
-		c->bbox = bbox;
+		c->mean = pos;
+		c->bbox = BBox(pos, pos);
 		c->id = id;
 		c->avplIndex = (int)i;
 		c->intensity = avpls[i]->GetMaxIntensity() + avpls[i]->GetMaxAntiintensity();

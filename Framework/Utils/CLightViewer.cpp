@@ -5,7 +5,7 @@
 #include "..\Macros.h"
 
 #include "..\AVPL.h"
-#include "..\Camera.h"
+#include "..\CCamera.h"
 
 #include "..\MeshResources\CMesh.h"
 #include "..\MeshResources\CModel.h"
@@ -45,7 +45,7 @@ void CLightViewer::Release()
 	m_pLightModel->Release();
 }
 
-void CLightViewer::DrawLight(AVPL* avpl, Camera* camera, COGLUniformBuffer* pUBTransform) 
+void CLightViewer::DrawLight(AVPL* avpl, CCamera* camera, COGLUniformBuffer* pUBTransform) 
 {	
 	glm::mat4 scale = glm::scale(0.025f, 0.025f, 0.025f);
 	glm::mat4 translate = glm::translate(avpl->GetPosition());

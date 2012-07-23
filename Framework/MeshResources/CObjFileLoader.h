@@ -15,7 +15,7 @@ public:
 	CTempMesh() { }
 	~CTempMesh() { }
 
-	std::vector<CMeshTriangleFace*> m_Triangles;
+	std::vector<CMeshTriangleFace> m_Triangles;
 	CMeshMaterial* m_Material;
 };
 
@@ -29,8 +29,8 @@ public:
 		std::vector<CMeshMaterial*>& materials);
 
 private:
-	bool ParseObjFileLine(std::string line, const std::vector<CMeshMaterial*>& materials);
-	bool ParseMtlFileLine(std::string line, std::vector<CMeshMaterial*>& materials);
+	bool ParseObjFileLine(const std::string& line, const std::vector<CMeshMaterial*>& materials);
+	bool ParseMtlFileLine(const std::string& line, std::vector<CMeshMaterial*>& materials);
 
 	void CreateMeshGeometry(CTempMesh* pTempMesh, CMeshGeometry* pMeshGeometry);
 

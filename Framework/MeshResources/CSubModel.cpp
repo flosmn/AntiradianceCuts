@@ -6,7 +6,6 @@
 
 #include "..\Macros.h"
 #include "..\Structs.h"
-#include "..\Camera.h"
 
 #include "..\Utils\GLErrorUtil.h"
 

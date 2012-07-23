@@ -7,7 +7,7 @@
 #include "Defines.h"
 
 class CModel;
-class Camera;
+class CCamera;
 class Light;
 class COGLUniformBuffer;
 
@@ -21,7 +21,7 @@ public:
 	bool Init();
 	void Release();
 
-	void Draw(Camera* camera, COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBAreaLight);
+	void Draw(CCamera* camera, COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBAreaLight);
 
 	glm::vec3 GetCenterPosition() { return centerPosition; }
 	glm::vec3 GetFrontDirection() { return frontDirection; }

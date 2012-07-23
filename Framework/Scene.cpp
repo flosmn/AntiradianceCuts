@@ -7,7 +7,7 @@ typedef unsigned int uint;
 
 #include "AVPL.h"
 #include "AreaLight.h"
-#include "Camera.h"
+#include "CCamera.h"
 #include "CKdTreeAccelerator.h"
 #include "CPbrtKdTreeAccelerator.h"
 #include "CPrimitive.h"
@@ -24,7 +24,7 @@ typedef unsigned int uint;
 #include <iostream>
 #include <algorithm>
 
-Scene::Scene(Camera* _camera)
+Scene::Scene(CCamera* _camera)
 {
 	m_Camera = _camera;
 	m_CurrentBounce = 0;
@@ -148,31 +148,10 @@ AVPL* Scene::ContinueAVPLPath(AVPL* pred, glm::vec3 direction, float pdf, int N,
 
 	const float epsilon = 0.005f;
 	Ray ray(pred_pos + epsilon * direction, direction);
-	
-	Intersection intersection_kd;
-	Intersection intersection_naive;
-	float t_kd = 0.f;
-	float t_naive = 0.f;
-	
-	bool intersect_kd = m_pKdTreeAccelerator->Intersect(ray, &t_kd, &intersection_kd);
-	bool intersect_naive = IntersectRaySceneSimple(ray, &t_naive, &intersection_naive);
-
-	if(intersect_kd != intersect_naive)
-	{
-		std::cout << "naive and ks intersection are not equal" << std::endl;
-	}
-	else if(intersection_kd.GetPosition() != intersection_naive.GetPosition())
-	{
-		std::cout << "naive and ks intersection positions are not equal" << std::endl;
-	}
-	else if(t_kd != t_naive)
-	{
-		std::cout << "naive and ks intersection t's are not equal" << std::endl;
-	}
-
-	Intersection intersection = intersection_kd;
-	float t = t_kd;
-	if(intersect_kd)
+		
+	Intersection intersection;
+	float t = 0;
+	if(m_pKdTreeAccelerator->Intersect(ray, &t, &intersection))
 	{
 		// gather information for the new VPL
 		glm::vec3 pos = intersection.GetPosition();
@@ -377,6 +356,33 @@ void Scene::LoadCornellBox()
 
 	InitKdTree();
 }
+
+void Scene::LoadSibernik()
+{
+	ClearScene();
+
+	CModel* model = new CModel();
+	model->Init("sibmaxexp");
+	model->SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
+
+	m_Models.push_back(model);
+
+	m_Camera->Init(glm::vec3(-16.f, -5.f, 0.f), 
+		glm::vec3(0.f, -10.f, 0.f),
+		1.0f);
+	
+	m_AreaLight = new AreaLight(0.25f, 0.25f, 
+		glm::vec3(0.f, 2.0f, 0.f), 
+		glm::vec3(0.0f, -1.0f, 0.0f),
+		glm::vec3(0.0f, 0.0f, 1.0f));
+	
+	m_AreaLight->SetRadiance(glm::vec3(8000.f, 8000.f, 8000.f));
+
+	m_AreaLight->Init();
+
+	InitKdTree();
+}
+
 
 void Scene::InitKdTree()
 {

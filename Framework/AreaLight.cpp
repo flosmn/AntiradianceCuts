@@ -2,7 +2,7 @@
 
 #include "Macros.h"
 
-#include "Camera.h"
+#include "CCamera.h"
 
 #include "Utils\ShaderUtil.h"
 #include "Utils\Util.h"
@@ -64,7 +64,7 @@ void AreaLight::Release()
 	m_pAreaLightModel->Release();
 }
 
-void AreaLight::Draw(Camera* camera, COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBAreaLight)
+void AreaLight::Draw(CCamera* camera, COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBAreaLight)
 {
 	AREA_LIGHT arealight;
 	arealight.radiance = glm::vec4(GetRadiance(), 1.f);

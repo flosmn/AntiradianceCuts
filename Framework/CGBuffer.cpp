@@ -5,7 +5,6 @@
 #include "Macros.h"
 
 #include "Scene.h"
-#include "Camera.h"
 #include "CProgram.h"
 #include "CShadowMap.h"
 

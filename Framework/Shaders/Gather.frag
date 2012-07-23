@@ -116,11 +116,8 @@ void main()
 				{
 					const float cos_theta_xz = clamp(dot(vNormalWS, -w), 0, 1);
 					
-					vec4 A_in = (cos_theta_xz) / (d_xz * d_xz) * A;
-												
-					// blur			
-					//vec4 A = K * (1 - theta / PI_OVER_N) * A_in;
-					
+					vec4 A_in = clamp(cos_theta_xz / (d_xz * d_xz), 0, uConfig.GeoTermLimit) * A;
+										
 					antiradiance = A_in;
 				}
 			}

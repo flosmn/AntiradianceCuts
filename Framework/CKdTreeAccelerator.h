@@ -62,6 +62,7 @@ private:
 struct KdAccelNode
 {
 public:
+	KdAccelNode() { m_NumPrimitives = 0; m_Primitives = 0; }
 	~KdAccelNode();
 
 	void InitLeaf(uint* primitives, int numPrimitives);

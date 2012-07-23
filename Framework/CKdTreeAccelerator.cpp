@@ -22,6 +22,7 @@ CKdTreeAccelerator::CKdTreeAccelerator(const std::vector<CPrimitive*>& primitive
 	m_NextFreeNode = 0;
 	m_NumAllocatedNodes = 0;
 	m_EmptyBonus = 0.f;
+	m_Nodes = 0;
 
 	if(m_MaxDepth <= 0)
 		m_MaxDepth = int(8.f + 1.3f * glm::log2(float(m_Primitives.size())));
@@ -79,11 +80,14 @@ void CKdTreeAccelerator::BuildTreeRecursive(int node, const BBox& nodeBounds,
 	{
 		int newNumAllocatedNodes = std::max(2 * m_NumAllocatedNodes, 512);
 		KdAccelNode* n = new KdAccelNode[newNumAllocatedNodes];
+		memset(n, 0, newNumAllocatedNodes * sizeof(KdAccelNode));
+
 		if(m_NumAllocatedNodes > 0)
 		{
 			memcpy(n, m_Nodes, m_NumAllocatedNodes * sizeof(KdAccelNode));
-			delete [] m_Nodes;
+			//delete [] m_Nodes;			
 		}
+		
 		m_Nodes = n;
 		m_NumAllocatedNodes = newNumAllocatedNodes;
 	}
@@ -403,6 +407,6 @@ void KdAccelNode::InitInterior(uint splitAxis, uint aboveChild, float splitPosit
 
 KdAccelNode::~KdAccelNode()
 {
-	if(GetNumPrimitives() > 1)
+	if(GetNumPrimitives() > 1 && m_Primitives)
 		delete [] m_Primitives;
 }

@@ -23,6 +23,7 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->DrawCutSizes = m_pConfVarsGUI->DrawCutSizes = 0;
 	m_pConfVars->FilterAvplAtlasLinear = m_pConfVarsGUI->FilterAvplAtlasLinear = 0;
 	m_pConfVars->FillAvplAltasOnGPU = m_pConfVarsGUI->FillAvplAltasOnGPU = 1;
+	m_pConfVars->UseLightTree = m_pConfVarsGUI->UseLightTree = 0;
 
 	m_pConfVars->GeoTermLimit = m_pConfVarsGUI->GeoTermLimit = 0.001f;
 	m_pConfVars->Gamma = m_pConfVarsGUI->Gamma = 2.2f;
@@ -97,6 +98,12 @@ void CConfigManager::Update()
 		configureLighting = true;
 		clearAccumBuffer = true;
 		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->UseLightTree != m_pConfVars->UseLightTree)
+	{
+		m_pConfVars->UseLightTree = m_pConfVarsGUI->UseLightTree;
+		clearAccumBuffer = true;
 	}
 
 	if(m_pConfVarsGUI->DrawAVPLAtlas != m_pConfVars->DrawAVPLAtlas)
