@@ -56,13 +56,8 @@ void main()
 	vec3 vPositionWS = texture2D(samplerPositionWS, coord).xyz;
 	vec3 vNormalWS = normalize(texture2D(samplerNormalWS, coord).xyz);
 	
-	float V = 1.f;
-
-	if (uConfig.UseAntiradiance == 0) {
-		// shadow map shadows
-		V = IsLit(vPositionWS);
-	}
-
+	float V = IsLit(vPositionWS);
+	
 	// calc radiance
 	vec4 I = uLight.I;
 	float G = G_CLAMP(vPositionWS, vNormalWS, uLight.pos.xyz, uLight.norm.xyz);

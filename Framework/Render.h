@@ -196,6 +196,7 @@ private:
 	CTimer* m_pOCLTimer;
 	CTimer* m_pOGLTimer;
 	CTimer* m_pCPUTimer;
+	CTimer* m_pGlobalTimer;
 };
 
 #endif

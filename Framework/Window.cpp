@@ -35,8 +35,8 @@
 typedef unsigned int uint;
 
 HDC g_HDC;
-int window_width = 1289;
-int window_height = 720;
+int window_width = 640;
+int window_height = 480;
 bool fullScreen = false;
 
 CCamera* g_pCamera;

@@ -50,5 +50,7 @@ void CTimer::Stop(std::string s)
 
 double CTimer::GetTime()
 {
+	Stop(); 
+
 	return m_Time;
 }

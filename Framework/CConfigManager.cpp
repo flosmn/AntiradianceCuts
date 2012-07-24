@@ -35,7 +35,7 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->ConeFactor = m_pConfVarsGUI->ConeFactor = 30;
 	m_pConfVars->RenderBounce = m_pConfVarsGUI->RenderBounce = -1;
 	m_pConfVars->DrawLightingOfLight = m_pConfVarsGUI->DrawLightingOfLight = -1;
-	m_pConfVars->NumSqrtAtlasSamples = m_pConfVarsGUI->NumSqrtAtlasSamples = 1;
+	m_pConfVars->NumSqrtAtlasSamples = m_pConfVarsGUI->NumSqrtAtlasSamples = 4;
 	m_pConfVars->TexelOffsetX = m_pConfVarsGUI->TexelOffsetX = 0.f;
 	m_pConfVars->TexelOffsetY = m_pConfVarsGUI->TexelOffsetY = 0.f;
 
