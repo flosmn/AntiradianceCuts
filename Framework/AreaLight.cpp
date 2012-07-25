@@ -15,7 +15,7 @@
 #define NUM_QR_NUMBERS 1024
 
 AreaLight::AreaLight(float _width, float _height, glm::vec3 _centerPosition, 
-										 glm::vec3 _frontDirection, glm::vec3 _upDirection)
+	glm::vec3 _frontDirection, glm::vec3 _upDirection)
 {
 	width = _width;
 	height = _height;
@@ -49,12 +49,7 @@ bool AreaLight::Init()
 	mat->diffuseColor = glm::vec4(GetRadiance(), 1.0f);
 	m_pAreaLightModel->SetMaterial(*mat);
 
-	glm::mat4 scale = glm::scale(width/2.f, height/2.f, 1.0f);
-	
-	glm::mat4 position = glm::lookAt(centerPosition, centerPosition - frontDirection, upDirection);
-
-	position = glm::inverse(position);
-	m_pAreaLightModel->SetWorldTransform(position * scale);
+	UpdateWorldTransform();
 
 	return true;
 }
@@ -126,4 +121,26 @@ void AreaLight::SetRadiance(glm::vec3 _radiance)
 
 	intensity = radiance * area;
 	flux = intensity * PI;
+}
+
+void AreaLight::SetCenterPosition(glm::vec3 pos)
+{
+	centerPosition = pos;
+	UpdateWorldTransform();
+}
+
+void AreaLight::SetFrontDirection(glm::vec3 dir)
+{
+	frontDirection = dir;
+	UpdateWorldTransform();
+}
+
+void AreaLight::UpdateWorldTransform()
+{
+	glm::mat4 scale = glm::scale(width/2.f, height/2.f, 1.0f);
+	
+	glm::mat4 position = glm::lookAt(centerPosition, centerPosition - frontDirection, upDirection);
+
+	position = glm::inverse(position);
+	m_pAreaLightModel->SetWorldTransform(position * scale);
 }

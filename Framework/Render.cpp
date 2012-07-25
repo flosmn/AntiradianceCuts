@@ -138,8 +138,14 @@ Renderer::Renderer(CCamera* _camera) {
 	m_pOGLTimer = new CTimer(CTimer::OGL);
 	m_pOCLTimer = new CTimer(CTimer::OCL, m_pCLContext);
 	m_pGlobalTimer = new CTimer(CTimer::CPU);
+	m_pCPUFrameProfiler = new CTimer(CTimer::CPU);
+	m_pGPUFrameProfiler = new CTimer(CTimer::OGL);
 
 	m_Finished = false;
+	m_FinishedDirectLighting = false;
+	m_FinishedIndirectLighting = false;
+
+	m_ProfileFrame = false;
 }
 
 Renderer::~Renderer() {
@@ -331,11 +337,11 @@ bool Renderer::Init()
 	
 	V_RET_FOF(m_pFullScreenQuad->Init());
 	
-	V_RET_FOF(m_pShadowMap->Init(512));
+	V_RET_FOF(m_pShadowMap->Init(2048));
 	
 	V_RET_FOF(m_pGBuffer->Init(camera->GetWidth(), camera->GetHeight(), m_pDepthBuffer));
 		
-	scene = new Scene(camera);
+	scene = new Scene(camera, m_pConfManager);
 	scene->Init();
 	scene->LoadCornellBox();
 		
@@ -685,7 +691,8 @@ void Renderer::Render()
 		}
 	}
 	
-	Normalize(m_pNormalizeRenderTarget, m_pGatherRenderTarget);
+	int normFactor = std::min(m_CurrentPath, m_pConfManager->GetConfVars()->NumPaths * m_pConfManager->GetConfVars()->NumPathsPerFrame);
+	Normalize(m_pNormalizeRenderTarget, m_pGatherRenderTarget, normFactor);
 	
 	Shade(m_pShadeRenderTarget, m_pNormalizeRenderTarget);
 	
@@ -724,7 +731,7 @@ void Renderer::Render()
 			m_pTextureViewer->DrawTexture(m_pOctahedronAtlas->GetAVPLClusterAtlasCPU(), 0, 0, camera->GetWidth(), camera->GetHeight());
 	}
 	
-	if(m_CurrentPath % 10000 == 0 && m_CurrentPath > 0 && !m_Finished)
+	if(m_CurrentPath % 100000 == 0 && m_CurrentPath > 0 && !m_Finished)
 	{
 		double time = m_pGlobalTimer->GetTime();
 		std::stringstream ss;
@@ -759,6 +766,8 @@ void Renderer::RenderDirectIndirectLight()
 	
 	if(m_CurrentPath < m_pConfManager->GetConfVars()->NumPaths)
 	{
+		if(m_ProfileFrame) m_pCPUFrameProfiler->Start();
+		
 		std::vector<AVPL*> avpls;
 				
 		int remaining = m_pConfManager->GetConfVars()->NumPaths - m_CurrentPath;
@@ -774,18 +783,14 @@ void Renderer::RenderDirectIndirectLight()
 			 m_CurrentPath += remaining;
 		}
 			
-		std::vector<AVPL*> direct_avpls;
 		std::vector<AVPL*> indirect_avpls;
 		indirect_avpls.reserve(avpls.size());
 		
 		for(int i = 0; i < avpls.size(); ++i)
 		{
 			AVPL* avpl = avpls[i];
-			if(avpl->GetBounce() == 0)
-			{
-				direct_avpls.push_back(avpl);
-			}
-			else
+			
+			if(avpl->GetBounce() != 0)
 			{
 				if(avpl->GetBounce() == 1)
 					avpl->SetAntiintensity(glm::vec3(0.f));
@@ -793,71 +798,110 @@ void Renderer::RenderDirectIndirectLight()
 			}
 		}
 
-		{
-			GatherRadianceWithShadowMap(direct_avpls, m_pGatherDirectLightRenderTarget);
-		}
-		{
-			if(indirect_avpls.size() > 0)
-			{			
-				if(m_pConfManager->GetConfVars()->GatherWithAVPLAtlas)
+		if(m_ProfileFrame) std::cout << "Profile Frame - Indirect Lighting - NumLights: " << indirect_avpls.size() << std::endl;
+		if(m_ProfileFrame) m_pCPUFrameProfiler->Stop("Profile Frame - Indirect Lighting - Light Creation");
+		
+		if(indirect_avpls.size() > 0)
+		{			
+			if(m_pConfManager->GetConfVars()->GatherWithAVPLAtlas)
+			{
+				if(m_pConfManager->GetConfVars()->GatherWithAVPLClustering)
 				{
-					if(m_pConfManager->GetConfVars()->GatherWithAVPLClustering)
+					if(m_ProfileFrame) m_pCPUFrameProfiler->Start();
+					if(m_pConfManager->GetConfVars()->UseLightTree)
 					{
-						if(m_pConfManager->GetConfVars()->UseLightTree)
-						{
-							m_pLightTree->Release();		
-							m_pLightTree->BuildTreeTweakNN(indirect_avpls, 0.f);
-							m_pLightTree->Color(indirect_avpls, m_pConfManager->GetConfVars()->ClusterDepth);
-						}
-						else
-						{
-							m_pClusterTree->Release();		
-							m_pClusterTree->BuildTree(indirect_avpls);
-							m_pClusterTree->Color(indirect_avpls, m_pConfManager->GetConfVars()->ClusterDepth);
-						}
+						m_pLightTree->Release();		
+						m_pLightTree->BuildTreeTweakNN(indirect_avpls, 0.f);
+						m_pLightTree->Color(indirect_avpls, m_pConfManager->GetConfVars()->ClusterDepth);
+					}
+					else
+					{
+						m_pClusterTree->Release();		
+						m_pClusterTree->BuildTree(indirect_avpls);
+						m_pClusterTree->Color(indirect_avpls, m_pConfManager->GetConfVars()->ClusterDepth);
+					}
+					if(m_ProfileFrame) m_pCPUFrameProfiler->Stop("Profile Frame - Indirect Lighting - Light Clustering");
 
-						GatherWithClustering(indirect_avpls, m_pGatherIndirectLightRenderTarget);
-					}
-					else	
-					{
-						GatherWithAtlas(indirect_avpls, m_pGatherIndirectLightRenderTarget);
-					}
+					if(m_ProfileFrame) m_pGPUFrameProfiler->Start();
+					GatherWithClustering(indirect_avpls, m_pGatherIndirectLightRenderTarget);
 				}
-				else
+				else	
 				{
-					Gather(indirect_avpls, m_pGatherIndirectLightRenderTarget);
+					if(m_ProfileFrame) m_pGPUFrameProfiler->Start();
+					GatherWithAtlas(indirect_avpls, m_pGatherIndirectLightRenderTarget);
 				}
 			}
-		}			
-					
+			else
+			{
+				if(m_ProfileFrame) m_pGPUFrameProfiler->Start();
+				Gather(indirect_avpls, m_pGatherIndirectLightRenderTarget);
+			}
+		}
+		
 		if(m_pConfManager->GetConfVars()->DrawLights)
 			DrawLights(avpls);
-		
-		indirect_avpls.clear();
-		direct_avpls.clear();
+						
+		if(m_ProfileFrame) m_pGPUFrameProfiler->Stop("Profile Frame - Indirect Lighting - Gather");
 
 		for(uint i = 0; i < avpls.size(); ++i)
 		{
 			delete avpls[i];
 		}
 
+		indirect_avpls.clear();	
 		avpls.clear();
 
-		if(m_CurrentPath >= m_pConfManager->GetConfVars()->NumPaths && !m_Finished)
+		if(m_CurrentPath >= m_pConfManager->GetConfVars()->NumPaths && !m_FinishedIndirectLighting)
 		{
-			std::cout << "Finished." << std::endl;
-			m_Finished = true;
+			std::cout << "Finished indirect lighting." << std::endl;
+			m_FinishedIndirectLighting = true;
 		}
 	}	
-		
-	Normalize(m_pNormalizeDirectLightRenderTarget, m_pGatherDirectLightRenderTarget);
-	Normalize(m_pNormalizeIndirectLightRenderTarget, m_pGatherIndirectLightRenderTarget);
 
+	/* direct lighting */
+	if(m_CurrentVPLDirect < m_pConfManager->GetConfVars()->NumVPLsDirectLight)
+	{
+		if(m_ProfileFrame) m_pCPUFrameProfiler->Start();
+		
+		std::vector<AVPL*> direct_avpls;
+		int remaining = m_pConfManager->GetConfVars()->NumVPLsDirectLight - m_CurrentVPLDirect;
+		if(remaining >= m_pConfManager->GetConfVars()->NumVPLsDirectLightPerFrame)
+		{
+			direct_avpls = scene->CreatePrimaryVpls(m_pConfManager->GetConfVars()->NumVPLsDirectLightPerFrame);
+			m_CurrentVPLDirect += m_pConfManager->GetConfVars()->NumVPLsDirectLightPerFrame;
+		}
+		else
+		{
+			 direct_avpls = scene->CreatePrimaryVpls(remaining);
+			 m_CurrentVPLDirect += remaining;
+		}
+		if(m_ProfileFrame) std::cout << "Profile Frame - Direct Lighting - NumLights: " << direct_avpls.size() << std::endl;
+		if(m_ProfileFrame) m_pCPUFrameProfiler->Stop("Profile Frame - Direct Lighting - Light Creation");
+
+		if(m_ProfileFrame) m_pGPUFrameProfiler->Start();
+		GatherRadianceWithShadowMap(direct_avpls, m_pGatherDirectLightRenderTarget);
+		if(m_ProfileFrame) m_pGPUFrameProfiler->Stop("Profile Frame - Direct Lighting - Gather");
+
+		direct_avpls.clear();
+		
+		if(m_CurrentVPLDirect >= m_pConfManager->GetConfVars()->NumVPLsDirectLight && !m_FinishedDirectLighting)
+		{
+			std::cout << "Finished direct lighting." << std::endl;
+			m_FinishedDirectLighting = true;
+		}
+	}	
+	
+	int normFactorDirect = std::min(m_CurrentVPLDirect, m_pConfManager->GetConfVars()->NumVPLsDirectLight * m_pConfManager->GetConfVars()->NumVPLsDirectLightPerFrame);
+	int normFactorIndirect = std::min(m_CurrentPath, m_pConfManager->GetConfVars()->NumPaths * m_pConfManager->GetConfVars()->NumPathsPerFrame);
+	
+	Normalize(m_pNormalizeDirectLightRenderTarget, m_pGatherDirectLightRenderTarget, normFactorDirect);
+	Normalize(m_pNormalizeIndirectLightRenderTarget, m_pGatherIndirectLightRenderTarget, normFactorIndirect);
+	
 	Shade(m_pShadeDirectLightRenderTarget, m_pNormalizeDirectLightRenderTarget);
 	Shade(m_pShadeIndirectLightRenderTarget, m_pNormalizeIndirectLightRenderTarget);
 	
 	Add(m_pShadeRenderTarget, m_pShadeDirectLightRenderTarget, m_pShadeIndirectLightRenderTarget);
-
+	
 	m_pTextureViewer->DrawTexture(m_pShadeRenderTarget->GetBuffer(0), 0, 0, camera->GetWidth(), camera->GetHeight());
 	
 	if(m_pConfManager->GetConfVars()->DrawDirectLight)
@@ -885,7 +929,7 @@ void Renderer::RenderDirectIndirectLight()
 			m_pTextureViewer->DrawTexture(m_pOctahedronAtlas->GetAVPLClusterAtlasCPU(), 0, 0, camera->GetWidth(), camera->GetHeight());
 	}
 
-	if(m_CurrentPath % 10000 == 0 && m_CurrentPath > 0 && !m_Finished)
+	if(m_CurrentPath % 100000 == 0 && m_CurrentPath > 0 && !m_FinishedIndirectLighting)
 	{
 		double time = m_pGlobalTimer->GetTime();
 		std::stringstream ss1, ss2, ss3;
@@ -897,7 +941,9 @@ void Renderer::RenderDirectIndirectLight()
 		m_Export->ExportPFM(m_pShadeIndirectLightRenderTarget->GetBuffer(0), ss3.str());
 
 		std::cout << "# paths: " << m_CurrentPath << ", time: " << time << "ms" << std::endl;
-	}	
+	}
+
+	m_ProfileFrame = false;
 }
 
 void Renderer::SetUpRender()
@@ -939,9 +985,15 @@ void Renderer::GatherRadianceWithShadowMap(std::vector<AVPL*> path, CRenderTarge
 	}
 }
 
-void Renderer::Normalize(CRenderTarget* pTarget, CRenderTarget* source)
+void Renderer::Normalize(CRenderTarget* pTarget, CRenderTarget* source, int normFactor)
 {
-	ConfigureLighting();	
+	CONFIG conf;
+	conf.GeoTermLimit = m_pConfManager->GetConfVars()->GeoTermLimit;
+	conf.UseAntiradiance = m_pConfManager->GetConfVars()->UseAntiradiance ? 1 : 0;
+	conf.nPaths = normFactor;
+	conf.N = m_pConfManager->GetConfVars()->ConeFactor;
+	m_pUBConfig->UpdateData(&conf);
+	
 	{
 		CRenderTargetLock lock(pTarget);
 
@@ -1016,8 +1068,6 @@ std::vector<AVPL*> Renderer::DetermineUsedAvpls(std::vector<AVPL*> avpls)
 
 void Renderer::Gather(std::vector<AVPL*> avpls, CRenderTarget* pRenderTarget)
 {
-	CTimer cpuTimer(CTimer::CPU);
-	cpuTimer.Start();
 	try
 	{
 		AVPL_BUFFER* avplBuffer = new AVPL_BUFFER[avpls.size()];
@@ -1036,7 +1086,6 @@ void Renderer::Gather(std::vector<AVPL*> avpls, CRenderTarget* pRenderTarget)
 		std::cout << "bad_alloc exception at Renderer::Gather()" << std::endl;
 		return;
 	}
-	//cpuTimer.Stop("SetLightBufferContent");
 		
 	INFO info;
 	info.numLights = (int)avpls.size();
@@ -1056,12 +1105,7 @@ void Renderer::Gather(std::vector<AVPL*> avpls, CRenderTarget* pRenderTarget)
 	COGLBindLock lock1(m_pGBuffer->GetNormalTexture(), COGL_TEXTURE1_SLOT);
 	COGLBindLock lock2(m_pOGLLightBuffer, COGL_TEXTURE2_SLOT);
 
-	CTimer gpuTimer(CTimer::OGL);
-	gpuTimer.Start();
-	
 	m_pFullScreenQuad->Draw();
-
-	//gpuTimer.Stop("Render");
 
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
@@ -1137,22 +1181,13 @@ void Renderer::GatherWithAtlas(std::vector<AVPL*> avpls, CRenderTarget* pRenderT
 		
 		if(m_pConfManager->GetConfVars()->FillAvplAltasOnGPU == 1)
 		{
-			COGLBindLock lock3(m_pOctahedronAtlas->GetAVPLAtlas(), COGL_TEXTURE3_SLOT);
-			CTimer gpuTimer(CTimer::OGL);
-			gpuTimer.Start();
-	
+			COGLBindLock lock3(m_pOctahedronAtlas->GetAVPLAtlas(), COGL_TEXTURE3_SLOT);			
 			m_pFullScreenQuad->Draw();
-
-			gpuTimer.Stop("Render");
 		}
 		else
 		{
 			COGLBindLock lock3(m_pOctahedronAtlas->GetAVPLAtlasCPU(), COGL_TEXTURE3_SLOT);
-			CTimer gpuTimer(CTimer::OGL);
-			
-			gpuTimer.Start();
 			m_pFullScreenQuad->Draw();
-			gpuTimer.Stop("Render");
 		}
 				
 		glEnable(GL_DEPTH_TEST);
@@ -1183,11 +1218,6 @@ void Renderer::GatherWithClustering(std::vector<AVPL*> avpls, CRenderTarget* pRe
 
 	try
 	{
-		CTimer cpuTimer(CTimer::CPU);
-		CTimer gpuTimer(CTimer::OGL);
-		cpuTimer.Start();
-		gpuTimer.Start();
-
 		// fill light information
 		AVPL_BUFFER* avplBuffer = new AVPL_BUFFER[clampAvpls.size()];
 		memset(avplBuffer, 0, sizeof(AVPL_BUFFER) * clampAvpls.size());
@@ -1223,24 +1253,17 @@ void Renderer::GatherWithClustering(std::vector<AVPL*> avpls, CRenderTarget* pRe
 		}
 		m_pOGLClusterBuffer->SetContent(clusterBuffer, sizeof(CLUSTER_BUFFER) * clusteringSize);
 		
-		cpuTimer.Stop("FillBuffers (CPU timer)");
-		gpuTimer.Stop("FillBuffers (GPU timer)");
-
 		// create the avpl and cluster atlas
 		m_pOctahedronAtlas->Clear();
 		if(m_pConfManager->GetConfVars()->FillAvplAltasOnGPU)
 		{
-			m_pOCLTimer->Start();
 			m_pOctahedronAtlas->FillAtlasGPU(avplBuffer, (int)clampAvpls.size(), m_pConfManager->GetConfVars()->NumSqrtAtlasSamples,
 				float(m_pConfManager->GetConfVars()->ConeFactor), m_pConfManager->GetConfVars()->FilterAvplAtlasLinear == 1 ? true : false);
-			m_pOCLTimer->Stop("FillAtlasGPU");
-
-			m_pOCLTimer->Start();
+			
 			if(m_pConfManager->GetConfVars()->UseLightTree)
 				m_pOctahedronAtlas->FillClusterAtlasGPU(m_pLightTree->GetClustering(), m_pLightTree->GetClusteringSize(), (int)clampAvpls.size());
 			else
 				m_pOctahedronAtlas->FillClusterAtlasGPU(m_pClusterTree->GetClustering(), m_pClusterTree->GetClusteringSize(), (int)clampAvpls.size());
-			m_pOCLTimer->Stop("FillClusterAtlasGPU");
 		}
 		else
 		{
@@ -1298,18 +1321,14 @@ void Renderer::GatherWithClustering(std::vector<AVPL*> avpls, CRenderTarget* pRe
 			COGLBindLock lock4(m_pOctahedronAtlas->GetAVPLAtlas(), COGL_TEXTURE4_SLOT);
 			COGLBindLock lock5(m_pOctahedronAtlas->GetAVPLClusterAtlas(), COGL_TEXTURE5_SLOT);
 	
-			gpuTimer.Start();
 			m_pFullScreenQuad->Draw();
-			gpuTimer.Stop("Render");
 		}
 		else
 		{
 			COGLBindLock lock4(m_pOctahedronAtlas->GetAVPLAtlasCPU(), COGL_TEXTURE4_SLOT);
 			COGLBindLock lock5(m_pOctahedronAtlas->GetAVPLClusterAtlasCPU(), COGL_TEXTURE5_SLOT);
 			
-			gpuTimer.Start();
 			m_pFullScreenQuad->Draw();
-			gpuTimer.Stop("Render");
 		}
 				
 		glEnable(GL_DEPTH_TEST);
@@ -1538,14 +1557,20 @@ void Renderer::ClearAccumulationBuffer()
 	}
 
 	m_CurrentPath = 0;
+	m_CurrentVPLDirect = 0;
 	m_Finished = false;
+	m_FinishedDirectLighting = false;
+	m_FinishedIndirectLighting = false;
 }
 
 void Renderer::ClearLighting()
 {
 	scene->ClearLighting();
 	m_CurrentPath = 0;
+	m_CurrentVPLDirect = 0;
 	m_Finished = false;
+	m_FinishedDirectLighting = false;
+	m_FinishedIndirectLighting = false;
 		
 	ClearAccumulationBuffer();
 	/*
@@ -1581,7 +1606,7 @@ void Renderer::ConfigureLighting()
 	CONFIG conf;
 	conf.GeoTermLimit = m_pConfManager->GetConfVars()->GeoTermLimit;
 	conf.UseAntiradiance = m_pConfManager->GetConfVars()->UseAntiradiance ? 1 : 0;
-	conf.nPaths = std::min(m_CurrentPath, m_pConfManager->GetConfVars()->NumPaths * m_pConfManager->GetConfVars()->NumPathsPerFrame);
+	conf.nPaths = m_CurrentPath;
 	conf.N = m_pConfManager->GetConfVars()->ConeFactor;
 	m_pUBConfig->UpdateData(&conf);
 }
@@ -1656,4 +1681,9 @@ void Renderer::InitDebugLights()
 void Renderer::SetConfigManager(CConfigManager* pConfManager)
 {
 	m_pConfManager = pConfManager;
+}
+
+void Renderer::UpdateAreaLights()
+{
+	scene->UpdateAreaLights();
 }

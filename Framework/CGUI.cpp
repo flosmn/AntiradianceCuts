@@ -72,7 +72,14 @@ bool CGUI::Init(uint window_width, uint window_height)
 	TwAddVarRW(m_pTwBar, "Sep D/I Light", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->SeparateDirectIndirectLighting), " min=0 max=1 step=1 ");
 	TwAddVarRW(m_pTwBar, "Draw Direct Light", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawDirectLight), " min=0 max=1 step=1 ");
 	TwAddVarRW(m_pTwBar, "Draw Indirect Light", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawIndirectLight), " min=0 max=1 step=1 ");
+	TwAddVarRW(m_pTwBar, "#VPLs DL", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumVPLsDirectLight), " min=0 max=10000 step=1 ");
+	TwAddVarRW(m_pTwBar, "#VPLs DL Per Frame", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumVPLsDirectLightPerFrame), " min=0 max=10000 step=1 ");
 
+	TwAddSeparator(m_pTwBar, "", "");
+	TwAddVarRW(m_pTwBar, "AreaLight Front", TW_TYPE_DIR3F, &(m_pConfigManager->GetConfVarsGUI()->AreaLightFrontDirection), " ");
+	TwAddVarRW(m_pTwBar, "AreaLight Pos X", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->AreaLightPosX), " ");
+	TwAddVarRW(m_pTwBar, "AreaLight Pos Y", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->AreaLightPosY), " ");
+	TwAddVarRW(m_pTwBar, "AreaLight Pos Z", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->AreaLightPosZ), " ");
 	return true;
 }
 

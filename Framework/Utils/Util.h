@@ -28,6 +28,8 @@ glm::vec3 SampleConeDirection(const glm::vec3& axis, const float& theta, const f
 glm::vec2 ConcentricSampleDisk(float u1, float u2);
 
 glm::mat3 ComputeTangentSpace(const glm::vec3& n );
+glm::vec3 NeverCoLinear(const glm::vec3& v);
+glm::vec3 Orthogonal(const glm::vec3 &v);
 
 float map(float x, float x0, float x1, float y0, float y1);
 

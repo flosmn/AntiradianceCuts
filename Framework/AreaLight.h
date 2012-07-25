@@ -37,12 +37,16 @@ public:
 
 	float GetArea() { return area; }
 
+	void SetCenterPosition(glm::vec3 pos);
+	void SetFrontDirection(glm::vec3 dir);
+
 	void SetFlux(glm::vec3 _flux);
 	void SetIntensity(glm::vec3 _intensity);
 	void SetRadiance(glm::vec3 _radiance);
 
 private:
-		
+	void UpdateWorldTransform();
+
 	CModel* m_pAreaLightModel;
 	float width;
 	float height;

@@ -162,15 +162,28 @@ glm::vec3 SampleConeDirection(const glm::vec3& axis, const float& theta, const f
 }
 
 glm::mat3 ComputeTangentSpace(const glm::vec3& n ) {
-	glm::vec3 NeverCoLinear;
-	NeverCoLinear.x = n.y;
-	NeverCoLinear.y = n.z;
-	NeverCoLinear.z = -n.x;
+	glm::vec3 nev = NeverCoLinear(n);
 
-	glm::vec3 T = glm::normalize( glm::cross( NeverCoLinear, n ) );
+	glm::vec3 T = glm::normalize( glm::cross( nev, n ) );
 	glm::vec3 B = glm::cross( n, T );
 	
 	return glm::transpose(glm::mat3( T, B, n ));
+}
+
+glm::vec3 NeverCoLinear(const glm::vec3& v)
+{
+	glm::vec3 n;
+	n.x = v.y;
+	n.y = v.z;
+	n.z = -v.x;
+
+	return n;
+}
+
+glm::vec3 Orthogonal(const glm::vec3& v)
+{
+	glm::vec3 n = NeverCoLinear(v);
+	return glm::normalize(glm::cross(n, v));
 }
 
 float map(float x, float x0, float x1, float y0, float y1) {

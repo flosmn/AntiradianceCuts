@@ -63,6 +63,8 @@ public:
 	void ClearLighting();
 
 	void PrintCameraConfig();
+
+	void UpdateAreaLights();
 			
 	void ConfigureLighting();
 
@@ -76,6 +78,8 @@ public:
 	
 	void ClusteringTestRender();
 
+	void ProfileFrame() { m_ProfileFrame = true; }
+
 private:
 	// functions of the render phase
 	void SetUpRender();
@@ -84,7 +88,7 @@ private:
 	void Gather(std::vector<AVPL*> path, CRenderTarget* pRenderTarget);
 	void GatherWithAtlas(std::vector<AVPL*> path, CRenderTarget* pRenderTarget);
 	void GatherWithClustering(std::vector<AVPL*> path, CRenderTarget* pRenderTarget);
-	void Normalize(CRenderTarget* pTarget, CRenderTarget* source);
+	void Normalize(CRenderTarget* pTarget, CRenderTarget* source, int normFactor);
 	void Shade(CRenderTarget* target, CRenderTarget* source);	
 	void Add(CRenderTarget* target, CRenderTarget* source1, CRenderTarget* source2);
 
@@ -101,7 +105,7 @@ private:
 	void GatherRadianceFromLightWithShadowMap(AVPL* avpl, CRenderTarget* pRenderTarget);
 	void FillShadowMap(AVPL* avpl);
 	void DrawLights(std::vector<AVPL*> avpl);
-	
+		
 	glm::vec4 ColorForLight(AVPL* light);
 	
 	void ExportPartialResult();
@@ -180,8 +184,12 @@ private:
 
 	int m_Frame;
 	int m_CurrentPath;
-		
+	int m_CurrentVPLDirect;
+	
 	bool m_Finished;
+	bool m_FinishedDirectLighting;
+	bool m_FinishedIndirectLighting;
+	bool m_ProfileFrame;
 
 	time_t m_StartTime;
 
@@ -197,6 +205,8 @@ private:
 	CTimer* m_pOGLTimer;
 	CTimer* m_pCPUTimer;
 	CTimer* m_pGlobalTimer;
+	CTimer* m_pCPUFrameProfiler;
+	CTimer* m_pGPUFrameProfiler;
 };
 
 #endif

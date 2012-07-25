@@ -11,6 +11,7 @@ typedef unsigned int uint;
 #include "CKdTreeAccelerator.h"
 #include "CPbrtKdTreeAccelerator.h"
 #include "CPrimitive.h"
+#include "CConfigManager.h"
 
 #include "OGLResources\COGLUniformBuffer.h"
 
@@ -24,9 +25,10 @@ typedef unsigned int uint;
 #include <iostream>
 #include <algorithm>
 
-Scene::Scene(CCamera* _camera)
+Scene::Scene(CCamera* _camera, CConfigManager* pConfManager)
 {
 	m_Camera = _camera;
+	m_pConfManager = pConfManager;
 	m_CurrentBounce = 0;
 	m_pKdTreeAccelerator = 0;
 	m_pPbrtKdTreeAccelerator = 0;
@@ -271,8 +273,7 @@ std::vector<AVPL*> Scene::CreatePrimaryVpls(int numVpls)
 	std::vector<AVPL*> vpls;
 	for(int i = 0; i < numVpls; ++i)
 	{
-		AVPL* avpl = CreateAVPL(0, 30, 0);
-		avpl->SetIntensity(1.f / float(numVpls) * avpl->GetIntensity(avpl->GetOrientation()));
+		AVPL* avpl = CreateAVPL(0, 0, 0);
 		vpls.push_back(avpl);
 	}
 
@@ -345,11 +346,22 @@ void Scene::LoadCornellBox()
 		glm::vec3(278.f, 273.f, 270.f),
 		2.0f);
 	
-	m_AreaLight = new AreaLight(140.0f, 100.0f, 
-		glm::vec3(270.f, 550.0f, 280.f), 
-		glm::vec3(0.0f, -1.0f, 0.0f),
-		glm::vec3(0.0f, 0.0f, 1.0f));
+	glm::vec3 areaLightFrontDir = glm::vec3(0.0f, -1.0f, 0.0f);
+	glm::vec3 areaLightPosition = glm::vec3(270.f, 550.0f, 280.f);
 	
+	m_pConfManager->GetConfVars()->AreaLightFrontDirection[0] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[0] = areaLightFrontDir.x;
+	m_pConfManager->GetConfVars()->AreaLightFrontDirection[1] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[1] = areaLightFrontDir.y;
+	m_pConfManager->GetConfVars()->AreaLightFrontDirection[2] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[2] = areaLightFrontDir.z;
+
+	m_pConfManager->GetConfVars()->AreaLightPosX = m_pConfManager->GetConfVarsGUI()->AreaLightPosX = areaLightPosition.x;
+	m_pConfManager->GetConfVars()->AreaLightPosY = m_pConfManager->GetConfVarsGUI()->AreaLightPosY = areaLightPosition.y;
+	m_pConfManager->GetConfVars()->AreaLightPosZ = m_pConfManager->GetConfVarsGUI()->AreaLightPosZ = areaLightPosition.z;
+
+	m_AreaLight = new AreaLight(140.0f, 100.0f, 
+		areaLightPosition, 
+		areaLightFrontDir,
+		Orthogonal(areaLightFrontDir));
+
 	m_AreaLight->SetRadiance(glm::vec3(100.f, 100.f, 100.f));
 
 	m_AreaLight->Init();
@@ -370,13 +382,30 @@ void Scene::LoadSibernik()
 	m_Camera->Init(glm::vec3(-16.f, -5.f, 0.f), 
 		glm::vec3(0.f, -10.f, 0.f),
 		1.0f);
-	
+	/*
 	m_AreaLight = new AreaLight(0.25f, 0.25f, 
 		glm::vec3(0.f, 2.0f, 0.f), 
 		glm::vec3(0.0f, -1.0f, 0.0f),
 		glm::vec3(0.0f, 0.0f, 1.0f));
+	*/
 	
-	m_AreaLight->SetRadiance(glm::vec3(8000.f, 8000.f, 8000.f));
+	glm::vec3 areaLightFrontDir = glm::vec3(0.f, 0.f, 1.f);
+	glm::vec3 areaLightPosition = glm::vec3(0.f, -10.f, 3.f);
+	
+	m_pConfManager->GetConfVars()->AreaLightFrontDirection[0] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[0] = areaLightFrontDir.x;
+	m_pConfManager->GetConfVars()->AreaLightFrontDirection[1] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[1] = areaLightFrontDir.y;
+	m_pConfManager->GetConfVars()->AreaLightFrontDirection[2] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[2] = areaLightFrontDir.z;
+
+	m_pConfManager->GetConfVars()->AreaLightPosX = m_pConfManager->GetConfVarsGUI()->AreaLightPosX = areaLightPosition.x;
+	m_pConfManager->GetConfVars()->AreaLightPosY = m_pConfManager->GetConfVarsGUI()->AreaLightPosY = areaLightPosition.y;
+	m_pConfManager->GetConfVars()->AreaLightPosZ = m_pConfManager->GetConfVarsGUI()->AreaLightPosZ = areaLightPosition.z;
+
+	m_AreaLight = new AreaLight(0.25f, 0.25f, 
+		areaLightPosition, 
+		areaLightFrontDir,
+		Orthogonal(areaLightFrontDir));
+	
+	m_AreaLight->SetRadiance(glm::vec3(2000.f, 2000.f, 2000.f));
 
 	m_AreaLight->Init();
 
@@ -425,4 +454,19 @@ void Scene::ReleaseKdTree()
 	}
 
 	m_Primitives.clear();
+}
+
+void Scene::UpdateAreaLights()
+{
+	glm::vec3 pos = glm::vec3(
+		m_pConfManager->GetConfVars()->AreaLightPosX, 
+		m_pConfManager->GetConfVars()->AreaLightPosY, 
+		m_pConfManager->GetConfVars()->AreaLightPosZ); 
+	m_AreaLight->SetCenterPosition(pos);
+
+	glm::vec3 front = glm::vec3(
+		m_pConfManager->GetConfVars()->AreaLightFrontDirection[0],
+		m_pConfManager->GetConfVars()->AreaLightFrontDirection[1],
+		m_pConfManager->GetConfVars()->AreaLightFrontDirection[2]);
+	m_AreaLight->SetFrontDirection(front);
 }

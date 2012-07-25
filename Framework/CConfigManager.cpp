@@ -29,6 +29,9 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->Gamma = m_pConfVarsGUI->Gamma = 2.2f;
 	m_pConfVars->Exposure = m_pConfVarsGUI->Exposure = 1.f;
 
+	m_pConfVars->NumVPLsDirectLight = m_pConfVarsGUI->NumVPLsDirectLight = 50;
+	m_pConfVars->NumVPLsDirectLightPerFrame = m_pConfVarsGUI->NumVPLsDirectLightPerFrame = 1;
+
 	m_pConfVars->NumPaths = m_pConfVarsGUI->NumPaths = 1;
 	m_pConfVars->NumPathsPerFrame = m_pConfVarsGUI->NumPathsPerFrame = 1;
 	m_pConfVars->NumAdditionalAVPLs = m_pConfVarsGUI->NumAdditionalAVPLs = 0;
@@ -48,6 +51,14 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->SeparateDirectIndirectLighting = m_pConfVarsGUI->SeparateDirectIndirectLighting = 0;
 	m_pConfVars->DrawDirectLight = m_pConfVarsGUI->DrawDirectLight = 0;
 	m_pConfVars->DrawIndirectLight = m_pConfVarsGUI->DrawIndirectLight = 0;
+
+	m_pConfVars->AreaLightFrontDirection[0] = m_pConfVarsGUI->AreaLightFrontDirection[0] = 0.f;
+	m_pConfVars->AreaLightFrontDirection[1] = m_pConfVarsGUI->AreaLightFrontDirection[1] = 0.f;
+	m_pConfVars->AreaLightFrontDirection[2] = m_pConfVarsGUI->AreaLightFrontDirection[2] = 0.f;
+	
+	m_pConfVars->AreaLightPosX = m_pConfVarsGUI->AreaLightPosX = 0.f;
+	m_pConfVars->AreaLightPosY = m_pConfVarsGUI->AreaLightPosY = 0.f;
+	m_pConfVars->AreaLightPosZ = m_pConfVarsGUI->AreaLightPosZ = 0.f;
 }
 
 CConfigManager::~CConfigManager()
@@ -61,6 +72,7 @@ void CConfigManager::Update()
 	bool configureLighting = false;
 	bool clearLighting = false;
 	bool clearAccumBuffer = false;
+	bool updateAreaLight = false;
 
 	if(m_pConfVarsGUI->GeoTermLimit != m_pConfVars->GeoTermLimit)
 	{
@@ -198,6 +210,22 @@ void CConfigManager::Update()
 		clearLighting = true;
 	}
 
+	if(m_pConfVarsGUI->NumVPLsDirectLight != m_pConfVars->NumVPLsDirectLight)
+	{
+		m_pConfVars->NumVPLsDirectLight = m_pConfVarsGUI->NumVPLsDirectLight;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->NumVPLsDirectLightPerFrame != m_pConfVars->NumVPLsDirectLightPerFrame)
+	{
+		m_pConfVars->NumVPLsDirectLightPerFrame = m_pConfVarsGUI->NumVPLsDirectLightPerFrame;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+
 	if(m_pConfVarsGUI->NumPaths != m_pConfVars->NumPaths)
 	{
 		m_pConfVars->NumPaths = m_pConfVarsGUI->NumPaths;
@@ -295,6 +323,47 @@ void CConfigManager::Update()
 		clearAccumBuffer = true;
 	}
 
+	if(m_pConfVarsGUI->AreaLightFrontDirection[0] != m_pConfVars->AreaLightFrontDirection[0] 
+		|| m_pConfVarsGUI->AreaLightFrontDirection[1] != m_pConfVars->AreaLightFrontDirection[1]
+		|| m_pConfVarsGUI->AreaLightFrontDirection[2] != m_pConfVars->AreaLightFrontDirection[2])
+	{
+		m_pConfVars->AreaLightFrontDirection[0] = m_pConfVarsGUI->AreaLightFrontDirection[0];
+		m_pConfVars->AreaLightFrontDirection[1] = m_pConfVarsGUI->AreaLightFrontDirection[1];
+		m_pConfVars->AreaLightFrontDirection[2] = m_pConfVarsGUI->AreaLightFrontDirection[2];
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+		updateAreaLight = true;
+	}
+
+	if(m_pConfVarsGUI->AreaLightPosX != m_pConfVars->AreaLightPosX)
+	{
+		m_pConfVars->AreaLightPosX = m_pConfVarsGUI->AreaLightPosX;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+		updateAreaLight = true;
+	}
+
+	if(m_pConfVarsGUI->AreaLightPosY != m_pConfVars->AreaLightPosY)
+	{
+		m_pConfVars->AreaLightPosY = m_pConfVarsGUI->AreaLightPosY;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+		updateAreaLight = true;
+	}
+
+	if(m_pConfVarsGUI->AreaLightPosZ != m_pConfVars->AreaLightPosZ)
+	{
+		m_pConfVars->AreaLightPosZ = m_pConfVarsGUI->AreaLightPosZ;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+		updateAreaLight = true;
+	}
+
+	if(updateAreaLight) m_pRenderer->UpdateAreaLights();
 	if(clearLighting) m_pRenderer->ClearLighting();
 	if(clearAccumBuffer) m_pRenderer->ClearAccumulationBuffer();
 	if(configureLighting) m_pRenderer->ConfigureLighting();

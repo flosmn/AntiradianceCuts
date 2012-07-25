@@ -460,7 +460,12 @@ bool HandleKeyEvent(WPARAM wParam)
 
 			g_pCamera->PrintConfig();
 			return true; break;
-			
+		
+		case 'P':
+
+			g_pRenderer->ProfileFrame();
+			return true; break;
+
 		default: break;
     }
 	

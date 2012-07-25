@@ -17,6 +17,7 @@ class AVPL;
 class AreaLight;
 class CKdTreeAccelerator;
 class CPbrtKdTreeAccel;
+class CConfigManager;
 
 class COGLUniformBuffer;
 
@@ -25,7 +26,7 @@ class CModel;
 class Scene
 {
 public:
-	Scene(CCamera* pCamera);
+	Scene(CCamera* pCamera, CConfigManager* pConfManager);
 	~Scene();
 	
 	bool Init();
@@ -39,6 +40,8 @@ public:
 	void DrawScene(const glm::mat4& mView, const glm::mat4& mProj, COGLUniformBuffer* pUBTransform);
 
 	void DrawAreaLight(COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBAreaLight);
+
+	void UpdateAreaLights();
 
 	void LoadCornellBox();
 	void LoadSibernik();
@@ -79,6 +82,7 @@ private:
 	CPbrtKdTreeAccel* m_pPbrtKdTreeAccelerator;
 	std::vector<CPrimitive*> m_Primitives;
 
+	CConfigManager* m_pConfManager;
 };
 
 #endif SCENE_H

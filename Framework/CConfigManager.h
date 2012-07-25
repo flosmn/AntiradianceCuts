@@ -21,6 +21,8 @@ struct CONF_VARS
 	int SeparateDirectIndirectLighting;
 	int DrawDirectLight;
 	int DrawIndirectLight;
+	int NumVPLsDirectLight;
+	int NumVPLsDirectLightPerFrame;
 	
 	float GeoTermLimit;
 	float Gamma;
@@ -41,6 +43,11 @@ struct CONF_VARS
 	int ClusterMethod;
 	float ClusterWeightNormals;
 	float ClusterRefinementThreshold;
+
+	float AreaLightFrontDirection[3];
+	float AreaLightPosX;
+	float AreaLightPosY;
+	float AreaLightPosZ;
 };
 
 class CConfigManager
