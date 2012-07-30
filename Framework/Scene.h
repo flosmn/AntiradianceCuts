@@ -16,7 +16,6 @@ class CCamera;
 class AVPL;
 class AreaLight;
 class CKdTreeAccelerator;
-class CPbrtKdTreeAccel;
 class CConfigManager;
 
 class COGLUniformBuffer;
@@ -46,6 +45,7 @@ public:
 	void LoadCornellBox();
 	void LoadSibernik();
 	void LoadSimpleScene();
+	void LoadCornellBoxDragon();
 		
 	CCamera* GetCamera() { return m_Camera; }
 
@@ -79,7 +79,6 @@ private:
 	AreaLight* m_AreaLight;
 
 	CKdTreeAccelerator* m_pKdTreeAccelerator;
-	CPbrtKdTreeAccel* m_pPbrtKdTreeAccelerator;
 	std::vector<CPrimitive*> m_Primitives;
 
 	CConfigManager* m_pConfManager;

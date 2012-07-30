@@ -78,7 +78,7 @@ void CKdTreeAccelerator::BuildTreeRecursive(int node, const BBox& nodeBounds,
 	// Get next free node from nodes array
 	if(m_NextFreeNode == m_NumAllocatedNodes)
 	{
-		int newNumAllocatedNodes = std::max(2 * m_NumAllocatedNodes, 512);
+		int newNumAllocatedNodes = std::max(2 * m_NumAllocatedNodes, 4096);
 		KdAccelNode* n = new KdAccelNode[newNumAllocatedNodes];
 		memset(n, 0, newNumAllocatedNodes * sizeof(KdAccelNode));
 
@@ -214,7 +214,7 @@ void CKdTreeAccelerator::InitializeInteriorNode(int node, const BBox& nodeBounds
 		edges, prims0, prims1 + numOverlappingPrimitives, badRefines);
 }
 
-bool CKdTreeAccelerator::Intersect(const Ray& ray, float *t, Intersection* pIntersection) const
+bool CKdTreeAccelerator::Intersect(const Ray& ray, float *t, Intersection* pIntersection, bool back_face_culling) const
 {
 	// compute initial parametric range of ray inside kd-tree extent
 	float t_min = std::numeric_limits<float>::max();
@@ -294,7 +294,7 @@ bool CKdTreeAccelerator::Intersect(const Ray& ray, float *t, Intersection* pInte
 				CPrimitive* primitive = m_Primitives[node->m_OnePrimitive];
 				float t_temp = 0.f;
 				Intersection isect_temp;
-				if(primitive->Intersect(ray, &t_temp, &isect_temp))
+				if(primitive->Intersect(ray, &t_temp, &isect_temp, back_face_culling))
 				{
 					if(t_temp < t_best && t_temp > 0.f) {
 						t_best = t_temp;
@@ -311,7 +311,7 @@ bool CKdTreeAccelerator::Intersect(const Ray& ray, float *t, Intersection* pInte
 					CPrimitive* primitive = m_Primitives[node->m_Primitives[i]];
 					float t_temp = 0.f;
 					Intersection isect_temp;
-					if(primitive->Intersect(ray, &t_temp, &isect_temp))
+					if(primitive->Intersect(ray, &t_temp, &isect_temp, back_face_culling))
 					{
 						if(t_temp < t_best && t_temp > 0.f) {
 							t_best = t_temp;

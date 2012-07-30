@@ -44,11 +44,11 @@ AreaLight::~AreaLight()
 bool AreaLight::Init()
 {
 	V_RET_FOF(m_pAreaLightModel->Init(new CQuadMesh()));
-
+	/*
 	MATERIAL* mat = new MATERIAL();
 	mat->diffuseColor = glm::vec4(GetRadiance(), 1.0f);
 	m_pAreaLightModel->SetMaterial(*mat);
-
+	*/
 	UpdateWorldTransform();
 
 	return true;

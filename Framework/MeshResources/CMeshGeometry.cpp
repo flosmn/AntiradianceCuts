@@ -15,7 +15,6 @@
 
 CMeshGeometry::CMeshGeometry()
 {
-	m_pMeshMaterial = nullptr;
 	m_pPositionData = nullptr;
 	m_pNormalData = nullptr;
 	m_pTexCoordData = nullptr;
@@ -83,19 +82,12 @@ void CMeshGeometry::PrintGeometryData()
 	{
 		for(uint i = 0; i < m_nFaces; ++i)
 		{
-			ushort i0 = m_pIndexData[3 * i + 0];
-			ushort i1 = m_pIndexData[3 * i + 1];
-			ushort i2 = m_pIndexData[3 * i + 2];
+			uint i0 = m_pIndexData[3 * i + 0];
+			uint i1 = m_pIndexData[3 * i + 1];
+			uint i2 = m_pIndexData[3 * i + 2];
 			std::cout << "f: (" << i0 << ", " << i1 << ", " << i2 << ")" << std::endl;
 		}
 	}
 
-	if(!m_pMeshMaterial)
-	{
-		std::cout << "no material data" << std::endl;
-	}
-	else
-	{
-		std::cout << "material: " << m_pMeshMaterial->GetMaterialName() << std::endl;
-	}
+	std::cout << "material: " << m_MeshMaterial.GetMaterialName() << std::endl;
 }

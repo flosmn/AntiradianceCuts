@@ -26,7 +26,7 @@ bool CFullScreenQuad::Init()
 
 	GLuint positionDataSize = sizeof(glm::vec4) * m_pFullScreenQuadMesh->GetNumberOfVertices();
 	GLuint textureDataSize = sizeof(glm::vec3) * m_pFullScreenQuadMesh->GetNumberOfVertices();
-	GLuint indexDataSize = sizeof(GLshort) * 3 * m_pFullScreenQuadMesh->GetNumberOfFaces();
+	GLuint indexDataSize = sizeof(GLuint) * 3 * m_pFullScreenQuadMesh->GetNumberOfFaces();
 
 	V_RET_FOF(m_pGLVARenderData->AddVertexDataChannel(0, 4));
 

@@ -80,22 +80,26 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(OPENCL_INC_PATH);C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v4.2\include;external/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_HAS_ITERATOR_DEBUGGING=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>external/include;C:\Program Files (x86)\AMD APP;$(CUDA_INC_PATH);$(OPENCL_INC_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_HAS_ITERATOR_DEBUGGING=0;_SECURE_SCL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ExceptionHandling>Sync</ExceptionHandling>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v4.2\lib\x64;$(OPENCL_LIB_PATH);external/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glew32.lib;glu32.lib;opengl32.lib;anttweakbar64.lib;opencl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v4.2\lib\x64;$(OPENCL_LIB_PATH);external/lib;external/lib/assimp_debug_x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>assimp.lib;glew32.lib;glu32.lib;opengl32.lib;anttweakbar64.lib;opencl.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "external\dll\AntTweakBar64.dll" "$(Outdir)" /Y
 xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
     </PostBuildEvent>
+    <ProjectReference>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -116,11 +120,15 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>C:\Program Files %28x86%29\AMD APP\include;external/include;$(OPENCL_INC_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_HAS_ITERATOR_DEBUGGING=0;_SECURE_SCL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>external/lib/assimp_release_x64;C:\Program Files %28x86%29\AMD APP\lib\x86_64;external/lib;$(CUDA_LIB_PATH);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>assimp.lib;glew32.lib;glu32.lib;opengl32.lib;anttweakbar64.lib;opencl.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -148,6 +156,10 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
     <ClCompile Include="CTriangle.cpp" />
     <ClCompile Include="guicon.cpp" />
     <ClCompile Include="LightTreeTypes.cpp" />
+    <ClCompile Include="OBJLoader\list.cpp" />
+    <ClCompile Include="OBJLoader\objLoader.cpp" />
+    <ClCompile Include="OBJLoader\obj_parser.cpp" />
+    <ClCompile Include="OBJLoader\string_extra.cpp" />
     <ClCompile Include="OCLResources\COCLTexture2D.cpp" />
     <ClCompile Include="CPostprocess.cpp" />
     <ClCompile Include="MeshResources\CFullScreenQuad.cpp" />
@@ -221,6 +233,10 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
     <ClInclude Include="MeshResources\CModel.h" />
     <ClInclude Include="MeshResources\CObjFileLoader.h" />
     <ClInclude Include="MeshResources\CSubModel.h" />
+    <ClInclude Include="OBJLoader\list.h" />
+    <ClInclude Include="OBJLoader\objLoader.h" />
+    <ClInclude Include="OBJLoader\obj_parser.h" />
+    <ClInclude Include="OBJLoader\string_extra.h" />
     <ClInclude Include="OCLResources\COCLBuffer.h" />
     <ClInclude Include="OCLResources\COCLContext.h" />
     <ClInclude Include="OCLResources\COCLKernel.h" />

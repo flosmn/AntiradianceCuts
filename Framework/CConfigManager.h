@@ -23,10 +23,13 @@ struct CONF_VARS
 	int DrawIndirectLight;
 	int NumVPLsDirectLight;
 	int NumVPLsDirectLightPerFrame;
-	
+	int AntiradFilterMode;
+	float AntiradFilterGaussFactor;
+
 	float GeoTermLimit;
 	float Gamma;
 	float Exposure;
+	int Intersection_BFC;
 	
 	int ConeFactor;
 	int NumPaths;

@@ -110,6 +110,9 @@ private:
 	
 	void ExportPartialResult();
 
+	float GetAntiradFilterNormFactor();
+	float IntegrateGauss();
+
 	CCamera *camera;
 	CCamera *m_pClusterRenderCamera;
 	Scene* scene;

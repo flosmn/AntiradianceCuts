@@ -21,10 +21,9 @@ uniform info_block
 uniform config
 {
 	float GeoTermLimit;
-	float BlurSigma;
-	float BlurK;
-	int UseAntiradiance;
-	int DrawAntiradiance;
+	float AntiradFilterK;
+	float AntiradFilterGaussFactor;
+	int AntiradFilterMode;	
 	int nPaths;
 	int N;
 	float Bias;
@@ -56,7 +55,8 @@ void main()
 	
 	const float N = float(uConfig.N);
 	const float PI_OVER_N = PI / N;
-	const float K = (PI * (1 - cos(PI_OVER_N))) / (PI - N * sin(PI_OVER_N));
+	const float N_OVER_PI = N / PI;
+	//const float K = (PI * (1 - cos(PI_OVER_N))) / (PI - N * sin(PI_OVER_N));
 	
 	vec3 vPositionWS = texture2D(samplerPositionWS, coord).xyz;
 	vec3 vNormalWS = normalize(texture2D(samplerNormalWS, coord).xyz);
@@ -77,7 +77,7 @@ void main()
 			texelFetch(samplerLightBuffer, i * size + 2).r,
 			texelFetch(samplerLightBuffer, i * size + 3).r);
 
-		const vec4 A = vec4(texelFetch(samplerLightBuffer, i * size + 4).r,
+		vec4 A = vec4(texelFetch(samplerLightBuffer, i * size + 4).r,
 			texelFetch(samplerLightBuffer, i * size + 5).r,
 			texelFetch(samplerLightBuffer, i * size + 6).r,
 			texelFetch(samplerLightBuffer, i * size + 7).r);
@@ -109,13 +109,25 @@ void main()
 			const float d_xz = length(vLightToPos);
 			vec3 w = normalize(vLightToPos);
 									
-			if(dot(w, w_A) > 0.01f)
+			if(dot(w, w_A) > 0.01f && dot(vNormalWS, w_A) < 0.0f)
 			{				
 				const float theta = acos(clamp(dot(w, w_A), 0, 1));
 				if(theta < PI_OVER_N)
 				{
 					const float cos_theta_xz = clamp(dot(vNormalWS, -w), 0, 1);
 					
+					if(uConfig.AntiradFilterMode == 1)
+					{
+						A = - 2 * A * uConfig.AntiradFilterK * (N_OVER_PI * theta - 1);
+					}
+					if(uConfig.AntiradFilterMode == 2)
+					{
+						const float M = uConfig.AntiradFilterGaussFactor;
+						const float s = PI / (M*N);
+						A = uConfig.AntiradFilterK * ( exp(-(theta*theta)/(s*s)) - exp(-(M*M)) ) * A;
+					}
+
+					//vec4 A_in = cos_theta_xz / (d_xz * d_xz) * A;
 					vec4 A_in = clamp(cos_theta_xz / (d_xz * d_xz), 0, uConfig.GeoTermLimit) * A;
 										
 					antiradiance = A_in;

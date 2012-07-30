@@ -43,13 +43,56 @@ bool CTriangle::IntersectBBox(const Ray& ray)
 	return intersection;
 }
 
-bool CTriangle::Intersect(const Ray& ray, float *t, Intersection* pIntersection)
+bool CTriangle::Intersect(const Ray& ray, float *t, Intersection* pIntersection, bool back_face_culling)
 {
+	if(!back_face_culling)
+	{
+		bool isect_bf = IntersectBackFace(ray, t, pIntersection);
+		
+		if(isect_bf) 
+			return true;
+	}
+	
 	float epsilon = 0.0001f;
 
 	glm::vec3 vec_p, vec_t, vec_q;
 	glm::vec3 e1 = m_P2 - m_P0;
 	glm::vec3 e2 = m_P1 - m_P0;
+
+	vec_p = glm::cross(ray.d, e2);
+
+	float det = glm::dot(e1, vec_p);
+
+	if(det < epsilon && det > -epsilon) return false;
+	
+	vec_t = ray.o - m_P0;
+
+	float u = glm::dot(vec_t, vec_p);
+
+	if(u < 0.0f || u > det) return false;
+
+	vec_q = glm::cross(vec_t, e1);
+
+	float v = glm::dot(ray.d, vec_q);
+
+	if(v < 0.0f || u + v > det) return false;
+
+	*t = glm::dot(e2, vec_q);
+	*t *= 1.0f/det;
+
+	pIntersection->SetPosition(ray.o + *t * ray.d);
+	pIntersection->SetPrimitive(this);
+
+	return true;
+}
+
+bool CTriangle::IntersectBackFace(const Ray& ray, float *t, Intersection* pIntersection)
+{
+	float epsilon = 0.0001f;
+
+	glm::vec3 vec_p, vec_t, vec_q;
+	glm::vec3 e1 = m_P1 - m_P0;
+	glm::vec3 e2 = m_P2 - m_P0;
 
 	vec_p = glm::cross(ray.d, e2);
 

@@ -37,10 +37,10 @@ void CPointCloud::Draw(glm::vec4* positionData, glm::vec4* colorData, uint nPoin
 	m_pVertexArray->AddVertexData(0, nPoints * sizeof(glm::vec4), positionData);
 	m_pVertexArray->AddVertexData(1, nPoints * sizeof(glm::vec4), colorData);
 
-	GLushort* indexData = new GLushort[nPoints];
-	for(uint i = 0; i < nPoints; ++i) indexData[i] = GLushort(i);
+	GLuint* indexData = new GLuint[nPoints];
+	for(uint i = 0; i < nPoints; ++i) indexData[i] = GLuint(i);
 
-	m_pVertexArray->AddIndexData(nPoints * sizeof(GLushort), indexData);
+	m_pVertexArray->AddIndexData(nPoints * sizeof(GLuint), indexData);
 
 	m_pVertexArray->Finish();
 

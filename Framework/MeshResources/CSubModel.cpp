@@ -26,31 +26,31 @@ CSubModel::~CSubModel()
 	SAFE_DELETE(m_pGLVARenderData);
 };
 
-bool CSubModel::Init(CMeshGeometry* pMeshGeometry) 
+bool CSubModel::Init(const CMeshGeometry& meshGeometry) 
 {
 	V_RET_FOF(m_pGLVARenderData->Init(GL_TRIANGLES));
 
-	uint nVertices = pMeshGeometry->GetNumberOfVertices();
-	m_nTriangles = pMeshGeometry->GetNumberOfFaces();
-	m_pMaterial = pMeshGeometry->GetMeshMaterial();
+	uint nVertices = meshGeometry.GetNumberOfVertices();
+	m_nTriangles = meshGeometry.GetNumberOfFaces();
+	m_Material = meshGeometry.GetMeshMaterial();
 
 	GLuint positionDataSize = sizeof(glm::vec4) * nVertices;
 	GLuint normalDataSize = sizeof(glm::vec3) * nVertices;
-	GLuint indexDataSize = sizeof(GLshort) * 3 * m_nTriangles;
+	GLuint indexDataSize = sizeof(GLuint) * 3 * m_nTriangles;
 	
 	V_RET_FOF(m_pGLVARenderData->AddVertexDataChannel(0, 4));
-	V_RET_FOF(m_pGLVARenderData->AddVertexData(0, positionDataSize, (void*)pMeshGeometry->GetPositionData()));
+	V_RET_FOF(m_pGLVARenderData->AddVertexData(0, positionDataSize, (void*)meshGeometry.GetPositionData()));
 
 	V_RET_FOF(m_pGLVARenderData->AddVertexDataChannel(1, 3));
-	V_RET_FOF(m_pGLVARenderData->AddVertexData(1, normalDataSize, (void*)pMeshGeometry->GetNormalData()));
+	V_RET_FOF(m_pGLVARenderData->AddVertexData(1, normalDataSize, (void*)meshGeometry.GetNormalData()));
 
 	V_RET_FOF(m_pGLVARenderData->AddIndexDataChannel());
-	V_RET_FOF(m_pGLVARenderData->AddIndexData(indexDataSize, (void*)pMeshGeometry->GetIndexData()));
+	V_RET_FOF(m_pGLVARenderData->AddIndexData(indexDataSize, (void*)meshGeometry.GetIndexData()));
 	
 	m_pGLVARenderData->Finish();
 
-	CreateTriangleData(pMeshGeometry->GetNumberOfFaces(), pMeshGeometry->GetIndexData(),
-		pMeshGeometry->GetPositionData(), pMeshGeometry->GetNormalData());
+	CreateTriangleData(meshGeometry.GetNumberOfFaces(), meshGeometry.GetIndexData(),
+		meshGeometry.GetPositionData(), meshGeometry.GetNormalData());
 
 	return true;
 }
@@ -61,11 +61,10 @@ bool CSubModel::Init(CMesh* pMesh)
 
 	uint nVertices = pMesh->GetNumberOfVertices();
 	m_nTriangles = pMesh->GetNumberOfFaces();
-	m_pMaterial = new CMeshMaterial();
-
+	
 	GLuint positionDataSize = sizeof(glm::vec4) * nVertices;
 	GLuint normalDataSize = sizeof(glm::vec3) * nVertices;
-	GLuint indexDataSize = sizeof(GLshort) * 3 * m_nTriangles;
+	GLuint indexDataSize = sizeof(GLuint) * 3 * m_nTriangles;
 	
 	V_RET_FOF(m_pGLVARenderData->AddVertexDataChannel(0, 4));
 	V_RET_FOF(m_pGLVARenderData->AddVertexData(0, positionDataSize, (void*)pMesh->GetPositionData()));
@@ -106,7 +105,7 @@ void CSubModel::Release()
 
 void CSubModel::Draw(COGLUniformBuffer* pUBMaterial) 
 {
-	MATERIAL material = m_pMaterial->GetMaterialData();
+	MATERIAL material = m_Material.GetMaterialData();
 	pUBMaterial->UpdateData(&material);
 	
 	Draw();
@@ -129,12 +128,12 @@ const std::vector<CTriangle*>& CSubModel::GetTrianglesWS() const
 
 void CSubModel::SetMaterial(const MATERIAL& mat)
 {
-	m_pMaterial->SetMaterialData(mat); 
+	m_Material.SetMaterialData(mat); 
 }
 
 MATERIAL CSubModel::GetMaterial() const
 {
-	return m_pMaterial->GetMaterialData(); 
+	return m_Material.GetMaterialData(); 
 }
 
 void CSubModel::SetWorldTransform(const glm::mat4& transform)
@@ -155,13 +154,13 @@ void CSubModel::SetWorldTransform(const glm::mat4& transform)
 			glm::vec3(m_WorldTransform * glm::vec4(triangleOS.P0(), 1.f)),
 			glm::vec3(m_WorldTransform * glm::vec4(triangleOS.P1(), 1.f)),
 			glm::vec3(m_WorldTransform * glm::vec4(triangleOS.P2(), 1.f)));
-		triangleWS->SetModel(triangleOS.GetModel());
+		triangleWS->SetMaterial(m_Material.GetMaterialData());
 		m_TrianglesWS.push_back(triangleWS);
 	}	
 }
 
 
-void CSubModel::CreateTriangleData(uint nFaces, const ushort* pIndexData, 
+void CSubModel::CreateTriangleData(uint nFaces, const uint* pIndexData, 
 	const glm::vec4* pPositionData, const glm::vec3* pNormalData)
 {
 	for(uint i = 0; i < nFaces; i++)
@@ -180,7 +179,7 @@ void CSubModel::CreateTriangleData(uint nFaces, const ushort* pIndexData,
 			normal = glm::normalize(glm::cross(p3-p1, p2-p1));
 
 		CTriangle* triangle = new CTriangle(p1, p2, p3);
-		triangle->SetModel(this);
+		triangle->SetMaterial(m_Material.GetMaterialData());
 		m_TrianglesOS.push_back(triangle);														 
 	}
 } 

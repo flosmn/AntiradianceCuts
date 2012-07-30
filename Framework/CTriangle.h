@@ -19,7 +19,8 @@ public:
 	~CTriangle();
 
 	virtual bool IntersectBBox(const Ray& ray);
-	virtual bool Intersect(const Ray& ray, float *t, Intersection* pIntersection);
+	virtual bool Intersect(const Ray& ray, float *t, Intersection* pIntersection, bool back_face_culling);
+	bool IntersectBackFace(const Ray& ray, float *t, Intersection* pIntersection);
 	virtual BBox GetBBox();
 	virtual void Transform(CPrimitive* pPrimitive, const glm::mat4& transform) const;
 		

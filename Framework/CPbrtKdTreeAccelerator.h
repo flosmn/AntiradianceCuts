@@ -23,7 +23,7 @@ public:
 	
 	BBox WorldBound() const { return bounds; }
     
-	bool Intersect(const Ray &ray, Intersection *isect) const;
+	bool Intersect(const Ray &ray, Intersection *isect, bool back_face_culling) const;
 
 private:
     // KdTreeAccel Private Methods

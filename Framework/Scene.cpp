@@ -9,9 +9,9 @@ typedef unsigned int uint;
 #include "AreaLight.h"
 #include "CCamera.h"
 #include "CKdTreeAccelerator.h"
-#include "CPbrtKdTreeAccelerator.h"
 #include "CPrimitive.h"
 #include "CConfigManager.h"
+#include "CTimer.h"
 
 #include "OGLResources\COGLUniformBuffer.h"
 
@@ -31,7 +31,6 @@ Scene::Scene(CCamera* _camera, CConfigManager* pConfManager)
 	m_pConfManager = pConfManager;
 	m_CurrentBounce = 0;
 	m_pKdTreeAccelerator = 0;
-	m_pPbrtKdTreeAccelerator = 0;
 }
 
 Scene::~Scene()
@@ -145,20 +144,33 @@ AVPL* Scene::ContinueAVPLPath(AVPL* pred, glm::vec3 direction, float pdf, int N,
 
 	glm::vec3 pred_pos = pred->GetPosition();
 
+	bool isect_bfc = m_pConfManager->GetConfVars()->Intersection_BFC == 0 ? false : true;
 	const glm::vec3 pred_norm = glm::normalize(pred->GetOrientation());
 	direction = glm::normalize(direction);
 
 	const float epsilon = 0.005f;
 	Ray ray(pred_pos + epsilon * direction, direction);
 		
-	Intersection intersection;
-	float t = 0;
-	if(m_pKdTreeAccelerator->Intersect(ray, &t, &intersection))
+	Intersection intersection_kd, intersection_simple;
+	float t_kd = 0.f, t_simple = 0.f;
+	bool inter_kd = m_pKdTreeAccelerator->Intersect(ray, &t_kd, &intersection_kd, isect_bfc);
+	
+	/*
+	bool inter_simple = IntersectRaySceneSimple(ray, &t_simple, &intersection_simple, isect_bfc);
+	if(inter_kd != inter_simple)
+		std::cout << "KDTree intersection and naive intersection differ!" << std::endl;
+	else if(intersection_kd.GetPosition() != intersection_simple.GetPosition())
+		std::cout << "KDTree intersection point and naive intersection point differ!" << std::endl;
+	*/
+
+	Intersection intersection = intersection_kd;
+	float t = t_kd;
+	if(m_pKdTreeAccelerator->Intersect(ray, &t, &intersection, isect_bfc))
 	{
 		// gather information for the new VPL
 		glm::vec3 pos = intersection.GetPosition();
 		glm::vec3 norm = intersection.GetPrimitive()->GetNormal();
-		glm::vec3 rho = glm::vec3(intersection.GetPrimitive()->GetModel()->GetMaterial().diffuseColor);
+		glm::vec3 rho = glm::vec3(intersection.GetPrimitive()->GetMaterial().diffuseColor);
 				
 		glm::vec3 intensity = rho/PI * pred->GetIntensity(glm::normalize(direction)) / pdf;	
 		
@@ -290,7 +302,7 @@ bool Scene::IntersectRaySceneSimple(const Ray& ray, float* t, Intersection *pInt
 	{
 		float t_temp = 0.f;
 		Intersection isect_temp;
-		if(m_Primitives[i]->Intersect(ray, &t_temp, &isect_temp))
+		if(m_Primitives[i]->Intersect(ray, &t_temp, &isect_temp, true))
 		{
 			if(t_temp < t_best && t_temp > 0) {
 				t_best = t_temp;
@@ -412,6 +424,45 @@ void Scene::LoadSibernik()
 	InitKdTree();
 }
 
+void Scene::LoadCornellBoxDragon()
+{
+	ClearScene();
+
+	CModel* model = new CModel();
+	model->Init("cornell-box-dragon43k");
+	model->SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
+
+	m_Models.push_back(model);
+	
+	m_Camera->Init(glm::vec3(0.0f, 1.0f, 3.5f), 
+		glm::vec3(0.0f, 1.0f, 0.0f),
+		1.0f);
+
+	glm::vec3 areaLightFrontDir = glm::vec3(0.f, -1.f, 0.f);
+	glm::vec3 areaLightPosition = glm::vec3(-0.005f, 1.97f, 0.19f);
+	
+	m_pConfManager->GetConfVars()->AreaLightFrontDirection[0] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[0] = areaLightFrontDir.x;
+	m_pConfManager->GetConfVars()->AreaLightFrontDirection[1] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[1] = areaLightFrontDir.y;
+	m_pConfManager->GetConfVars()->AreaLightFrontDirection[2] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[2] = areaLightFrontDir.z;
+
+	m_pConfManager->GetConfVars()->AreaLightPosX = m_pConfManager->GetConfVarsGUI()->AreaLightPosX = areaLightPosition.x;
+	m_pConfManager->GetConfVars()->AreaLightPosY = m_pConfManager->GetConfVarsGUI()->AreaLightPosY = areaLightPosition.y;
+	m_pConfManager->GetConfVars()->AreaLightPosZ = m_pConfManager->GetConfVarsGUI()->AreaLightPosZ = areaLightPosition.z;
+
+	m_AreaLight = new AreaLight(0.47f, 0.38f, 
+		areaLightPosition, 
+		areaLightFrontDir,
+		Orthogonal(areaLightFrontDir));
+	
+	m_AreaLight->SetIntensity(glm::vec3(10.f, 10.f, 10.f));
+
+	m_AreaLight->Init();
+
+	m_pConfManager->GetConfVars()->GeoTermLimit = m_pConfManager->GetConfVarsGUI()->GeoTermLimit = 1.f;
+
+	InitKdTree();
+}
+
 
 void Scene::InitKdTree()
 {
@@ -432,11 +483,12 @@ void Scene::InitKdTree()
 			}
 		}
 	}
-
-	m_pPbrtKdTreeAccelerator = new CPbrtKdTreeAccel(m_Primitives, 80, 1, 5, 0);
 	
 	m_pKdTreeAccelerator = new CKdTreeAccelerator(m_Primitives, 80, 1, 5, 0);
+	CTimer timer(CTimer::CPU);
+	timer.Start();
 	m_pKdTreeAccelerator->BuildTree();
+	timer.Stop("BuildAccelerationTree");
 }
 
 void Scene::ReleaseKdTree()
@@ -446,13 +498,7 @@ void Scene::ReleaseKdTree()
 		delete m_pKdTreeAccelerator;
 		m_pKdTreeAccelerator = 0;
 	}
-
-	if(m_pPbrtKdTreeAccelerator)
-	{
-		delete m_pPbrtKdTreeAccelerator;
-		m_pPbrtKdTreeAccelerator = 0;
-	}
-
+	
 	m_Primitives.clear();
 }
 

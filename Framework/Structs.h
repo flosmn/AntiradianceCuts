@@ -73,10 +73,9 @@ struct CLUSTER_BUFFER
 struct CONFIG
 {
 	float GeoTermLimit;
-	float BlurSigma;
-	float BlurK;
-	int UseAntiradiance;
-	int DrawAntiradiance;
+	float AntiradFilterK;
+	float AntiradFilterGaussFactor;
+	int AntiradFilterMode;	
 	int nPaths;
 	int N;
 	float Bias;

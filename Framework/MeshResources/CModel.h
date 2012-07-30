@@ -7,6 +7,7 @@ typedef unsigned int uint;
 #include "glm/glm.hpp"
 
 #include "..\Structs.h"
+#include "..\OBJLoader\objLoader.h"
 
 #include <vector>
 
@@ -15,6 +16,8 @@ class CSubModel;
 class CMeshGeometry;
 class CMeshMaterial;
 class COGLUniformBuffer;
+class COGLVertexArray;
+class CTriangle;
 
 class CModel 
 {
@@ -31,13 +34,12 @@ public:
 	
 	void SetWorldTransform(const glm::mat4& matrix);
 	glm::mat4 GetWorldTransform() const { return m_WorldTransform; }
+		
+	void SetMaterial(const MATERIAL& mat);
+	MATERIAL CModel::GetMaterial() const;
 
 	glm::vec3 GetPositionWS();
-	
-	virtual void SetMaterial(const MATERIAL& mat);	
-	virtual MATERIAL GetMaterial() const;
-		
-	std::vector<CSubModel*> GetSubModels() { return m_SubModels; }
+	std::vector<CSubModel*>& GetSubModels() { return m_SubModels; }
 
 protected:
 	glm::mat4 m_WorldTransform;
@@ -45,12 +47,9 @@ protected:
 private:	
 	CMesh* m_Mesh;
 	
-	uint m_nTriangles;
-
-	std::vector<CMeshGeometry*> m_MeshGeometries;
-	std::vector<CMeshMaterial*> m_MeshMaterials;
-
 	std::vector<CSubModel*> m_SubModels;
+
+	uint m_nTriangles;
 };
 
 #endif

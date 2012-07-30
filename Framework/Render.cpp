@@ -343,7 +343,7 @@ bool Renderer::Init()
 		
 	scene = new Scene(camera, m_pConfManager);
 	scene->Init();
-	scene->LoadCornellBox();
+	scene->LoadCornellBoxDragon();
 		
 	ConfigureLighting();
 
@@ -455,6 +455,7 @@ void Renderer::Release()
 	m_pPointCloudProgram->Release();
 	m_pAreaLightProgram->Release();
 	m_pDrawOctahedronProgram->Release();
+	m_pAddProgram->Release();
 
 	m_pGatherRenderTarget->Release();
 	m_pNormalizeRenderTarget->Release();
@@ -540,7 +541,7 @@ void Renderer::Render()
 	
 	if(m_pConfManager->GetConfVars()->UseAntiradiance)
 	{
-		if(m_pConfManager->GetConfVars()->UseDebugMode)
+		if(m_pConfManager->GetConfVars()->UseDebugMode && !m_Finished)
 		{
 			if(!m_Finished)
 			{
@@ -989,9 +990,11 @@ void Renderer::Normalize(CRenderTarget* pTarget, CRenderTarget* source, int norm
 {
 	CONFIG conf;
 	conf.GeoTermLimit = m_pConfManager->GetConfVars()->GeoTermLimit;
-	conf.UseAntiradiance = m_pConfManager->GetConfVars()->UseAntiradiance ? 1 : 0;
 	conf.nPaths = normFactor;
 	conf.N = m_pConfManager->GetConfVars()->ConeFactor;
+	conf.AntiradFilterK = GetAntiradFilterNormFactor();
+	conf.AntiradFilterMode = m_pConfManager->GetConfVars()->AntiradFilterMode;
+	conf.AntiradFilterGaussFactor = m_pConfManager->GetConfVars()->AntiradFilterGaussFactor;
 	m_pUBConfig->UpdateData(&conf);
 	
 	{
@@ -1417,7 +1420,7 @@ void Renderer::DrawLights(std::vector<AVPL*> avpls)
 		if(rb == -1 || (avpl->GetBounce() == rb || avpl->GetBounce() == rb + 1))
 		{
 			POINT_CLOUD_POINT p;
-			glm::vec3 pos = avpl->GetPosition() + 2.f * avpl->GetOrientation();
+			glm::vec3 pos = avpl->GetPosition();
 			p.position = glm::vec4(pos, 1.0f);
 			p.color = glm::vec4(avpl->GetColor(), 1.f);
 			pcp.push_back(p);
@@ -1488,10 +1491,13 @@ void Renderer::DebugRender()
 	// draw gbuffer info for debuging
 	if(m_pConfManager->GetConfVars()->DrawDebugTextures) 
 	{
-		m_pTextureViewer->DrawTexture(m_pLightDebugRenderTarget->GetBuffer(0), 10, 360, 620, 340);
-		m_pTextureViewer->DrawTexture(m_pNormalizeRenderTarget->GetBuffer(0),  640, 360, 620, 340);
-		m_pTextureViewer->DrawTexture(m_pNormalizeRenderTarget->GetBuffer(1),  10, 10, 620, 340);
-		m_pTextureViewer->DrawTexture(m_pNormalizeRenderTarget->GetBuffer(2), 640, 10, 620, 340);
+		int border = 10;
+		int width = (camera->GetWidth() - 4 * border) / 2;
+		int height = (camera->GetHeight() - 4 * border) / 2;
+		m_pTextureViewer->DrawTexture(m_pGBuffer->GetNormalTexture(),  border, border, border+width, border+height);
+		m_pTextureViewer->DrawTexture(m_pDepthBuffer, 3 * border + width, border, 3 * border + 2 * width, border+height);
+		m_pTextureViewer->DrawTexture(m_pGBuffer->GetMaterialTexture(),  border, 3 * border + height, border+width, 3 * border+ 2 * height);
+		m_pTextureViewer->DrawTexture(m_pGBuffer->GetPositionTextureWS(),  0, 0, camera->GetWidth(), camera->GetHeight());
 	}
 }
 
@@ -1605,9 +1611,11 @@ void Renderer::ConfigureLighting()
 {
 	CONFIG conf;
 	conf.GeoTermLimit = m_pConfManager->GetConfVars()->GeoTermLimit;
-	conf.UseAntiradiance = m_pConfManager->GetConfVars()->UseAntiradiance ? 1 : 0;
-	conf.nPaths = m_CurrentPath;
+	conf.nPaths = m_CurrentPath;	
 	conf.N = m_pConfManager->GetConfVars()->ConeFactor;
+	conf.AntiradFilterK = GetAntiradFilterNormFactor();
+	conf.AntiradFilterMode = m_pConfManager->GetConfVars()->AntiradFilterMode;
+	conf.AntiradFilterGaussFactor = m_pConfManager->GetConfVars()->AntiradFilterGaussFactor;
 	m_pUBConfig->UpdateData(&conf);
 }
 
@@ -1686,4 +1694,42 @@ void Renderer::SetConfigManager(CConfigManager* pConfManager)
 void Renderer::UpdateAreaLights()
 {
 	scene->UpdateAreaLights();
+}
+
+float Renderer::GetAntiradFilterNormFactor()
+{
+	float N = float(m_pConfManager->GetConfVars()->ConeFactor);
+	float K = 0.f;
+	float a = 1-cos(PI/N);
+	if(m_pConfManager->GetConfVars()->AntiradFilterMode == 1)
+	{		
+		float b = 2*(N/PI*sin(PI/N)-1);
+		K = - a / b;
+	}
+	else if(m_pConfManager->GetConfVars()->AntiradFilterMode == 2)
+	{
+		float b = IntegrateGauss();
+		return a / b;
+	}
+
+	return K;
+}
+
+float Renderer::IntegrateGauss()
+{
+	const float N = float(m_pConfManager->GetConfVars()->ConeFactor);
+	const float M = float(m_pConfManager->GetConfVars()->AntiradFilterGaussFactor);
+	const float s = PI / (M*N);
+	const int numSteps = 1000;
+	const float stepSize = PI / (numSteps * N);
+	
+	float res = 0.f;
+	for(int i = 0; i < numSteps; ++i)
+	{
+		const float t = stepSize * (float(i) + 0.5f);
+		const float val = (glm::exp(-(t*t)/(s*s)) - glm::exp(-(M*M))) * glm::sin(t);
+		res += val * stepSize;
+	}
+
+	return res;
 }

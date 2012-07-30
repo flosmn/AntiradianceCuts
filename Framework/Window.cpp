@@ -1,7 +1,3 @@
-#ifndef _DEBUG
-#define _DEBUG
-#endif
-
 //#define WAIT_ON_EXIT
 
 #pragma comment(linker, "/subsystem:windows")
@@ -243,10 +239,10 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	LPSTR     lpCmdLine,
 	int       nCmdShow)
 {
-	#ifdef _DEBUG
+//#ifdef _DEBUG
 	RedirectIOToConsole();
-	#endif
-	
+//#endif
+
 	WNDCLASSEX windowClass;		//window class
 	HWND    hwnd;               //window handle
 	MSG     msg;                //message
@@ -338,7 +334,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	{
 		return 0;
 	}
-	
+
 	if (!Init())
 	{
 		return 0;
@@ -372,11 +368,13 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 			DispatchMessage(&msg);
 		}
 	}
+
 #ifdef WAIT_ON_EXIT
 	int i = 0;
 	std::cin >> i;
+	
 #endif
-
+	
 	if (fullScreen)
 	{
 		ChangeDisplaySettings(NULL, 0);

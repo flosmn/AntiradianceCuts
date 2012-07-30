@@ -24,7 +24,7 @@ public:
 
 	void BuildTree();
 
-	bool Intersect(const Ray& ray, float* t, Intersection* pIntersection) const;
+	bool Intersect(const Ray& ray, float* t, Intersection* pIntersection, bool back_face_culling) const;
 
 	void PrintForDebug();
 

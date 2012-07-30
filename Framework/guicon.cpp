@@ -20,10 +20,7 @@ using namespace std;
 
 static const WORD MAX_CONSOLE_LINES = 500;
 
-#ifdef _DEBUG
-
 void RedirectIOToConsole()
-
 {
 	int hConHandle;
 
@@ -88,5 +85,3 @@ void RedirectIOToConsole()
 	ios::sync_with_stdio();
 
 }
-
-#endif

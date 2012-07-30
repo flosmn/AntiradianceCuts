@@ -2,7 +2,6 @@
 #define _C_MESH_H_
 
 typedef unsigned int uint;
-typedef unsigned short ushort;
 
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
@@ -26,7 +25,7 @@ public:
 	const glm::vec4* GetPositionData() { return m_pVertexPositions; }
 	const glm::vec3* GetNormalData() { return m_pVertexNormals; }
 	const glm::vec3* GetVertexTexCoords() { return m_pVertexTexCoords; }
-	const ushort* GetIndexData() { return m_pIndexData; }
+	const uint* GetIndexData() { return m_pIndexData; }
 
 	void FillWithTriangleData(std::vector<CTriangle*>& triangles)
 	{
@@ -50,7 +49,7 @@ protected:
 	glm::vec4* m_pVertexPositions;
 	glm::vec3* m_pVertexNormals;
 	glm::vec3* m_pVertexTexCoords;
-	ushort* m_pIndexData;
+	uint* m_pIndexData;
 	uint numberOfVertices;
 	uint numberOfTriangles;
 
@@ -81,7 +80,7 @@ public:
 		m_pVertexTexCoords[3] = glm::vec3(1.0f, 0.0f, 0.0f);
 
 		numberOfTriangles = 2;
-		m_pIndexData = new ushort[3 * numberOfTriangles];
+		m_pIndexData = new uint[3 * numberOfTriangles];
 		m_pIndexData[0] = 0; m_pIndexData[1] = 1; m_pIndexData[2] = 2;
 		m_pIndexData[3] = 0; m_pIndexData[4] = 2; m_pIndexData[5] = 3;
 	}
@@ -118,7 +117,7 @@ public:
 		m_pVertexNormals[3] = glm::vec3( 0.0f,	0.0f,	1.0f);
 
 		numberOfTriangles = 2;
-		m_pIndexData = new ushort[3 * numberOfTriangles];
+		m_pIndexData = new uint[3 * numberOfTriangles];
 		m_pIndexData[0] = 0; m_pIndexData[1] = 1; m_pIndexData[2] = 2;
 		m_pIndexData[3] = 0; m_pIndexData[4] = 2; m_pIndexData[5] = 3;
 	}
@@ -205,7 +204,7 @@ public:
 		m_pVertexNormals[23] = glm::vec3( 0.0f, -1.0f,	0.0f);
 
 		numberOfTriangles = 12;
-		m_pIndexData = new ushort[3 * numberOfTriangles];
+		m_pIndexData = new uint[3 * numberOfTriangles];
 		// triangles face 1
 		m_pIndexData[0] = 0; m_pIndexData[1] = 1; m_pIndexData[2] = 2;
 		m_pIndexData[3] = 0; m_pIndexData[4] = 2; m_pIndexData[5] = 3;

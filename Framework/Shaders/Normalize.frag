@@ -5,11 +5,12 @@ layout(std140) uniform;
 uniform config
 {
 	float GeoTermLimit;
-	float BlurSigma;
-	float BlurK;
-	int UseAntiradiance;
-	int DrawAntiradiance;
+	float AntiradFilterK;
+	float AntiradFilterGaussFactor;
+	int AntiradFilterMode;	
 	int nPaths;
+	int N;
+	float Bias;
 } uConfig;
 
 uniform camera

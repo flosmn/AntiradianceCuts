@@ -12,17 +12,17 @@ typedef unsigned int uint;
 #include <glm/glm.hpp>
 
 #include "CModel.h"
+#include "CMeshMaterial.h"
 
 class COGLVertexArray;
 class COGLVertexBuffer;
 class COGLUniformBuffer;
 class CMeshGeometry;
-class CMeshMaterial;
 
 class CTriangle;
 
 typedef unsigned int uint;
-typedef unsigned short ushort;
+typedef unsigned int uint;
 
 class CSubModel : public CModel
 {
@@ -31,7 +31,7 @@ public:
 	~CSubModel();
 
 	bool Init(CMesh* pMesh);
-	bool Init(CMeshGeometry* pMeshGeometry);
+	bool Init(const CMeshGeometry& meshGeometry);
 	void Release();
 	
 	void Draw(COGLUniformBuffer* pUBMaterial);
@@ -46,11 +46,12 @@ public:
 	const std::vector<CTriangle*>& GetTrianglesWS() const;
 
 private:	
-	void CreateTriangleData(uint nFaces, const ushort* pIndexData, 
+	void CreateTriangleData(uint nFaces, const uint* pIndexData, 
 		const glm::vec4* pPositionData, const glm::vec3* pNormalData);
 	
 	COGLVertexArray* m_pGLVARenderData;
-	CMeshMaterial* m_pMaterial;
+	
+	CMeshMaterial m_Material;
 	
 	std::vector<CTriangle*> m_TrianglesOS;
 	std::vector<CTriangle*> m_TrianglesWS;

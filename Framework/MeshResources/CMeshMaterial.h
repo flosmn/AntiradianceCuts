@@ -25,8 +25,7 @@ public:
 	void PrintMaterial();
 
 private:
-	std::string m_Name;
-	
+	std::string m_Name;	
 	MATERIAL m_MaterialData;
 };
 

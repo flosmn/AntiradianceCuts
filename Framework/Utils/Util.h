@@ -1,7 +1,6 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-typedef unsigned short ushort;
 typedef unsigned int uint;
 
 #include "glm/glm.hpp"

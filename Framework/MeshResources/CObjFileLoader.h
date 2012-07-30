@@ -9,6 +9,8 @@ class CMeshGeometry;
 class CMeshMaterial;
 class CMeshTriangleFace;
 
+class CTimer;
+
 class CTempMesh
 {
 public:
@@ -42,6 +44,11 @@ private:
 	std::vector<glm::vec4> m_Positions;
 	std::vector<glm::vec3> m_Normals;
 	std::vector<glm::vec3> m_TexCoords;
+
+	CTimer* timer;
+	double parseVertexInfoTime;
+	double parseFaceInfoTime;
+	double parseMaterialInfoTime;
 };
 
 #endif _C_OBJ_FILE_LOADER_H_

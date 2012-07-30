@@ -2,13 +2,13 @@
 #define _C_MESH_GEOMETRY_H_
 
 typedef unsigned int uint;
-typedef unsigned short ushort;
 
 #include "glm/glm.hpp"
 
 #include <vector>
 
-class CMeshMaterial;
+#include "CMeshMaterial.h"
+
 class CTriangle;
 
 class CMeshVertex
@@ -88,35 +88,35 @@ public:
 	const glm::vec4* GetPositionData() const { return m_pPositionData; }
 	const glm::vec3* GetNormalData() const { return m_pNormalData; }
 	const glm::vec3* GetTexCoordData() const { return m_pTexCoordData; }
-	const ushort* GetIndexData() const { return m_pIndexData; }
+	const uint* GetIndexData() const { return m_pIndexData; }
 
 	void SetPositionData(glm::vec4* pPositionData) { m_pPositionData = pPositionData; }
 	void SetNormalData(glm::vec3* pNormalData) { m_pNormalData = pNormalData; }
 	void SetTexCoordData(glm::vec3* pTexCoordData) { m_pTexCoordData = pTexCoordData; }
-	void SetIndexData(ushort* pIndexData) { m_pIndexData = pIndexData; }
+	void SetIndexData(uint* pIndexData) { m_pIndexData = pIndexData; }
 
-	uint GetNumberOfVertices() { return m_nVertices; }
-	uint GetNumberOfFaces() { return m_nFaces; }
+	uint GetNumberOfVertices() const { return m_nVertices; }
+	uint GetNumberOfFaces() const { return m_nFaces; }
 
 	void SetNumberOfVertices(uint nVertices) { m_nVertices = nVertices; }
 	void SetNumberOfFaces(uint nFaces) { m_nFaces = nFaces; }
 
-	CMeshMaterial* GetMeshMaterial() { return m_pMeshMaterial; }
-	void SetMeshMaterial(CMeshMaterial* pMeshMaterial) { m_pMeshMaterial = pMeshMaterial; }
+	CMeshMaterial GetMeshMaterial() const { return m_MeshMaterial; }
+	void SetMeshMaterial(const CMeshMaterial& meshMaterial) { m_MeshMaterial = meshMaterial; }
 
 	void FillWithTriangleData(std::vector<CTriangle*>& triangles);
 
 	void PrintGeometryData();
 	
 private:
-	CMeshMaterial* m_pMeshMaterial;
+	CMeshMaterial m_MeshMaterial;
 		
 	uint m_nVertices;
 	uint m_nFaces;
 	glm::vec4* m_pPositionData;
 	glm::vec3* m_pNormalData;
 	glm::vec3* m_pTexCoordData;
-	ushort* m_pIndexData;	
+	uint* m_pIndexData;	
 };
 
 #endif // _C_MESH_GEOMETRY_H_

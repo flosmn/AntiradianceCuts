@@ -5,7 +5,7 @@ uniform config
 {
 	float GeoTermLimit;
 	float BlurSigma;
-	float BlurK;
+	int AntiradFilterMode;
 	int UseAntiradiance;
 	int DrawAntiradiance;
 	int nPaths;

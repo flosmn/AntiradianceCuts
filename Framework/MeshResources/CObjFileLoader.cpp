@@ -3,6 +3,7 @@
 #include "CMeshGeometry.h"
 #include "CMeshMaterial.h"
 
+#include "..\Defines.h"
 #include "..\CTimer.h"
 
 #include <iostream>
@@ -11,15 +12,19 @@
 #include <set>
 #include <map>
 
-
 CObjFileLoader::CObjFileLoader()
 {
 	m_pCurrentTempMesh = nullptr;
+
+	timer = new CTimer(CTimer::CPU);
+	parseVertexInfoTime = 0;
+	parseFaceInfoTime = 0;
+	parseMaterialInfoTime = 0;
 }
 
 CObjFileLoader::~CObjFileLoader()
 {
-
+	SAFE_DELETE(timer);
 }
 
 void CObjFileLoader::ParseObjFile(std::string name, std::vector<CMeshGeometry*>& meshes,
@@ -29,6 +34,7 @@ void CObjFileLoader::ParseObjFile(std::string name, std::vector<CMeshGeometry*>&
 	m_Normals.reserve(10000);
 	m_TexCoords.reserve(10000);
 	CTimer timer(CTimer::CPU);
+	CTimer timer2(CTimer::CPU);
 
 	char line[1024];
 
@@ -62,9 +68,15 @@ void CObjFileLoader::ParseObjFile(std::string name, std::vector<CMeshGeometry*>&
 		std::cout << "Could not open given file " << objFileName.c_str() << std::endl;
 		return;
 	}
+
+	double getLineTime = 0.;
 	while(objFile.good())
 	{
+		timer2.Start();
 		objFile.getline(line,1023);
+		timer2.Stop();
+		getLineTime += timer2.GetTime();
+
 		if(!ParseObjFileLine(std::string(line), materials))
 		{
 			std::cout << "Error occured while parsing file " << objFileName.c_str() << std::endl;
@@ -74,6 +86,11 @@ void CObjFileLoader::ParseObjFile(std::string name, std::vector<CMeshGeometry*>&
 
 	timer.Stop("ParseObjFile");
 	timer.Start();
+
+	std::cout << "parseVertexInfo: " << parseVertexInfoTime << "ms" << std::endl;
+	std::cout << "parseFaceInfo: " << parseFaceInfoTime << "ms" << std::endl;
+	std::cout << "parseMaterialInfo: " << parseMaterialInfoTime << "ms" << std::endl;
+	std::cout << "getLineTime: " << getLineTime << "ms" << std::endl;
 
 	// create CMeshGeometry out of TempMeshes
 	for(uint i = 0; i < m_TempMeshes.size(); ++i)
@@ -120,7 +137,7 @@ void CObjFileLoader::CreateMeshGeometry(CTempMesh* pTempMesh, CMeshGeometry* pMe
 		CMeshVertex vertex = *set_it;
 		mapMeshVertexIndex[vertex] = index + 1;
 
-		if(m_Positions.size() > 0 && vertex.positionDataIndex != 0)
+		if(m_Positions.size() > 0 && vertex.positionDataIndex > 0)
 		{
 			if(vertex.positionDataIndex > (int)m_Positions.size())
 			{
@@ -129,7 +146,7 @@ void CObjFileLoader::CreateMeshGeometry(CTempMesh* pTempMesh, CMeshGeometry* pMe
 			}
 			pGLPositions[index]	= m_Positions[vertex.positionDataIndex - 1];
 		}
-		if(m_Normals.size() > 0 && vertex.normalDataIndex != 0)
+		if(m_Normals.size() > 0 && vertex.normalDataIndex > 0)
 		{
 			if(vertex.normalDataIndex > (int)m_Normals.size())
 			{
@@ -138,7 +155,7 @@ void CObjFileLoader::CreateMeshGeometry(CTempMesh* pTempMesh, CMeshGeometry* pMe
 			}
 			pGLNormals[index] = m_Normals[vertex.normalDataIndex - 1];
 		}
-		if(m_TexCoords.size() > 0 && vertex.texCoordDataIndex != 0)
+		if(m_TexCoords.size() > 0 && vertex.texCoordDataIndex > 0)
 		{
 			if(vertex.texCoordDataIndex > (int)m_TexCoords.size())
 			{
@@ -151,7 +168,7 @@ void CObjFileLoader::CreateMeshGeometry(CTempMesh* pTempMesh, CMeshGeometry* pMe
 		index++;
 	}
 
-	ushort* pGLIndexData = new ushort[3 * pTempMesh->m_Triangles.size()];
+	uint* pGLIndexData = new uint[3 * pTempMesh->m_Triangles.size()];
 	int face_index = 0;
 	for(face_it = pTempMesh->m_Triangles.begin(); face_it < pTempMesh->m_Triangles.end(); ++face_it)
 	{
@@ -161,12 +178,29 @@ void CObjFileLoader::CreateMeshGeometry(CTempMesh* pTempMesh, CMeshGeometry* pMe
 		pGLIndexData[3 * face_index + 0] = mapMeshVertexIndex[face.vertex2] - 1;
 		pGLIndexData[3 * face_index + 1] = mapMeshVertexIndex[face.vertex1] - 1;
 		pGLIndexData[3 * face_index + 2] = mapMeshVertexIndex[face.vertex0] - 1;
+		
+		glm::vec4 pos11 = m_Positions[face.vertex2.positionDataIndex - 1];
+		glm::vec4 pos21 = m_Positions[face.vertex1.positionDataIndex - 1];
+		glm::vec4 pos31 = m_Positions[face.vertex0.positionDataIndex - 1];
+
+		glm::vec4 pos12 = pGLPositions[pGLIndexData[3 * face_index + 0]];
+		glm::vec4 pos22 = pGLPositions[pGLIndexData[3 * face_index + 1]];
+		glm::vec4 pos32 = pGLPositions[pGLIndexData[3 * face_index + 2]];
+		std::cout << "OrgFace: (" << pos11.x << ", " << pos11.y << ", " << pos11.z << ") ," 
+			<< "(" << pos12.x << ", " << pos21.y << ", " << pos21.z << ") ,"
+			<< "(" << pos31.x << ", " << pos31.y << ", " << pos31.z << ") ," << std::endl;
+		std::cout << "Face: (" << pos12.x << ", " << pos12.y << ", " << pos12.z << ") ," 
+			<< "(" << pos22.x << ", " << pos22.y << ", " << pos22.z << ") ,"
+			<< "(" << pos32.x << ", " << pos32.y << ", " << pos32.z << ") ," << std::endl;
+
 		face_index++;
+
+		
 	}
 
 	pMeshGeometry->SetNumberOfVertices(nGLVertices);
 	pMeshGeometry->SetNumberOfFaces((uint)pTempMesh->m_Triangles.size());
-	pMeshGeometry->SetMeshMaterial(pTempMesh->m_Material);
+	pMeshGeometry->SetMeshMaterial(*pTempMesh->m_Material);
 	pMeshGeometry->SetIndexData(pGLIndexData);
 	
 	if(pGLPositions)
@@ -180,9 +214,9 @@ void CObjFileLoader::CreateMeshGeometry(CTempMesh* pTempMesh, CMeshGeometry* pMe
 		pGLNormals = new glm::vec3[nGLVertices];
 		for(uint face_index = 0; face_index < pTempMesh->m_Triangles.size(); face_index++)
 		{
-			ushort index0 = pGLIndexData[3 * face_index + 0];
-			ushort index1 = pGLIndexData[3 * face_index + 1];
-			ushort index2 = pGLIndexData[3 * face_index + 2];
+			uint index0 = pGLIndexData[3 * face_index + 0];
+			uint index1 = pGLIndexData[3 * face_index + 1];
+			uint index2 = pGLIndexData[3 * face_index + 2];
 
 			glm::vec4 vertex0 = pGLPositions[index0];
 			glm::vec4 vertex1 = pGLPositions[index1];
@@ -224,10 +258,13 @@ bool CObjFileLoader::ParseObjFileLine(const std::string& line, const std::vector
 	}
 	else if (op.compare("v") == 0) 
 	{
+		timer->Start();
 		float x = 0.f, y = 0.f, z = 0.f, w = 1.f;
 		ss >> x >> y >> z >> w;
 
 		m_Positions.push_back(glm::vec4(x, y, z, w));
+		timer->Stop();
+		parseVertexInfoTime += timer->GetTime();
 	}
 	else if (op.compare("vn") == 0) 
 	{
@@ -249,6 +286,7 @@ bool CObjFileLoader::ParseObjFileLine(const std::string& line, const std::vector
 	}
 	else if (op.compare("f") == 0)
 	{
+		timer->Start();
 		if(m_pCurrentTempMesh == 0)
 		{
 			m_pCurrentTempMesh = new CTempMesh();
@@ -295,25 +333,36 @@ bool CObjFileLoader::ParseObjFileLine(const std::string& line, const std::vector
 			
 			m_pCurrentTempMesh->m_Triangles.push_back(triangleFace);
 		}
+		timer->Stop();
+		parseFaceInfoTime += timer->GetTime();
 	}
 	else if (op.compare("usemtl") == 0)
 	{
+		timer->Start();
 		m_pCurrentTempMesh = new CTempMesh();
 		m_TempMeshes.push_back(m_pCurrentTempMesh);
 		
 		std::string materialName;
 		ss >> materialName;
-
+		
+		bool matFound = false;
 		for(uint i = 0; i < materials.size(); ++i)
 		{
 			if(materials[i]->GetMaterialName() == materialName)
 			{
 				m_pCurrentTempMesh->m_Material = materials[i];
-				return true;
+				matFound = true;
 			}
 		}
 
-		std::cout << "material not found: " << materialName << std::endl;
+		if(!matFound)
+		{
+			std::cout << "material not found: " << materialName << std::endl;	
+			return matFound;
+		}
+
+		timer->Stop();
+		parseMaterialInfoTime += timer->GetTime();
 	}
 	
 	return true;

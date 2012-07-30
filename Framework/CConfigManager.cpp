@@ -24,10 +24,11 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->FilterAvplAtlasLinear = m_pConfVarsGUI->FilterAvplAtlasLinear = 0;
 	m_pConfVars->FillAvplAltasOnGPU = m_pConfVarsGUI->FillAvplAltasOnGPU = 1;
 	m_pConfVars->UseLightTree = m_pConfVarsGUI->UseLightTree = 0;
-
+	
 	m_pConfVars->GeoTermLimit = m_pConfVarsGUI->GeoTermLimit = 0.001f;
 	m_pConfVars->Gamma = m_pConfVarsGUI->Gamma = 2.2f;
 	m_pConfVars->Exposure = m_pConfVarsGUI->Exposure = 1.f;
+	m_pConfVars->Intersection_BFC = m_pConfVarsGUI->Intersection_BFC = 1.f;
 
 	m_pConfVars->NumVPLsDirectLight = m_pConfVarsGUI->NumVPLsDirectLight = 50;
 	m_pConfVars->NumVPLsDirectLightPerFrame = m_pConfVarsGUI->NumVPLsDirectLightPerFrame = 1;
@@ -36,6 +37,8 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->NumPathsPerFrame = m_pConfVarsGUI->NumPathsPerFrame = 1;
 	m_pConfVars->NumAdditionalAVPLs = m_pConfVarsGUI->NumAdditionalAVPLs = 0;
 	m_pConfVars->ConeFactor = m_pConfVarsGUI->ConeFactor = 30;
+	m_pConfVars->AntiradFilterMode = m_pConfVarsGUI->AntiradFilterMode = 0;
+	m_pConfVars->AntiradFilterGaussFactor = m_pConfVarsGUI->AntiradFilterGaussFactor = 2.5f;
 	m_pConfVars->RenderBounce = m_pConfVarsGUI->RenderBounce = -1;
 	m_pConfVars->DrawLightingOfLight = m_pConfVarsGUI->DrawLightingOfLight = -1;
 	m_pConfVars->NumSqrtAtlasSamples = m_pConfVarsGUI->NumSqrtAtlasSamples = 4;
@@ -210,6 +213,22 @@ void CConfigManager::Update()
 		clearLighting = true;
 	}
 
+	if(m_pConfVarsGUI->AntiradFilterMode != m_pConfVars->AntiradFilterMode)
+	{
+		m_pConfVars->AntiradFilterMode = m_pConfVarsGUI->AntiradFilterMode;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->AntiradFilterGaussFactor != m_pConfVars->AntiradFilterGaussFactor)
+	{
+		m_pConfVars->AntiradFilterGaussFactor = m_pConfVarsGUI->AntiradFilterGaussFactor;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+
 	if(m_pConfVarsGUI->NumVPLsDirectLight != m_pConfVars->NumVPLsDirectLight)
 	{
 		m_pConfVars->NumVPLsDirectLight = m_pConfVarsGUI->NumVPLsDirectLight;
@@ -361,6 +380,14 @@ void CConfigManager::Update()
 		clearAccumBuffer = true;
 		clearLighting = true;
 		updateAreaLight = true;
+	}
+
+	if(m_pConfVarsGUI->Intersection_BFC != m_pConfVars->Intersection_BFC)
+	{
+		m_pConfVars->Intersection_BFC = m_pConfVarsGUI->Intersection_BFC;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
 	}
 
 	if(updateAreaLight) m_pRenderer->UpdateAreaLights();

@@ -6,7 +6,7 @@
 
 CMeshMaterial::CMeshMaterial()
 {
-
+	m_Name = std::string("no name");
 }
 
 CMeshMaterial::~CMeshMaterial()

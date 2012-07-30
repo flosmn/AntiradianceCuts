@@ -160,7 +160,7 @@ void COGLVertexArray::Draw(GLuint count)
 
 	COGLBindLock lock(this, COGL_VERTEX_ARRAY_SLOT);
 
-	glDrawElements(m_PrimitiveType, count, GL_UNSIGNED_SHORT, 0);
+	glDrawElements(m_PrimitiveType, count, GL_UNSIGNED_INT, 0);
 
 	CheckGLError(m_DebugName, "COGLVertexArray::Draw() after glDrawElements");
 }
