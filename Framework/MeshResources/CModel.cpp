@@ -16,7 +16,6 @@
 #include "CMeshMaterial.h"
 #include "CObjFileLoader.h"
 #include "..\CTriangle.h"
-#include "..\OBJLoader\objLoader.h"
 
 #include "..\CTimer.h"
 

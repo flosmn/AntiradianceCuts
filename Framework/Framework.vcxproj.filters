@@ -32,9 +32,6 @@
     <Filter Include="Misc">
       <UniqueIdentifier>{23eab4a5-e565-4973-bb51-1534963e000a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="OBJLoader">
-      <UniqueIdentifier>{cc7a4654-f80e-4f30-88f6-598bd25036f4}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Render.cpp" />
@@ -180,18 +177,6 @@
       <Filter>GUI&amp;Config</Filter>
     </ClCompile>
     <ClCompile Include="CCamera.cpp" />
-    <ClCompile Include="OBJLoader\list.cpp">
-      <Filter>OBJLoader</Filter>
-    </ClCompile>
-    <ClCompile Include="OBJLoader\obj_parser.cpp">
-      <Filter>OBJLoader</Filter>
-    </ClCompile>
-    <ClCompile Include="OBJLoader\objLoader.cpp">
-      <Filter>OBJLoader</Filter>
-    </ClCompile>
-    <ClCompile Include="OBJLoader\string_extra.cpp">
-      <Filter>OBJLoader</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Render.h" />
@@ -376,18 +361,6 @@
       <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="CCamera.h" />
-    <ClInclude Include="OBJLoader\list.h">
-      <Filter>OBJLoader</Filter>
-    </ClInclude>
-    <ClInclude Include="OBJLoader\obj_parser.h">
-      <Filter>OBJLoader</Filter>
-    </ClInclude>
-    <ClInclude Include="OBJLoader\objLoader.h">
-      <Filter>OBJLoader</Filter>
-    </ClInclude>
-    <ClInclude Include="OBJLoader\string_extra.h">
-      <Filter>OBJLoader</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">

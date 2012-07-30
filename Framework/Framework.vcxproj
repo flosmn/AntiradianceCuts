@@ -156,10 +156,6 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
     <ClCompile Include="CTriangle.cpp" />
     <ClCompile Include="guicon.cpp" />
     <ClCompile Include="LightTreeTypes.cpp" />
-    <ClCompile Include="OBJLoader\list.cpp" />
-    <ClCompile Include="OBJLoader\objLoader.cpp" />
-    <ClCompile Include="OBJLoader\obj_parser.cpp" />
-    <ClCompile Include="OBJLoader\string_extra.cpp" />
     <ClCompile Include="OCLResources\COCLTexture2D.cpp" />
     <ClCompile Include="CPostprocess.cpp" />
     <ClCompile Include="MeshResources\CFullScreenQuad.cpp" />
@@ -233,10 +229,6 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
     <ClInclude Include="MeshResources\CModel.h" />
     <ClInclude Include="MeshResources\CObjFileLoader.h" />
     <ClInclude Include="MeshResources\CSubModel.h" />
-    <ClInclude Include="OBJLoader\list.h" />
-    <ClInclude Include="OBJLoader\objLoader.h" />
-    <ClInclude Include="OBJLoader\obj_parser.h" />
-    <ClInclude Include="OBJLoader\string_extra.h" />
     <ClInclude Include="OCLResources\COCLBuffer.h" />
     <ClInclude Include="OCLResources\COCLContext.h" />
     <ClInclude Include="OCLResources\COCLKernel.h" />
