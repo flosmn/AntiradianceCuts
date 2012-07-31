@@ -43,6 +43,7 @@ public:
 	void UpdateAreaLights();
 
 	void LoadCornellBox();
+	void LoadCornellBoxSmall();
 	void LoadSibernik();
 	void LoadSimpleScene();
 	void LoadCornellBoxDragon();

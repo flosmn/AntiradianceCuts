@@ -343,7 +343,7 @@ bool Renderer::Init()
 		
 	scene = new Scene(camera, m_pConfManager);
 	scene->Init();
-	scene->LoadCornellBoxDragon();
+	scene->LoadCornellBoxSmall();
 		
 	ConfigureLighting();
 

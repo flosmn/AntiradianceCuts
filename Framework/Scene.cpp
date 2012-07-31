@@ -381,6 +381,44 @@ void Scene::LoadCornellBox()
 	InitKdTree();
 }
 
+void Scene::LoadCornellBoxSmall()
+{
+	ClearScene();
+
+	CModel* model = new CModel();
+	model->Init("cornellorg-boxes-0.125");
+	model->SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
+
+	m_Models.push_back(model);
+
+	float scale = .125f;
+	m_Camera->Init(scale * glm::vec3(278.f, 273.f, -800.f), 
+		scale * glm::vec3(278.f, 273.f, 270.f),
+		2.0f);
+	
+	glm::vec3 areaLightFrontDir = glm::vec3(0.0f, -1.0f, 0.0f);
+	glm::vec3 areaLightPosition = scale * glm::vec3(270.f, 550.0f, 280.f);
+	
+	m_pConfManager->GetConfVars()->AreaLightFrontDirection[0] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[0] = areaLightFrontDir.x;
+	m_pConfManager->GetConfVars()->AreaLightFrontDirection[1] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[1] = areaLightFrontDir.y;
+	m_pConfManager->GetConfVars()->AreaLightFrontDirection[2] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[2] = areaLightFrontDir.z;
+
+	m_pConfManager->GetConfVars()->AreaLightPosX = m_pConfManager->GetConfVarsGUI()->AreaLightPosX = areaLightPosition.x;
+	m_pConfManager->GetConfVars()->AreaLightPosY = m_pConfManager->GetConfVarsGUI()->AreaLightPosY = areaLightPosition.y;
+	m_pConfManager->GetConfVars()->AreaLightPosZ = m_pConfManager->GetConfVarsGUI()->AreaLightPosZ = areaLightPosition.z;
+
+	m_AreaLight = new AreaLight(scale * 140.0f, scale * 100.0f, 
+		areaLightPosition, 
+		areaLightFrontDir,
+		Orthogonal(areaLightFrontDir));
+
+	m_AreaLight->SetRadiance(glm::vec3(100.f, 100.f, 100.f));
+
+	m_AreaLight->Init();
+
+	InitKdTree();
+}
+
 void Scene::LoadSibernik()
 {
 	ClearScene();

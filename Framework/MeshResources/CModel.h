@@ -7,7 +7,6 @@ typedef unsigned int uint;
 #include "glm/glm.hpp"
 
 #include "..\Structs.h"
-#include "..\OBJLoader\objLoader.h"
 
 #include <vector>
 
