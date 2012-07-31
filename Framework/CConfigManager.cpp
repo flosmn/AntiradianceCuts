@@ -26,9 +26,10 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->UseLightTree = m_pConfVarsGUI->UseLightTree = 0;
 	
 	m_pConfVars->GeoTermLimit = m_pConfVarsGUI->GeoTermLimit = 0.001f;
+	m_pConfVars->ClampGeoTerm = m_pConfVarsGUI->ClampGeoTerm = 1;
 	m_pConfVars->Gamma = m_pConfVarsGUI->Gamma = 2.2f;
 	m_pConfVars->Exposure = m_pConfVarsGUI->Exposure = 1.f;
-	m_pConfVars->Intersection_BFC = m_pConfVarsGUI->Intersection_BFC = 1.f;
+	m_pConfVars->Intersection_BFC = m_pConfVarsGUI->Intersection_BFC = 1;
 
 	m_pConfVars->NumVPLsDirectLight = m_pConfVarsGUI->NumVPLsDirectLight = 50;
 	m_pConfVars->NumVPLsDirectLightPerFrame = m_pConfVarsGUI->NumVPLsDirectLightPerFrame = 1;
@@ -80,6 +81,14 @@ void CConfigManager::Update()
 	if(m_pConfVarsGUI->GeoTermLimit != m_pConfVars->GeoTermLimit)
 	{
 		m_pConfVars->GeoTermLimit = m_pConfVarsGUI->GeoTermLimit;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->ClampGeoTerm != m_pConfVars->ClampGeoTerm)
+	{
+		m_pConfVars->ClampGeoTerm = m_pConfVarsGUI->ClampGeoTerm;
 		configureLighting = true;
 		clearAccumBuffer = true;
 		clearLighting = true;

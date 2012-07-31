@@ -75,10 +75,11 @@ struct CONFIG
 	float GeoTermLimit;
 	float AntiradFilterK;
 	float AntiradFilterGaussFactor;
+	float Bias;
+	int ClampGeoTerm;
 	int AntiradFilterMode;	
 	int nPaths;
 	int N;
-	float Bias;
 };
 
 struct CAMERA

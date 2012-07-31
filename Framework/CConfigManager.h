@@ -27,6 +27,7 @@ struct CONF_VARS
 	float AntiradFilterGaussFactor;
 
 	float GeoTermLimit;
+	int ClampGeoTerm;
 	float Gamma;
 	float Exposure;
 	int Intersection_BFC;

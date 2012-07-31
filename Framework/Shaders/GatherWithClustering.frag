@@ -48,10 +48,11 @@ uniform config
 	float GeoTermLimit;
 	float AntiradFilterK;
 	float AntiradFilterGaussFactor;
+	float Bias;
+	int ClampGeoTerm;
 	int AntiradFilterMode;	
 	int nPaths;
 	int N;
-	float Bias;
 } uConfig;
 
 uniform camera
@@ -304,17 +305,18 @@ void ProcessLight(in int i, in vec3 vPositionWS, in vec3 vNormalWS, out vec4 rad
 	
 	const float dist = length(vPositionWS - p);
 	const float cos_theta = clamp(dot(vNormalWS, -direction), 0, 1);
-	rad = clamp(cos_theta / (dist * dist), 0, uConfig.GeoTermLimit) * rad;
 	
-	antirad = (cos_theta) / (dist * dist) * antirad;
-
-	antiradiance = antirad;
-	radiance = rad;
+	float G = cos_theta / (dist * dist);
+	G = uConfig.ClampGeoTerm == 1 ? clamp(G, 0, uConfig.GeoTermLimit) : G;
+	
+	antiradiance = G * antirad;
+	radiance = G * rad;
 }
 
 float G_CLAMP(in vec3 p1, in vec3 n1, in vec3 p2, in vec3 n2)
 {
-	return clamp(G(p1, n1, p2, n2), 0, uConfig.GeoTermLimit);
+	float g = G(p1, n1, p2, n2);
+	return uConfig.ClampGeoTerm == 1 ? clamp(g, 0, uConfig.GeoTermLimit) : g;
 }
 
 float G(in vec3 p1, in vec3 n1, in vec3 p2, in vec3 n2)

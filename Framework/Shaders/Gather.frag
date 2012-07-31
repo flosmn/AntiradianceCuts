@@ -23,10 +23,11 @@ uniform config
 	float GeoTermLimit;
 	float AntiradFilterK;
 	float AntiradFilterGaussFactor;
+	float Bias;
+	int ClampGeoTerm;
 	int AntiradFilterMode;	
 	int nPaths;
 	int N;
-	float Bias;
 } uConfig;
 
 uniform camera
@@ -127,8 +128,9 @@ void main()
 						A = uConfig.AntiradFilterK * ( exp(-(theta*theta)/(s*s)) - exp(-(M*M)) ) * A;
 					}
 
-					//vec4 A_in = cos_theta_xz / (d_xz * d_xz) * A;
-					vec4 A_in = clamp(cos_theta_xz / (d_xz * d_xz), 0, uConfig.GeoTermLimit) * A;
+					float G = cos_theta_xz / (d_xz * d_xz);
+					G = uConfig.ClampGeoTerm == 1 ? clamp(G, 0, uConfig.GeoTermLimit) : G;
+					vec4 A_in = G * A;
 										
 					antiradiance = A_in;
 				}
@@ -149,7 +151,8 @@ void main()
 
 float G_CLAMP(in vec3 p1, in vec3 n1, in vec3 p2, in vec3 n2)
 {
-	return clamp(G(p1, n1, p2, n2), 0, uConfig.GeoTermLimit);
+	float g = G(p1, n1, p2, n2);
+	return uConfig.ClampGeoTerm == 1 ? clamp(g, 0, uConfig.GeoTermLimit) : g;
 }
 
 float G(in vec3 p1, in vec3 n1, in vec3 p2, in vec3 n2)

@@ -990,6 +990,7 @@ void Renderer::Normalize(CRenderTarget* pTarget, CRenderTarget* source, int norm
 {
 	CONFIG conf;
 	conf.GeoTermLimit = m_pConfManager->GetConfVars()->GeoTermLimit;
+	conf.ClampGeoTerm = m_pConfManager->GetConfVars()->ClampGeoTerm;
 	conf.nPaths = normFactor;
 	conf.N = m_pConfManager->GetConfVars()->ConeFactor;
 	conf.AntiradFilterK = GetAntiradFilterNormFactor();
@@ -1611,6 +1612,7 @@ void Renderer::ConfigureLighting()
 {
 	CONFIG conf;
 	conf.GeoTermLimit = m_pConfManager->GetConfVars()->GeoTermLimit;
+	conf.ClampGeoTerm = m_pConfManager->GetConfVars()->ClampGeoTerm;
 	conf.nPaths = m_CurrentPath;	
 	conf.N = m_pConfManager->GetConfVars()->ConeFactor;
 	conf.AntiradFilterK = GetAntiradFilterNormFactor();

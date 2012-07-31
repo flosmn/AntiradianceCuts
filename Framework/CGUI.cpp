@@ -51,6 +51,7 @@ bool CGUI::Init(uint window_width, uint window_height)
 	TwAddVarRW(m_pTwBar, "Draw Lights", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawLights), " min=0 max=1 step=1 ");
 	TwAddVarRW(m_pTwBar, "RenderBounce", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->RenderBounce), " min=-1 max=100 step=1 ");
 	TwAddVarRW(m_pTwBar, "Geo-Term Limit", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->GeoTermLimit), "min=0 max=100000 step=0.00001");
+	TwAddVarRW(m_pTwBar, "Clamp Geo-Term", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->ClampGeoTerm), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Sqrt # Atlas Samles", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumSqrtAtlasSamples), " min=1 max=100 step=1 ");
 
 	TwAddSeparator(m_pTwBar, "", "");
