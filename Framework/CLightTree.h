@@ -23,10 +23,10 @@ public:
 	CLightTree();
 	~CLightTree();
 
-	void BuildTreeNaive(const std::vector<AVPL*>& avpls, const float weightNormals);
-	void BuildTreeTweakCP(const std::vector<AVPL*>& avpls, const float weightNormals);
-	void BuildTreeTweakNN(const std::vector<AVPL*>& avpls, const float weightNormals);
-	void Color(const std::vector<AVPL*>& avpls, const int cutDepth);
+	void BuildTreeNaive(const std::vector<AVPL>& avpls, const float weightNormals);
+	void BuildTreeTweakCP(const std::vector<AVPL>& avpls, const float weightNormals);
+	void BuildTreeTweakNN(const std::vector<AVPL>& avpls, const float weightNormals);
+	void Color(std::vector<AVPL>& avpls, const int cutDepth);
 
 	void Release();
 
@@ -39,11 +39,11 @@ private:
 	void Traverse(CLUSTER* cluster);
 	void TraverseIterative(CLUSTER* cluster);
 	void Release(CLUSTER* cluster);
-	void Color(const std::vector<AVPL*>& avpls, const int cutDepth, CLUSTER* cluster, const int currentDepth, const int colorIndex);
+	void Color(std::vector<AVPL>& avpls, const int cutDepth, CLUSTER* cluster, const int currentDepth, const int colorIndex);
 	void GetAllLeafs(CLUSTER* cluster, std::vector<CLUSTER*>& leafs);
 	void SetDepths(CLUSTER* n, int depth);
 
-	void CreateInitialClusters(const std::vector<AVPL*>& avpls, uint* cluster_id);
+	void CreateInitialClusters(const std::vector<AVPL>& avpls, uint* cluster_id);
 	
 	void CreateClusterPairs(std::vector<CLUSTER*> clusters, const float weightNormals, bool useAccelerator);
 

@@ -482,9 +482,21 @@ bool HandleKeyEvent(WPARAM wParam)
 			g_pRenderer->ClearLighting();
 			return true; break;
 
+		case 'A':
+
+			g_pCamera->MoveLeft(0.5f);
+			g_pRenderer->ClearLighting();
+			return true; break;
+
 		case 'S':
 
 			g_pCamera->MoveBackward(0.5f);
+			g_pRenderer->ClearLighting();
+			return true; break;
+
+		case 'D':
+
+			g_pCamera->MoveRight(0.5f);
 			g_pRenderer->ClearLighting();
 			return true; break;
 			

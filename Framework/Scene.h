@@ -59,9 +59,9 @@ public:
 
 	int GetNumberOfLightPaths() { return m_NumLightPaths; }
 				
-	void CreatePaths(std::vector<AVPL*>& avpls, uint numPaths, int N, int nAdditionalAVPLs);
-	void CreatePath(std::vector<AVPL*>& avpls, int N, int nAdditionalAVPLs);
-	void CreatePrimaryVpls(std::vector<AVPL*>& avpls, int numVpls);
+	void CreatePaths(std::vector<AVPL>& avpls, uint numPaths, int N, int nAdditionalAVPLs);
+	void CreatePath(std::vector<AVPL>& avpls, int N, int nAdditionalAVPLs);
+	void CreatePrimaryVpls(std::vector<AVPL>& avpls, int numVpls);
 
 	uint GetNumCreatedAVPLs() { return m_NumCreatedAVPLs; }
 	uint GetNumAVPLsAfterIS() { return m_NumAVPLsAfterIS; }
@@ -72,9 +72,9 @@ private:
 	void InitKdTree();
 	void ReleaseKdTree();
 
-	AVPL* CreateAVPL(AVPL* pred, int N, int nAdditionalAVPLs);
-	AVPL* ContinueAVPLPath(AVPL* pred, glm::vec3 direction, float pdf, int N, int nAdditionalAVPLs);
-	void CreateAVPLs(AVPL* pred, std::vector<AVPL*>& path, int N, int nAVPLs);
+	bool CreateAVPL(AVPL* pred, AVPL* newAVPL, int N, int nAdditionalAVPLs);
+	bool ContinueAVPLPath(AVPL* pred, AVPL* newAVPL, glm::vec3 direction, float pdf, int N, int nAdditionalAVPLs);
+	void CreateAVPLs(AVPL* pred, std::vector<AVPL>& path, int N, int nAVPLs);
 	
 	std::vector<CModel*> m_Models;
 		

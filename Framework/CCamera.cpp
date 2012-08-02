@@ -106,6 +106,18 @@ void CCamera::MoveBackward(float t)
 	UpdateData();
 }
 
+void CCamera::MoveLeft(float t)
+{
+	m_Center += t * 25 * m_Speed * glm::normalize(m_U);
+	UpdateData();
+}
+
+void CCamera::MoveRight(float t)
+{
+	m_Center -= t * 25 * m_Speed * glm::normalize(m_U);
+	UpdateData();
+}
+
 void CCamera::UpdateData()
 {
 	glm::vec3 position = m_SphericalCoord.r * glm::vec3(
@@ -113,14 +125,13 @@ void CCamera::UpdateData()
 		cos(m_SphericalCoord.theta),	
 		sin(m_SphericalCoord.theta) * cos(m_SphericalCoord.phi));
 	
-	m_Position = position + m_Center;
+	m_Position = m_Center + position;
 	m_ViewMatrix = glm::lookAt(position + m_Center, m_Center, m_Up);
 
-	m_W = glm::normalize(GetPosition() - m_Center);
-    m_U = glm::normalize(glm::cross(-m_W, m_Up));
-	m_V = glm::normalize(glm::cross(-m_W, m_U));
-	m_V.y *= -1.f;
-	    
+	m_W = glm::normalize(glm::vec3(glm::inverse(m_ViewMatrix) * glm::vec4(0.f, 0.f, 1.f, 0.f)));
+    m_U = glm::normalize(glm::vec3(glm::inverse(m_ViewMatrix) * glm::vec4(-1.f, 0.f, 0.f, 0.f)));
+	m_V = glm::normalize(glm::vec3(glm::inverse(m_ViewMatrix) * glm::vec4(0.f, 1.f, 0.f, 0.f)));
+		
     m_U *= m_Scale;
     m_V *= m_Scale;
 
@@ -140,7 +151,7 @@ Ray CCamera::GetEyeRay(uint p_x, uint p_y)
     const float v = float(p_y) - float(m_Height)/2.f + 0.5f;
     const glm::vec3 dir = m_IO + u * m_U + v * m_V;
     
-	Ray r(GetPosition(), glm::normalize(dir));
+	Ray r(m_Position, dir);
 	return r;
 }
 
@@ -150,6 +161,6 @@ void CCamera::GetEyeRays(std::vector<Ray>& rays, std::vector<glm::vec2>& samples
 	GetStratifiedSamples2D(samples, range, numRays);
 	for(uint i = 0; i < samples.size(); ++i)
 	{
-		rays.push_back(GetEyeRay(samples[i].x, samples[i].y));
+		rays.push_back(GetEyeRay(uint(samples[i].x), uint(samples[i].y)));
 	}
 }

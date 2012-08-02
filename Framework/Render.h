@@ -7,6 +7,7 @@
 
 #include "CSimpleKdTree.h"
 #include "CClusterTree.h"
+#include "AVPL.h"
 
 #include <vector>
 #include <string>
@@ -16,7 +17,6 @@ class CCamera;
 class CConfigManager;
 class CShadowMap;
 class CPostprocess;
-class AVPL;
 
 class CAccumulationBuffer;
 class CGBuffer;
@@ -89,9 +89,9 @@ private:
 	void SetUpRender();
 	void CreateGBuffer();
 	
-	void Gather(std::vector<AVPL*> path, CRenderTarget* pRenderTarget);
-	void GatherWithAtlas(std::vector<AVPL*> path, CRenderTarget* pRenderTarget);
-	void GatherWithClustering(std::vector<AVPL*> path, CRenderTarget* pRenderTarget);
+	void Gather(const std::vector<AVPL>& path, CRenderTarget* pRenderTarget);
+	void GatherWithAtlas(const std::vector<AVPL>& path, CRenderTarget* pRenderTarget);
+	void GatherWithClustering(const std::vector<AVPL>& path, CRenderTarget* pRenderTarget);
 	void Normalize(CRenderTarget* pTarget, CRenderTarget* source, int normFactor);
 	void Shade(CRenderTarget* target, CRenderTarget* source);	
 	void Add(CRenderTarget* target, CRenderTarget* source1, CRenderTarget* source2);
@@ -99,19 +99,20 @@ private:
 	void InitDebugLights();
 	
 
-	std::vector<AVPL*> DetermineUsedAvpls(std::vector<AVPL*> path);
+	void DetermineUsedAvpls(const std::vector<AVPL>& avpls, std::vector<AVPL>& used);
 	
-	void GatherRadianceWithShadowMap(std::vector<AVPL*> path, CRenderTarget* pRenderTarget);	
+	void GatherRadianceWithShadowMap(const std::vector<AVPL>& path, CRenderTarget* pRenderTarget);	
 	void DebugRender();
 	void DrawAreaLight();
 	
 	void CreatePlaneHammersleySamples(int i);
 		
-	void GatherRadianceFromLightWithShadowMap(AVPL* avpl, CRenderTarget* pRenderTarget);
-	void FillShadowMap(AVPL* avpl);
-	void DrawLights(std::vector<AVPL*>& avpls, CRenderTarget* target);
+	void GatherRadianceFromLightWithShadowMap(const AVPL& avpl, CRenderTarget* pRenderTarget);
+	void FillShadowMap(const AVPL& avpl);
+	void DrawLights(const std::vector<AVPL>& avpls, CRenderTarget* target);
+	void DrawSceneSamples(CRenderTarget* target);
 		
-	glm::vec4 ColorForLight(AVPL* light);
+	glm::vec4 ColorForLight(const AVPL& light);
 	
 	void ExportPartialResult();
 
@@ -207,8 +208,8 @@ private:
 
 	int m_MaxNumAVPLs;
 
-	std::vector<AVPL*> m_DebugAVPLs;
-	std::vector<AVPL*> m_ClusterTestAVPLs;
+	std::vector<AVPL> m_DebugAVPLs;
+	std::vector<AVPL> m_ClusterTestAVPLs;
 		
 	CLightTree* m_pLightTree;
 	CClusterTree* m_pClusterTree;

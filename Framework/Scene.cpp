@@ -120,9 +120,8 @@ void Scene::DrawAreaLight(COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pU
 	m_AreaLight->Draw(m_Camera, pUBTransform, pUBAreaLight);
 }
 
-AVPL* Scene::CreateAVPL(AVPL* predecessor, int N, int nAdditionalAVPLs)
+bool Scene::CreateAVPL(AVPL* predecessor, AVPL* newAVPL, int N, int nAdditionalAVPLs)
 {
-	AVPL* avpl = 0;
 	if(predecessor == 0)
 	{
 		// create VPL on light source
@@ -132,24 +131,31 @@ AVPL* Scene::CreateAVPL(AVPL* predecessor, int N, int nAdditionalAVPLs)
 		glm::vec3 I = m_AreaLight->GetRadiance();
 
 		if(!(pdf > 0.f))
-			return avpl;
+			std::cout << "Warning: pdf is 0" << std::endl;
 
-		avpl = new AVPL(pos, ori, I / pdf, glm::vec3(0), glm::vec3(0), 0, m_pConfManager);
+		AVPL avpl(pos, ori, I / pdf, glm::vec3(0), glm::vec3(0), 0, m_pConfManager);
+		*newAVPL = avpl;
+		return true;
 	}
 	else
 	{
 		float pdf = 0.f;
 		glm::vec3 direction = GetRandomSampleDirectionCosCone(predecessor->GetOrientation(), Rand01(), Rand01(), pdf, 1);
 		
-		avpl = ContinueAVPLPath(predecessor, direction, pdf, N, nAdditionalAVPLs);
+		AVPL avpl;
+		if(ContinueAVPLPath(predecessor, &avpl, direction, pdf, N, nAdditionalAVPLs))
+		{
+			*newAVPL = avpl;
+			return true;
+		}
 	}
-	return avpl;
+
+	newAVPL = 0;
+	return false;
 }
 
-AVPL* Scene::ContinueAVPLPath(AVPL* pred, glm::vec3 direction, float pdf, int N, int nAdditionalAVPLs)
+bool Scene::ContinueAVPLPath(AVPL* pred, AVPL* newAVPL, glm::vec3 direction, float pdf, int N, int nAdditionalAVPLs)
 {
-	AVPL* avpl = 0;
-
 	glm::vec3 pred_pos = pred->GetPosition();
 
 	bool isect_bfc = m_pConfManager->GetConfVars()->Intersection_BFC == 0 ? false : true;
@@ -186,40 +192,53 @@ AVPL* Scene::ContinueAVPLPath(AVPL* pred, glm::vec3 direction, float pdf, int N,
 		
 		glm::vec3 antiintensity = 1.f / float(nAdditionalAVPLs + 1) * pred->GetIntensity(glm::normalize(direction)) / (pdf * area);
 			
-		avpl = new AVPL(pos, norm, intensity, antiintensity, direction, pred->GetBounce() + 1, m_pConfManager);
+		AVPL avpl(pos, norm, intensity, antiintensity, direction, pred->GetBounce() + 1, m_pConfManager);
+		*newAVPL = avpl;
+		return true;
 	}
 
-	return avpl;
+	newAVPL = 0;
+	return false;
 }
 
-void Scene::CreatePaths(std::vector<AVPL*>& avpls_res, uint numPaths, int N, int nAdditionalAVPLs)
+void Scene::CreatePaths(std::vector<AVPL>& avpls_res, uint numPaths, int N, int nAdditionalAVPLs)
 {
-	std::vector<AVPL*> avpls_temp;
-	for(uint i = 0; i < numPaths; ++i)
-	{
-		CreatePath(avpls_temp, N, nAdditionalAVPLs);
-	}
-	m_NumCreatedAVPLs += avpls_temp.size();
+	avpls_res.reserve(numPaths * 10);
 
-	if(m_pConfManager->GetConfVars()->UseAVPLImportanceSampling)
+	if(!m_pConfManager->GetConfVars()->UseAVPLImportanceSampling)
 	{
+		for(uint i = 0; i < numPaths; ++i)
+		{
+			CreatePath(avpls_res, N, nAdditionalAVPLs);
+		}
+		m_NumCreatedAVPLs += uint(avpls_res.size());
+	}
+	else
+	{
+		std::vector<AVPL> avpls_temp;
+		avpls_temp.reserve(numPaths * 10);
+
+		for(uint i = 0; i < numPaths; ++i)
+		{
+			CreatePath(avpls_temp, N, nAdditionalAVPLs);
+		}
+		m_NumCreatedAVPLs += uint(avpls_temp.size());
+
 		CTimer timer(CTimer::CPU);
 		timer.Start();
-		std::vector<AVPL*> to_delete;
 		for(int i = 0; i < avpls_temp.size(); ++i)
 		{
-			if(avpls_temp[i]->GetBounce() > 0)
+			if(avpls_temp[i].GetBounce() > 0)
 			{
 				float scale = 1.f;
-				if(true) //m_pAVPLImportanceSampling->EvaluateAVPLAntiintensityImportance(avpls_temp[i], &scale))
+				
+				if(m_pConfManager->GetConfVars()->UseAntiintensityImportance ? 
+					m_pAVPLImportanceSampling->EvaluateAVPLAntiintensityImportance(avpls_temp[i], &scale) : 
+					m_pAVPLImportanceSampling->EvaluateAVPLImportance(avpls_temp[i], &scale))
 				{
-					avpls_temp[i]->SetAntiintensity(scale * avpls_temp[i]->GetMaxAntiintensity());
-					avpls_temp[i]->SetIntensity(scale * avpls_temp[i]->GetMaxIntensity());
+					avpls_temp[i].SetAntiintensity(scale * avpls_temp[i].GetMaxAntiintensity());
+					avpls_temp[i].SetIntensity(scale * avpls_temp[i].GetMaxIntensity());
 					avpls_res.push_back(avpls_temp[i]);
-				}
-				else
-				{
-					to_delete.push_back(avpls_temp[i]);
 				}
 			}
 			else
@@ -228,33 +247,25 @@ void Scene::CreatePaths(std::vector<AVPL*>& avpls_res, uint numPaths, int N, int
 			}
 		}
 								
-		m_NumAVPLsAfterIS += avpls_res.size();
+		m_NumAVPLsAfterIS += uint(avpls_res.size());
 		
-		for(int i = 0; i < to_delete.size(); ++i) {
-			delete to_delete[i];
-		}
-		to_delete.clear();
-		avpls_temp.clear();		
-		
-		return;
+		avpls_temp.clear();
 	}
-
-	for(int i = 0; i < avpls_temp.size(); ++i)
-		avpls_res.push_back(avpls_temp[i]);
-	avpls_temp.clear();
 }
 
- void Scene::CreatePath(std::vector<AVPL*>& path, int N, int nAdditionalAVPLs) 
+ void Scene::CreatePath(std::vector<AVPL>& path, int N, int nAdditionalAVPLs) 
 {
 	m_NumLightPaths++;
 
 	m_CurrentBounce = 0;
 	
-	AVPL *pred, *succ;
+	AVPL pred, succ;
 		
 	// create new primary light on light source
-	pred = CreateAVPL(0, N, nAdditionalAVPLs);
-	path.push_back(pred);
+	if(CreateAVPL(0, &pred, N, nAdditionalAVPLs))
+		path.push_back(pred);
+	else
+		std::cout << "Failed to create primaty avpl." << std::endl;
 	
 	m_CurrentBounce++;
 	
@@ -269,12 +280,12 @@ void Scene::CreatePaths(std::vector<AVPL*>& avpls_res, uint numPaths, int N, int
 		if(rand_01 > rrProb)
 		{
 			// create path-finishing Anti-VPLs
-			CreateAVPLs(pred, path, N, nAdditionalAVPLs);
+			CreateAVPLs(&pred, path, N, nAdditionalAVPLs);
 
-			AVPL* avpl = CreateAVPL(pred, N, nAdditionalAVPLs);
-			if(avpl != 0)
+			AVPL avpl;
+			if(CreateAVPL(&pred, &avpl, N, nAdditionalAVPLs))
 			{
-				avpl->SetIntensity(glm::vec3(0.f));
+				avpl.SetIntensity(glm::vec3(0.f));
 				path.push_back(avpl);
 			}
 			
@@ -283,14 +294,13 @@ void Scene::CreatePaths(std::vector<AVPL*>& avpls_res, uint numPaths, int N, int
 		else
 		{
 			// create additional avpls
-			CreateAVPLs(pred, path, N, nAdditionalAVPLs);
+			CreateAVPLs(&pred, path, N, nAdditionalAVPLs);
 
 			// follow the path with cos-sampled direction (importance sample diffuse surface)
 			// if the ray hits geometry
-			succ = CreateAVPL(pred, N, nAdditionalAVPLs);
-			if(succ != 0)
+			if(CreateAVPL(&pred, &succ, N, nAdditionalAVPLs))
 			{
-				succ->SetIntensity(succ->GetIntensity(succ->GetOrientation()) / rrProb);
+				succ.SetIntensity(succ.GetIntensity(succ.GetOrientation()) / rrProb);
 				path.push_back(succ);
 				pred = succ;
 			}
@@ -306,7 +316,7 @@ void Scene::CreatePaths(std::vector<AVPL*>& avpls_res, uint numPaths, int N, int
 	}
 }
 
-void Scene::CreateAVPLs(AVPL* pred, std::vector<AVPL*>& path, int N, int nAVPLs)
+void Scene::CreateAVPLs(AVPL* pred, std::vector<AVPL>& path, int N, int nAVPLs)
 {
 	glm::vec3 pred_norm = pred->GetOrientation();
 
@@ -315,21 +325,22 @@ void Scene::CreateAVPLs(AVPL* pred, std::vector<AVPL*>& path, int N, int nAVPLs)
 		float pdf;
 		glm::vec3 direction = GetRandomSampleDirectionCosCone(pred_norm, Rand01(), Rand01(), pdf, 1);
 		
-		AVPL* avpl = ContinueAVPLPath(pred, direction, pdf, N, nAVPLs);
-		if(avpl != 0)
+		AVPL avpl;
+		if(ContinueAVPLPath(pred, &avpl, direction, pdf, N, nAVPLs))		
 		{
-			avpl->SetIntensity(glm::vec3(0.f));
+			avpl.SetIntensity(glm::vec3(0.f));
 			path.push_back(avpl);
 		}
 	}
 }
 
-void Scene::CreatePrimaryVpls(std::vector<AVPL*>& avpls, int numVpls)
+void Scene::CreatePrimaryVpls(std::vector<AVPL>& avpls, int numVpls)
 {
 	for(int i = 0; i < numVpls; ++i)
 	{
-		AVPL* avpl = CreateAVPL(0, 0, 0);
-		avpls.push_back(avpl);
+		AVPL avpl;
+		if(CreateAVPL(0, &avpl, 0, 0))
+			avpls.push_back(avpl);
 	}
 }
 

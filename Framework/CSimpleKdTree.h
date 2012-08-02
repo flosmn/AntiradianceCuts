@@ -55,7 +55,7 @@ public:
 
 	void Traverse(Node* n);
 
-	void Color(const std::vector<AVPL*>& avpls, const int cutDepth);
+	void Color(std::vector<AVPL>& avpls, const int cutDepth);
 
 	void MergeClusters(CLUSTER* merged, CLUSTER* c1, CLUSTER* c2);
 
@@ -72,7 +72,7 @@ private:
 
 	CLUSTER* GetNN(CLUSTER* p1, CLUSTER* p2, CLUSTER* query);
 
-	void Color(const std::vector<AVPL*>& avpls, const int cutDepth, Node* cluster, const int currentDepth, const int colorIndex);
+	void Color(std::vector<AVPL>& avpls, const int cutDepth, Node* cluster, const int currentDepth, const int colorIndex);
 
 	void Release(Node* n);
 		

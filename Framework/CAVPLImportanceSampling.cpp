@@ -13,8 +13,8 @@
 CAVPLImportanceSampling::CAVPLImportanceSampling(Scene* pScene, CConfigManager* pConfManager)
 	: m_pScene(pScene), m_pConfManager(pConfManager)
 {
-	m_AvgAntiirradiance = glm::vec3(0.f);
-	m_AvgIrradiance = glm::vec3(0.f);
+	m_AvgAntiirradiance = 0.f;
+	m_AvgIrradiance = 0.f;
 }
 
 CAVPLImportanceSampling::~CAVPLImportanceSampling()
@@ -24,6 +24,7 @@ CAVPLImportanceSampling::~CAVPLImportanceSampling()
 void CAVPLImportanceSampling::SetNumberOfSceneSamples(uint num)
 {
 	m_NumSceneSamples = num;
+	m_OneOverNumSceneSamples = 1.f / float(num);
 }
 
 void CAVPLImportanceSampling::UpdateCurrentIrradiance(COGLTexture2D* pTexture)
@@ -39,10 +40,10 @@ void CAVPLImportanceSampling::UpdateCurrentIrradiance(COGLTexture2D* pTexture)
 			irradiance += glm::vec3(pData[y * width + x]); 
 		}
 	}
-
+	
 	delete [] pData;
-
-	m_AvgIrradiance = irradiance / float(width * height);
+	
+	m_AvgIrradiance = Luminance(irradiance) / float(width * height);
 }
 
 void CAVPLImportanceSampling::UpdateCurrentAntiirradiance(COGLTexture2D* pTexture)
@@ -61,48 +62,40 @@ void CAVPLImportanceSampling::UpdateCurrentAntiirradiance(COGLTexture2D* pTextur
 
 	delete [] pData;
 
-	m_AvgAntiirradiance = antiirradiance / float(width * height);
+	m_AvgAntiirradiance = Luminance(antiirradiance) / float(width * height);
 }
 
-bool CAVPLImportanceSampling::EvaluateAVPLImportance(AVPL* avpl, float* scale)
+bool CAVPLImportanceSampling::EvaluateAVPLImportance(const AVPL& avpl, float* scale)
 {
-	const int ConeFactorScale = m_pConfManager->GetConfVars()->ConeFactorScale;
-
+	if(m_AvgAntiirradiance == 0 || m_AvgIrradiance == 0)
+	{
+		*scale = 1.f;
+		return true;
+	}
+	
 	glm::vec3 irradiance = glm::vec3(0.f);
 	glm::vec3 antiirradiance = glm::vec3(0.f);
 	for(uint i = 0; i < m_NumSceneSamples; ++i)
 	{
-		irradiance += avpl->GetIrradiance(m_SceneSamples[i]);
-		antiirradiance += avpl->GetAntiirradiance(m_SceneSamples[i], ConeFactorScale);
+		irradiance += avpl.GetIrradiance(m_SceneSamples[i]);
+		antiirradiance += avpl.GetAntiirradiance(m_SceneSamples[i], m_ConeFactor);
 	}
-	irradiance *= 1.f/float(m_NumSceneSamples);
-	antiirradiance *= 1.f/float(m_NumSceneSamples);
-			
-	const float alpha = m_pConfManager->GetConfVars()->IrradAntiirradWeight;
-	const float epsilon = m_pConfManager->GetConfVars()->AcceptProbabEpsilon;
+	irradiance *= m_OneOverNumSceneSamples;
+	antiirradiance *= m_OneOverNumSceneSamples;
 	
-	const float avgIrrad = Luminance(m_AvgIrradiance);
-	const float avgAntiirrad = Luminance(m_AvgAntiirradiance);
-	if(avgIrrad == 0 || avgAntiirrad == 0)
+	const float frac_irr = Luminance(irradiance) / m_AvgIrradiance;
+	const float frac_antiirr = Luminance(irradiance) / m_AvgAntiirradiance;
+
+	if(frac_irr >= 1.f || frac_antiirr)
 	{
 		*scale = 1.f;
 		return true;
 	}
 
-	if(Luminance(irradiance) >= avgIrrad || Luminance(antiirradiance) >= avgAntiirrad)
-	{
-		*scale = 1.f;
-		return true;
-	}
-
-	const float p_accept_irr = std::min(1.f, Luminance(irradiance) / avgIrrad + epsilon);
-	const float p_accept_antiirr = std::min(1.f, Luminance(antiirradiance) / avgAntiirrad + epsilon);
-
-	bool accept = false;
-	float u_irr = Rand01();
-	float u_antiirr = Rand01();
-
-	if(u_irr < p_accept_irr || u_antiirr < p_accept_antiirr)
+	const float p_accept_irr = std::min(1.f, frac_irr + m_Epsilon);
+	const float p_accept_antiirr = std::min(1.f, frac_antiirr + m_Epsilon);
+	
+	if(Rand01() < p_accept_irr || Rand01() < p_accept_antiirr)
 	{
 		*scale = 1.f / (p_accept_irr + p_accept_antiirr);
 		return true;
@@ -111,34 +104,24 @@ bool CAVPLImportanceSampling::EvaluateAVPLImportance(AVPL* avpl, float* scale)
 	return false;
 }
 
-bool CAVPLImportanceSampling::EvaluateAVPLAntiintensityImportance(AVPL* avpl, float* scale)
+bool CAVPLImportanceSampling::EvaluateAVPLAntiintensityImportance(const AVPL& avpl, float* scale)
 {
-	const int ConeFactorScale = m_pConfManager->GetConfVars()->ConeFactorScale;
-
 	glm::vec3 antiirradiance = glm::vec3(0.f);
 	for(uint i = 0; i < m_SceneSamples.size(); ++i)
 	{
-		antiirradiance += avpl->GetAntiirradiance(m_SceneSamples[i], float(ConeFactorScale));
+		antiirradiance += avpl.GetAntiirradiance(m_SceneSamples[i], m_ConeFactor);
 	}
-	antiirradiance *= 1.f/float(m_NumSceneSamples);
-		
-	const float epsilon = m_pConfManager->GetConfVars()->AcceptProbabEpsilon;
-	const float alpha = m_pConfManager->GetConfVars()->IrradAntiirradWeight;	
-
-	const float avgAntiirrad = Luminance(m_AvgAntiirradiance);
+	antiirradiance *= m_OneOverNumSceneSamples;
+			
 	const float A = Luminance(antiirradiance);
-	if(avgAntiirrad == 0 || A > 0.f)
+	if(m_AvgAntiirradiance == 0 || A > 0.f)
 	{
 		*scale = 1.f;
 		return true;
 	}
 		
-	const float p_accept = std::min(1.f, alpha + epsilon);
-
-	bool accept = false;
-	float u = Rand01();
-	
-	if(u < p_accept)
+	const float p_accept = std::min(1.f, m_Alpha + m_Epsilon);
+	if(Rand01() < p_accept)
 	{
 		*scale = 1.f / p_accept;
 		return true;
@@ -149,6 +132,10 @@ bool CAVPLImportanceSampling::EvaluateAVPLAntiintensityImportance(AVPL* avpl, fl
 
 void CAVPLImportanceSampling::CreateSceneSamples()
 {
+	m_Alpha = m_pConfManager->GetConfVars()->IrradAntiirradWeight;
+	m_Epsilon = m_pConfManager->GetConfVars()->AcceptProbabEpsilon;
+	m_ConeFactor = float(m_pConfManager->GetConfVars()->ConeFactorIS);
+
 	std::vector<Ray> eye_rays;
 	std::vector<glm::vec2> samples;
 	
@@ -173,6 +160,10 @@ void CAVPLImportanceSampling::CreateSceneSamples()
 				m_SceneSamples.push_back(ss);			
 			}
 		}
+
+		// no scene parts visible?
+		if(m_SceneSamples.size() == 0)
+			break;
 	}
 
 	eye_rays.clear();

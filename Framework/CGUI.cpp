@@ -87,8 +87,10 @@ bool CGUI::Init(uint window_width, uint window_height)
 
 	TwAddSeparator(m_pTwBar, "", "");
 	TwAddVarRW(m_pTwBar, "UseAVPLImpSampling", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->UseAVPLImportanceSampling), " min=0 max=1 step=1 ");
-	TwAddVarRW(m_pTwBar, "ConeFactorScale", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->ConeFactorScale), " min=1 max=100 step=1 ");
+	TwAddVarRW(m_pTwBar, "UseAntiintensityImportance", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->UseAntiintensityImportance), " min=0 max=1 step=1 ");
+	TwAddVarRW(m_pTwBar, "ConeFactorIS", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->ConeFactorIS), " min=1 max=100 step=1 ");
 	TwAddVarRW(m_pTwBar, "NumSceneSamples", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumSceneSamples), " min=1 max=10000 step=1 ");
+	TwAddVarRW(m_pTwBar, "DrawSceneSamples", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawSceneSamples), " min=0 max=1 step=1 ");
 	TwAddVarRW(m_pTwBar, "AcceptProbabEpsilon", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->AcceptProbabEpsilon), " min=0.00 max=1.00 step=0.01");
 	TwAddVarRW(m_pTwBar, "WeightIrradAntiirrad", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->IrradAntiirradWeight), " min=0.0 max=1.0 step=0.1");
 	

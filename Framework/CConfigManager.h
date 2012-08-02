@@ -55,8 +55,10 @@ struct CONF_VARS
 	float AreaLightPosZ;
 
 	int UseAVPLImportanceSampling;
-	int ConeFactorScale;
+	int UseAntiintensityImportance;
+	int ConeFactorIS;
 	int NumSceneSamples;
+	int DrawSceneSamples;
 	float IrradAntiirradWeight;
 	float AcceptProbabEpsilon;
 };

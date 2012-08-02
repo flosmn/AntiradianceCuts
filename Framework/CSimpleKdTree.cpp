@@ -324,12 +324,12 @@ Node* CSimpleKdTree::GetHead()
 	return m_Head;
 }
 
-void CSimpleKdTree::Color(const std::vector<AVPL*>& avpls, const int cutDepth)
+void CSimpleKdTree::Color(std::vector<AVPL>& avpls, const int cutDepth)
 {
 	Color(avpls, cutDepth, GetHead(), 0, 0);
 }
 
-void CSimpleKdTree::Color(const std::vector<AVPL*>& avpls, const int cutDepth, Node* n, const int currentDepth, const int colorIndex)
+void CSimpleKdTree::Color(std::vector<AVPL>& avpls, const int cutDepth, Node* n, const int currentDepth, const int colorIndex)
 {
 	if (currentDepth == cutDepth)
 	{
@@ -337,7 +337,7 @@ void CSimpleKdTree::Color(const std::vector<AVPL*>& avpls, const int cutDepth, N
 		GetAllNodes(n, leafs);
 		for (size_t i = 0; i < leafs.size(); ++i)
 		{
-			avpls[leafs[i]->cluster->avplIndex]->SetColor(m_pColors[colorIndex]);
+			avpls[leafs[i]->cluster->avplIndex].SetColor(m_pColors[colorIndex]);
 		}
 		leafs.clear();
 	}

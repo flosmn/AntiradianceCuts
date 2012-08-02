@@ -36,7 +36,7 @@ AVPL::~AVPL()
 
 AVPL::AVPL() { }
 
-void AVPL::Fill(AVPL_STRUCT& avpl)
+void AVPL::Fill(AVPL_STRUCT& avpl) const
 {
 	avpl.pos = glm::vec4(m_Position, 1.f);
 	avpl.norm = glm::vec4(m_Orientation, 1.f);
@@ -49,7 +49,7 @@ void AVPL::Fill(AVPL_STRUCT& avpl)
 	avpl.Bounce = m_Bounce;
 }
 
-void AVPL::Fill(AVPL_BUFFER& avpl)
+void AVPL::Fill(AVPL_BUFFER& avpl) const
 {
 	memset(&avpl, 0, sizeof(AVPL_BUFFER));
 	avpl.pos = glm::vec4(m_Position, 1.f);
@@ -59,12 +59,12 @@ void AVPL::Fill(AVPL_BUFFER& avpl)
 	avpl.w_A = glm::vec4(m_AntiradianceDirection, 0.f);
 }
 
-glm::vec3 AVPL::GetIntensity(glm::vec3 w)
+glm::vec3 AVPL::GetIntensity(glm::vec3 w) const
 {
 	return clamp(glm::dot(w, m_Orientation), 0, 1) * m_Intensity;
 }
 
-glm::vec3 AVPL::GetAntiintensity(glm::vec3 w, const float N)
+glm::vec3 AVPL::GetAntiintensity(glm::vec3 w, const float N) const
 {
 	const float N_OVER_PI = N / PI;
 	glm::vec3 res = glm::vec3(0.f);
@@ -95,12 +95,12 @@ glm::vec3 AVPL::GetAntiintensity(glm::vec3 w, const float N)
 	return res;
 }
 
-glm::vec3 AVPL::GetIrradiance(const SceneSample& ss)
+glm::vec3 AVPL::GetIrradiance(const SceneSample& ss) const
 {
 	return G(m_Position, m_Orientation, ss.position, ss.normal) * GetIntensity(glm::normalize(ss.position - m_Position));
 }
 
-glm::vec3 AVPL::GetAntiirradiance(const SceneSample& ss, const float N)
+glm::vec3 AVPL::GetAntiirradiance(const SceneSample& ss, const float N) const
 {
 	const glm::vec3 w = glm::normalize(ss.position - m_Position);
 	return G_A(m_Position, m_Orientation, ss.position, ss.normal) * GetAntiintensity(w, N);

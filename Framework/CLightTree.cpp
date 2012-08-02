@@ -41,7 +41,7 @@ CLightTree::~CLightTree()
 	delete m_pPriorityQueue;
 }
 
-void CLightTree::BuildTreeNaive(const std::vector<AVPL*>& avpls, const float weightNormals)
+void CLightTree::BuildTreeNaive(const std::vector<AVPL>& avpls, const float weightNormals)
 {
 	uint cluster_id = 0;
 	m_numToCluster = 0;
@@ -85,7 +85,7 @@ void CLightTree::BuildTreeNaive(const std::vector<AVPL*>& avpls, const float wei
 	SetDepths(GetHead(), 0);
 }
 
-void CLightTree::BuildTreeTweakCP(const std::vector<AVPL*>& avpls, const float weightNormals)
+void CLightTree::BuildTreeTweakCP(const std::vector<AVPL>& avpls, const float weightNormals)
 {
 	uint cluster_id = 0;
 	m_numToCluster = 0;
@@ -141,7 +141,7 @@ void CLightTree::BuildTreeTweakCP(const std::vector<AVPL*>& avpls, const float w
 	SetDepths(GetHead(), 0);
 }
 
-void CLightTree::BuildTreeTweakNN(const std::vector<AVPL*>& avpls, const float weightNormals)
+void CLightTree::BuildTreeTweakNN(const std::vector<AVPL>& avpls, const float weightNormals)
 {
 	uint cluster_id = 0;
 	m_numToCluster = 0;
@@ -259,21 +259,21 @@ void CLightTree::BuildTreeTweakNN(const std::vector<AVPL*>& avpls, const float w
 	m_pNNAccelerator->Release();
 }
 
-void CLightTree::CreateInitialClusters(const std::vector<AVPL*>& avpls, uint* cluster_id)
+void CLightTree::CreateInitialClusters(const std::vector<AVPL>& avpls, uint* cluster_id)
 {
 	for(size_t i = 0; i < avpls.size(); ++i)
 	{
 		int id = (*cluster_id)++;
 		CLUSTER* c = &(m_pClusters[id]);
 		
-		glm::vec3 pos = avpls[i]->GetPosition();
+		glm::vec3 pos = avpls[i].GetPosition();
 		BBox bbox;
 		c->mean = pos;
 		c->bbox = BBox(pos, pos);
 		c->id = id;
 		c->avplIndex = (int)i;
-		c->intensity = avpls[i]->GetMaxIntensity() + avpls[i]->GetMaxAntiintensity();
-		c->normal = avpls[i]->GetOrientation();
+		c->intensity = avpls[i].GetMaxIntensity() + avpls[i].GetMaxAntiintensity();
+		c->normal = avpls[i].GetOrientation();
 		c->left = 0;
 		c->right = 0;
 		c->size = 1;
@@ -431,12 +431,12 @@ CLUSTER_PAIR CLightTree::FindBestClusterPair(const float weightNormals, bool use
 	return best_cp;
 }
 
-void CLightTree::Color(const std::vector<AVPL*>& avpls, const int cutDepth)
+void CLightTree::Color(std::vector<AVPL>& avpls, const int cutDepth)
 {
 	Color(avpls, cutDepth, GetHead(), 0, 0);
 }
 
-void CLightTree::Color(const std::vector<AVPL*>& avpls, const int cutDepth, CLUSTER* cluster, const int currentDepth, const int colorIndex)
+void CLightTree::Color(std::vector<AVPL>& avpls, const int cutDepth, CLUSTER* cluster, const int currentDepth, const int colorIndex)
 {
 	if (currentDepth == cutDepth)
 	{
@@ -444,7 +444,7 @@ void CLightTree::Color(const std::vector<AVPL*>& avpls, const int cutDepth, CLUS
 		GetAllLeafs(cluster, leafs);
 		for (size_t i = 0; i < leafs.size(); ++i)
 		{
-			avpls[leafs[i]->avplIndex]->SetColor(m_pColors[colorIndex]);
+			avpls[leafs[i]->avplIndex].SetColor(m_pColors[colorIndex]);
 		}
 		leafs.clear();
 	}

@@ -24,7 +24,7 @@ CClusterTree::~CClusterTree()
 	delete [] m_pColors;
 }
 	
-void CClusterTree::BuildTree(const std::vector<AVPL*>& avpls)
+void CClusterTree::BuildTree(const std::vector<AVPL>& avpls)
 {
 	m_ClusterId = 0;
 
@@ -175,22 +175,22 @@ CLUSTER* CClusterTree::MergeClusters(CLUSTER* l, CLUSTER* r, int depth)
 	return c;
 }
 
-void CClusterTree::CreateLeafClusters(const std::vector<AVPL*>& avpls,
+void CClusterTree::CreateLeafClusters(const std::vector<AVPL>& avpls,
 	std::vector<CLUSTER*>& data_points)
 {
 	for(int i = 0; i < avpls.size(); ++i)
 	{
-		AVPL* avpl = avpls[i];
+		AVPL avpl = avpls[i];
 		int id = m_ClusterId++;
 		CLUSTER* leaf = &(m_pClustering[id]);
-		glm::vec3 pos = avpl->GetPosition();
+		glm::vec3 pos = avpls[i].GetPosition();
 		leaf->avplIndex = i;
 		leaf->id = id;
 		leaf->bbox = BBox(pos, pos);
 		leaf->depth = -1;
-		leaf->intensity = avpl->GetMaxIntensity() + avpl->GetMaxAntiintensity();
+		leaf->intensity = avpls[i].GetMaxIntensity() + avpls[i].GetMaxAntiintensity();
 		leaf->mean = pos;
-		leaf->normal = avpl->GetOrientation();
+		leaf->normal = avpls[i].GetOrientation();
 		leaf->size = 1;
 		leaf->left = 0;
 		leaf->right = 0;
@@ -198,7 +198,7 @@ void CClusterTree::CreateLeafClusters(const std::vector<AVPL*>& avpls,
 	}
 }
 
-void CClusterTree::Color(const std::vector<AVPL*>& avpls, const int cutDepth)
+void CClusterTree::Color(std::vector<AVPL>& avpls, const int cutDepth)
 {
 	Color(avpls, cutDepth, GetHead(), 0, 0);
 }
@@ -226,7 +226,7 @@ void CClusterTree::Traverse(CLUSTER* cluster)
 	}
 }
 	
-void CClusterTree::Color(const std::vector<AVPL*>& avpls, const int cutDepth, 
+void CClusterTree::Color(std::vector<AVPL>& avpls, const int cutDepth, 
 	CLUSTER* cluster, const int currentDepth, const int colorIndex)
 {
 	if (currentDepth == cutDepth)
@@ -235,7 +235,7 @@ void CClusterTree::Color(const std::vector<AVPL*>& avpls, const int cutDepth,
 		GetAllLeafs(cluster, leafs);
 		for (size_t i = 0; i < leafs.size(); ++i)
 		{
-			avpls[leafs[i]->avplIndex]->SetColor(m_pColors[colorIndex]);
+			avpls[leafs[i]->avplIndex].SetColor(m_pColors[colorIndex]);
 		}
 		leafs.clear();
 	}

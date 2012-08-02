@@ -36,6 +36,8 @@ public:
 	void SetSpeed(float s);
 	void MoveForward(float t);
 	void MoveBackward(float t);
+	void MoveLeft(float t);
+	void MoveRight(float t);
 
 	float GetAspectRatio() { return (float)m_Width/(float)m_Height; }
 	uint GetHeight() { return m_Height; }

@@ -266,7 +266,7 @@ void COctahedronAtlas::FillClusterAtlasGPU(CLUSTER* pClustering, uint clustering
 	m_pOCLClusterAtlas->Unlock();
 }
 
-void COctahedronAtlas::FillAtlas(const std::vector<AVPL*>& avpls, const int sqrt_num_ss_samples, const float& N, bool border)
+void COctahedronAtlas::FillAtlas(const std::vector<AVPL>& avpls, const int sqrt_num_ss_samples, const float& N, bool border)
 {
 	uint maxIndex = (uint)avpls.size();
 	if(avpls.size() * m_TileDim * m_TileDim > m_AtlasDim * m_AtlasDim)
@@ -332,7 +332,7 @@ void COctahedronAtlas::FillAtlas(const std::vector<AVPL*>& avpls, const int sqrt
 	m_pOGLAtlasCPU->SetPixelData(m_pData);
 }
 
-void COctahedronAtlas::FillClusterAtlas(const std::vector<AVPL*>& avpls, CLUSTER* pClustering, int clusteringSize)
+void COctahedronAtlas::FillClusterAtlas(const std::vector<AVPL>& avpls, CLUSTER* pClustering, int clusteringSize)
 {
 	memset(m_pClusterData, 0, m_AtlasDim * m_AtlasDim * sizeof(glm::vec4));
 	
@@ -397,7 +397,7 @@ void COctahedronAtlas::FillClusterAtlas(const std::vector<AVPL*>& avpls, CLUSTER
 	m_pOGLClusterAtlasCPU->SetPixelData(m_pClusterData);
 }
 
-glm::vec4 COctahedronAtlas::SampleTexel(uint x, uint y, const int sqrt_num_ss_samples, const float& N, AVPL* avpl, bool border)
+glm::vec4 COctahedronAtlas::SampleTexel(uint x, uint y, const int sqrt_num_ss_samples, const float& N, const AVPL& avpl, bool border)
 {
 	uint b = border ? 1 : 0;
 	const int num_ss_samples = sqrt_num_ss_samples * sqrt_num_ss_samples;
@@ -415,8 +415,8 @@ glm::vec4 COctahedronAtlas::SampleTexel(uint x, uint y, const int sqrt_num_ss_sa
 			glm::vec2 texCoord = texel_size * glm::vec2(float(x + (i+1) * delta), float(y + (j+1) * delta));
 			glm::vec3 direction = glm::normalize(GetDirForTexCoord(texCoord));
 			
-			A += avpl->GetAntiintensity(direction, N);
-			I += avpl->GetIntensity(direction);
+			A += avpl.GetAntiintensity(direction, N);
+			I += avpl.GetIntensity(direction);
 		}
 	}
 		

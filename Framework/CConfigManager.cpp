@@ -34,7 +34,7 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->NumVPLsDirectLight = m_pConfVarsGUI->NumVPLsDirectLight = 50;
 	m_pConfVars->NumVPLsDirectLightPerFrame = m_pConfVarsGUI->NumVPLsDirectLightPerFrame = 1;
 
-	m_pConfVars->NumPaths = m_pConfVarsGUI->NumPaths = 200000;
+	m_pConfVars->NumPaths = m_pConfVarsGUI->NumPaths = 1000;
 	m_pConfVars->NumPathsPerFrame = m_pConfVarsGUI->NumPathsPerFrame = 100;
 	m_pConfVars->NumAdditionalAVPLs = m_pConfVarsGUI->NumAdditionalAVPLs = 0;
 	m_pConfVars->ConeFactor = m_pConfVarsGUI->ConeFactor = 30;
@@ -65,8 +65,10 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->AreaLightPosZ = m_pConfVarsGUI->AreaLightPosZ = 0.f;
 
 	m_pConfVars->UseAVPLImportanceSampling = m_pConfVarsGUI->UseAVPLImportanceSampling = 1;
-	m_pConfVars->ConeFactorScale = m_pConfVarsGUI->ConeFactorScale = 4;
+	m_pConfVars->UseAntiintensityImportance = m_pConfVarsGUI->UseAntiintensityImportance = 0;
+	m_pConfVars->ConeFactorIS = m_pConfVarsGUI->ConeFactorIS = 4;
 	m_pConfVars->NumSceneSamples = m_pConfVarsGUI->NumSceneSamples = 100;
+	m_pConfVars->DrawSceneSamples = m_pConfVarsGUI->DrawSceneSamples = 0;
 	m_pConfVars->IrradAntiirradWeight = m_pConfVarsGUI->IrradAntiirradWeight = 0.5f;
 	m_pConfVars->AcceptProbabEpsilon = m_pConfVarsGUI->AcceptProbabEpsilon = 0.05f;
 }
@@ -412,13 +414,26 @@ void CConfigManager::Update()
 		clearAccumBuffer = true;
 		clearLighting = true;
 	}
-	
-	if(m_pConfVarsGUI->ConeFactorScale != m_pConfVars->ConeFactorScale)
+
+	if(m_pConfVarsGUI->UseAntiintensityImportance != m_pConfVars->UseAntiintensityImportance)
 	{
-		m_pConfVars->ConeFactorScale = m_pConfVarsGUI->ConeFactorScale;
+		m_pConfVars->UseAntiintensityImportance = m_pConfVarsGUI->UseAntiintensityImportance;
 		configureLighting = true;
 		clearAccumBuffer = true;
 		clearLighting = true;
+	}
+	
+	if(m_pConfVarsGUI->ConeFactorIS != m_pConfVars->ConeFactorIS)
+	{
+		m_pConfVars->ConeFactorIS = m_pConfVarsGUI->ConeFactorIS;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->DrawSceneSamples != m_pConfVars->DrawSceneSamples)
+	{
+		m_pConfVars->DrawSceneSamples = m_pConfVarsGUI->DrawSceneSamples;
 	}
 
 	if(m_pConfVarsGUI->NumSceneSamples != m_pConfVars->NumSceneSamples)

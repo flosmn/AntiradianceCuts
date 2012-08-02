@@ -15,8 +15,8 @@ public:
 	CClusterTree();
 	~CClusterTree();
 
-	void BuildTree(const std::vector<AVPL*>& avpls);
-	void Color(const std::vector<AVPL*>& avpls, const int cutDepth);
+	void BuildTree(const std::vector<AVPL>& avpls);
+	void Color(std::vector<AVPL>& avpls, const int cutDepth);
 
 	void Release();
 	
@@ -33,14 +33,14 @@ private:
 		const std::vector<CLUSTER*>& dp_other_axis_2,
 		int depth);
 	
-	void CreateLeafClusters(const std::vector<AVPL*>& avpls, std::vector<CLUSTER*>& data_points);
+	void CreateLeafClusters(const std::vector<AVPL>& avpls, std::vector<CLUSTER*>& data_points);
 	BBox GetBoundingBox(int* clusterIds, int numClusters);
 	CLUSTER* MergeClusters(CLUSTER* leftChild, CLUSTER* rightChild, int depth);
 	void CreateInnerClusters();
 	
 	void Traverse(CLUSTER* cluster);
 	void Release(CLUSTER* cluster);
-	void Color(const std::vector<AVPL*>& avpls, const int cutDepth, CLUSTER* cluster, const int currentDepth, const int colorIndex);
+	void Color(std::vector<AVPL>& avpls, const int cutDepth, CLUSTER* cluster, const int currentDepth, const int colorIndex);
 	void GetAllLeafs(CLUSTER* cluster, std::vector<CLUSTER*>& leafs);
 	void SetDepths(CLUSTER* n, int depth);
 

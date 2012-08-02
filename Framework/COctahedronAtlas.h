@@ -30,10 +30,10 @@ public:
 	bool Init(uint atlasDim, uint tileDim, uint maxNumAVPLs);
 	void Release();
 	
-	void FillClusterAtlas(const std::vector<AVPL*>& avpls, CLUSTER* pClustering, int clusteringSize);
+	void FillClusterAtlas(const std::vector<AVPL>& avpls, CLUSTER* pClustering, int clusteringSize);
 	void FillClusterAtlasGPU(CLUSTER* pClustering, uint clusteringSize, uint numAVPLs);
 
-	void FillAtlas(const std::vector<AVPL*>& avpls, const int sqrt_num_ss_samples, const float& N, bool border);
+	void FillAtlas(const std::vector<AVPL>& avpls, const int sqrt_num_ss_samples, const float& N, bool border);
 	void FillAtlasGPU(AVPL_BUFFER* pBufferData, uint numAVPLs, const int sqrt_num_ss_samples, const float& N, bool border);
 
 	COGLTexture2D* GetAVPLAtlas();
@@ -47,7 +47,7 @@ public:
 
 private:
 	glm::vec4* AccessAtlas(uint x, uint y, uint tile_x, uint tile_y, glm::vec4* pAtlas);
-	glm::vec4 SampleTexel(uint x, uint y, const int sqrt_num_ss_samples, const float& N, AVPL* avpl, bool border);
+	glm::vec4 SampleTexel(uint x, uint y, const int sqrt_num_ss_samples, const float& N, const AVPL& avpl, bool border);
 
 	COGLTexture2D* m_pOGLAtlasCPU;
 	COGLTexture2D* m_pOGLAtlas;
