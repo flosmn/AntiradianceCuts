@@ -33,6 +33,8 @@ class CModel;
 class CLightTree;
 class CClusterTree;
 class CTimer;
+class CAVPLImportanceSampling;
+class CRenderTarget;
 
 class COGLUniformBuffer;
 class COGLSampler;
@@ -54,6 +56,8 @@ public:
 
 	void Render();
 	void RenderDirectIndirectLight();
+
+	void CancelRender();
 
 	void SetOGLContext(COGLContext* pOGLContext) { m_pOGLContext = pOGLContext; }
 
@@ -93,6 +97,7 @@ private:
 	void Add(CRenderTarget* target, CRenderTarget* source1, CRenderTarget* source2);
 
 	void InitDebugLights();
+	
 
 	std::vector<AVPL*> DetermineUsedAvpls(std::vector<AVPL*> path);
 	
@@ -104,7 +109,7 @@ private:
 		
 	void GatherRadianceFromLightWithShadowMap(AVPL* avpl, CRenderTarget* pRenderTarget);
 	void FillShadowMap(AVPL* avpl);
-	void DrawLights(std::vector<AVPL*> avpl);
+	void DrawLights(std::vector<AVPL*>& avpls, CRenderTarget* target);
 		
 	glm::vec4 ColorForLight(AVPL* light);
 	
@@ -120,6 +125,7 @@ private:
 	CGBuffer* m_pGBuffer;
 	CConfigManager* m_pConfManager;
 	
+	CRenderTarget* m_pAVPLRenderTarget;
 	CRenderTarget* m_pGatherRenderTarget;
 	CRenderTarget* m_pNormalizeRenderTarget;
 	CRenderTarget* m_pShadeRenderTarget;
@@ -165,7 +171,8 @@ private:
 	COGLUniformBuffer* m_pUBAtlasInfo;
 
 	COGLTexture2D* m_pDepthBuffer;
-	
+	COGLTexture2D* m_pTestTexture;
+
 	COGLContext* m_pOGLContext;
 
 	CProgram* m_pCreateGBufferProgram;
@@ -178,6 +185,8 @@ private:
 	COGLSampler* m_pGLLinearSampler;
 	COGLSampler* m_pGLPointSampler;
 	COGLSampler* m_pGLShadowMapSampler;
+
+	CAVPLImportanceSampling* m_pAVPLImportanceSampling;
 
 	CFullScreenQuad* m_pFullScreenQuad;
 

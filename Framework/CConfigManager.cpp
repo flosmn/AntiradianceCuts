@@ -13,7 +13,7 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 
 	m_pConfVars->UseAntiradiance = m_pConfVarsGUI->UseAntiradiance = 1;
 	m_pConfVars->UseToneMapping = m_pConfVarsGUI->UseToneMapping = 0;
-	m_pConfVars->UseDebugMode = m_pConfVarsGUI->UseDebugMode = 1;
+	m_pConfVars->UseDebugMode = m_pConfVarsGUI->UseDebugMode = 0;
 	m_pConfVars->DrawAVPLAtlas = m_pConfVarsGUI->DrawAVPLAtlas = 0;
 	m_pConfVars->DrawAVPLClusterAtlas = m_pConfVarsGUI->DrawAVPLClusterAtlas = 0;
 	m_pConfVars->GatherWithAVPLAtlas = m_pConfVarsGUI->GatherWithAVPLAtlas = 0;
@@ -34,8 +34,8 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->NumVPLsDirectLight = m_pConfVarsGUI->NumVPLsDirectLight = 50;
 	m_pConfVars->NumVPLsDirectLightPerFrame = m_pConfVarsGUI->NumVPLsDirectLightPerFrame = 1;
 
-	m_pConfVars->NumPaths = m_pConfVarsGUI->NumPaths = 1;
-	m_pConfVars->NumPathsPerFrame = m_pConfVarsGUI->NumPathsPerFrame = 1;
+	m_pConfVars->NumPaths = m_pConfVarsGUI->NumPaths = 200000;
+	m_pConfVars->NumPathsPerFrame = m_pConfVarsGUI->NumPathsPerFrame = 100;
 	m_pConfVars->NumAdditionalAVPLs = m_pConfVarsGUI->NumAdditionalAVPLs = 0;
 	m_pConfVars->ConeFactor = m_pConfVarsGUI->ConeFactor = 30;
 	m_pConfVars->AntiradFilterMode = m_pConfVarsGUI->AntiradFilterMode = 0;
@@ -63,6 +63,12 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->AreaLightPosX = m_pConfVarsGUI->AreaLightPosX = 0.f;
 	m_pConfVars->AreaLightPosY = m_pConfVarsGUI->AreaLightPosY = 0.f;
 	m_pConfVars->AreaLightPosZ = m_pConfVarsGUI->AreaLightPosZ = 0.f;
+
+	m_pConfVars->UseAVPLImportanceSampling = m_pConfVarsGUI->UseAVPLImportanceSampling = 1;
+	m_pConfVars->ConeFactorScale = m_pConfVarsGUI->ConeFactorScale = 4;
+	m_pConfVars->NumSceneSamples = m_pConfVarsGUI->NumSceneSamples = 100;
+	m_pConfVars->IrradAntiirradWeight = m_pConfVarsGUI->IrradAntiirradWeight = 0.5f;
+	m_pConfVars->AcceptProbabEpsilon = m_pConfVarsGUI->AcceptProbabEpsilon = 0.05f;
 }
 
 CConfigManager::~CConfigManager()
@@ -398,7 +404,47 @@ void CConfigManager::Update()
 		clearAccumBuffer = true;
 		clearLighting = true;
 	}
+			
+	if(m_pConfVarsGUI->UseAVPLImportanceSampling != m_pConfVars->UseAVPLImportanceSampling)
+	{
+		m_pConfVars->UseAVPLImportanceSampling = m_pConfVarsGUI->UseAVPLImportanceSampling;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+	
+	if(m_pConfVarsGUI->ConeFactorScale != m_pConfVars->ConeFactorScale)
+	{
+		m_pConfVars->ConeFactorScale = m_pConfVarsGUI->ConeFactorScale;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
 
+	if(m_pConfVarsGUI->NumSceneSamples != m_pConfVars->NumSceneSamples)
+	{
+		m_pConfVars->NumSceneSamples = m_pConfVarsGUI->NumSceneSamples;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->IrradAntiirradWeight != m_pConfVars->IrradAntiirradWeight)
+	{
+		m_pConfVars->IrradAntiirradWeight = m_pConfVarsGUI->IrradAntiirradWeight;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->AcceptProbabEpsilon != m_pConfVars->AcceptProbabEpsilon)
+	{
+		m_pConfVars->AcceptProbabEpsilon = m_pConfVarsGUI->AcceptProbabEpsilon;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+		
 	if(updateAreaLight) m_pRenderer->UpdateAreaLights();
 	if(clearLighting) m_pRenderer->ClearLighting();
 	if(clearAccumBuffer) m_pRenderer->ClearAccumulationBuffer();

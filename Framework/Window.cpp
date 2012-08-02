@@ -53,13 +53,12 @@ float CalcFPS();
 
 void Render()
 {
+	
 	if(g_pConfigManager->GetConfVars()->SeparateDirectIndirectLighting)
 		g_pRenderer->RenderDirectIndirectLight();
 	else
 		g_pRenderer->Render();
-
-	//g_pRenderer->ClusteringTestRender();
-
+	
 	g_pGUI->Render(CalcFPS());
 
 	SwapBuffers(g_HDC);
@@ -242,6 +241,14 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 //#ifdef _DEBUG
 	RedirectIOToConsole();
 //#endif
+	
+	/*
+	// enable floating point exception
+	unsigned int cw;
+    cw = _control87(0,0) & MCW_EM;
+    cw &= ~(_EM_INVALID | _EM_DENORMAL | _EM_ZERODIVIDE | _EM_OVERFLOW | _EM_UNDERFLOW | _EM_INEXACT);
+    _control87(cw,MCW_EM);
+	*/
 
 	WNDCLASSEX windowClass;		//window class
 	HWND    hwnd;               //window handle
@@ -464,6 +471,23 @@ bool HandleKeyEvent(WPARAM wParam)
 			g_pRenderer->ProfileFrame();
 			return true; break;
 
+		case 'B':
+
+			g_pRenderer->CancelRender();
+			return true; break;
+
+		case 'W':
+
+			g_pCamera->MoveForward(0.5f);
+			g_pRenderer->ClearLighting();
+			return true; break;
+
+		case 'S':
+
+			g_pCamera->MoveBackward(0.5f);
+			g_pRenderer->ClearLighting();
+			return true; break;
+			
 		default: break;
     }
 	

@@ -177,6 +177,7 @@
       <Filter>GUI&amp;Config</Filter>
     </ClCompile>
     <ClCompile Include="CCamera.cpp" />
+    <ClCompile Include="CAVPLImportanceSampling.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Render.h" />
@@ -361,6 +362,7 @@
       <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="CCamera.h" />
+    <ClInclude Include="CAVPLImportanceSampling.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">

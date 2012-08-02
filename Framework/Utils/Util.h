@@ -26,6 +26,8 @@ glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, const float u1,
 glm::vec3 SampleConeDirection(const glm::vec3& axis, const float& theta, const float& u1, const float& u2, float* pdf);
 glm::vec2 ConcentricSampleDisk(float u1, float u2);
 
+void GetStratifiedSamples2D(std::vector<glm::vec2>& samples, const glm::vec2& range, const uint numSamples);
+
 glm::mat3 ComputeTangentSpace(const glm::vec3& n );
 glm::vec3 NeverCoLinear(const glm::vec3& v);
 glm::vec3 Orthogonal(const glm::vec3 &v);
@@ -44,5 +46,13 @@ std::string AsString(glm::vec3 v);
 std::string AsString(glm::vec4 v);
 
 void PlaneHammersley(float *result, int n);
+
+uint GetBiggestSquareNumSmallerThan(uint num);
+
+float G(glm::vec3 p1, glm::vec3 n1, glm::vec3 p2, glm::vec3 n2);
+float G_A(glm::vec3 p_avpl, glm::vec3 n_avpl, glm::vec3 p_point, glm::vec3 n_point);
+
+float Luminance(glm::vec3 v);
+float Luminance(glm::vec4 v);
 
 #endif

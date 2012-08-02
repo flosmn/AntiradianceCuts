@@ -134,6 +134,7 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
   <ItemGroup>
     <ClCompile Include="AreaLight.cpp" />
     <ClCompile Include="CAccumulationBuffer.cpp" />
+    <ClCompile Include="CAVPLImportanceSampling.cpp" />
     <ClCompile Include="CCamera.cpp" />
     <ClCompile Include="CClusterTree.cpp" />
     <ClCompile Include="CConfigManager.cpp" />
@@ -194,6 +195,7 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AreaLight.h" />
+    <ClInclude Include="CAVPLImportanceSampling.h" />
     <ClInclude Include="BBox.h" />
     <ClInclude Include="CAccumulationBuffer.h" />
     <ClInclude Include="CCamera.h" />

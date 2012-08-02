@@ -26,6 +26,7 @@
 #include "CClusterTree.h"
 #include "CLightTree.h"
 #include "CPriorityQueue.h"
+#include "CAVPLImportanceSampling.h"
 
 #include "LightTreeTypes.h"
 
@@ -65,7 +66,7 @@ Renderer::Renderer(CCamera* _camera) {
 	scene = 0;
 
 	m_pCLContext = new COCLContext();
-	
+		
 	m_pShadowMap = new CShadowMap();
 	
 	m_pOctahedronAtlas = new COctahedronAtlas(m_pCLContext);
@@ -74,6 +75,7 @@ Renderer::Renderer(CCamera* _camera) {
 	m_Export = new CExport();
 	
 	m_pDepthBuffer = new COGLTexture2D("Renderer.m_pDepthBuffer");
+	m_pTestTexture = new COGLTexture2D("Renderer.m_pTestTexture");
 	
 	m_pGBuffer = new CGBuffer();
 		
@@ -109,6 +111,7 @@ Renderer::Renderer(CCamera* _camera) {
 	m_pNormalizeIndirectLightRenderTarget = new CRenderTarget();
 	m_pShadeDirectLightRenderTarget = new CRenderTarget();
 	m_pShadeIndirectLightRenderTarget = new CRenderTarget();
+	m_pAVPLRenderTarget = new CRenderTarget();
 
 	m_pGatherProgram = new CProgram("Renderer.m_pGatherProgram", "Shaders\\Gather.vert", "Shaders\\Gather.frag");
 	m_pGatherWithAtlas = new CProgram("Renderer.m_pGatherProgram", "Shaders\\Gather.vert", "Shaders\\GatherWithAtlas.frag");
@@ -165,6 +168,7 @@ Renderer::~Renderer() {
 	SAFE_DELETE(m_pNormalizeIndirectLightRenderTarget);
 	SAFE_DELETE(m_pShadeDirectLightRenderTarget);
 	SAFE_DELETE(m_pShadeIndirectLightRenderTarget);
+	SAFE_DELETE(m_pAVPLRenderTarget);
 
 	SAFE_DELETE(m_pGatherProgram);
 	SAFE_DELETE(m_pGatherWithAtlas);
@@ -204,6 +208,7 @@ Renderer::~Renderer() {
 	SAFE_DELETE(m_pGLShadowMapSampler);
 
 	SAFE_DELETE(m_pDepthBuffer);
+	SAFE_DELETE(m_pTestTexture);
 	
 	SAFE_DELETE(m_pAVPLPositions);
 
@@ -219,6 +224,8 @@ Renderer::~Renderer() {
 	SAFE_DELETE(m_pGlobalTimer);
 
 	SAFE_DELETE(m_pCLContext);
+
+	SAFE_DELETE(m_pAVPLImportanceSampling);
 }
 
 bool Renderer::Init() 
@@ -226,6 +233,7 @@ bool Renderer::Init()
 	V_RET_FOF(m_pCLContext->Init(m_pOGLContext));
 		
 	V_RET_FOF(m_pDepthBuffer->Init(camera->GetWidth(), camera->GetHeight(), GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, 1, false));
+	V_RET_FOF(m_pTestTexture->Init(camera->GetWidth(), camera->GetHeight(), GL_RGBA32F, GL_RGBA, GL_FLOAT, 1, false));
 	
 	V_RET_FOF(m_pUBTransform->Init(sizeof(TRANSFORM), 0, GL_DYNAMIC_DRAW));
 	V_RET_FOF(m_pUBMaterial->Init(sizeof(MATERIAL), 0, GL_DYNAMIC_DRAW));
@@ -253,7 +261,7 @@ bool Renderer::Init()
 	V_RET_FOF(m_pAreaLightProgram->Init());
 	V_RET_FOF(m_pAddProgram->Init());
 	
-	V_RET_FOF(m_pGatherRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 4, 0));
+	V_RET_FOF(m_pGatherRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 4, m_pDepthBuffer));
 	V_RET_FOF(m_pNormalizeRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 3, 0));
 	V_RET_FOF(m_pShadeRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 1, m_pDepthBuffer));
 	V_RET_FOF(m_pGatherDirectLightRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 4, 0));
@@ -262,6 +270,7 @@ bool Renderer::Init()
 	V_RET_FOF(m_pNormalizeIndirectLightRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 3, 0));
 	V_RET_FOF(m_pShadeDirectLightRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 1, m_pDepthBuffer));
 	V_RET_FOF(m_pShadeIndirectLightRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 1, m_pDepthBuffer));
+	V_RET_FOF(m_pAVPLRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 1, m_pDepthBuffer));
 
 	V_RET_FOF(m_pPostProcess->Init());
 	V_RET_FOF(m_pPostProcessRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 1, 0));
@@ -378,51 +387,10 @@ bool Renderer::Init()
 	InitDebugLights();
 		
 	ClearAccumulationBuffer();
-#if 1
-	for(int i = 0; i < 10; ++i)
-	{
-		glm::vec3 pos = glm::vec3(1000 * Rand01(), 1000 * Rand01(), 400 * Rand01()); 
-		AVPL* avpl = new AVPL(pos, glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f), glm::vec3(0.f, 0.f, -1.f), 0);
-		m_ClusterTestAVPLs.push_back(avpl);
-	}
-#else	
-	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
-	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
-	
-	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(0.f, 2.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
-	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(1.f, 2.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
-	
-	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(0.f, 0.f, 4.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
-	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(1.f, 0.f, 4.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
-	
-	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(0.f, 2.f, 4.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
-	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(1.f, 2.f, 4.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
-	
-	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(9.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
-	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(10.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
-	
-	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(9.f, 2.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
-	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(10.f, 2.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
-	
-	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(9.f, 0.f, 4.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
-	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(10.f, 0.f, 4.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
-	
-	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(9.f, 2.f, 4.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
-	m_ClusterTestAVPLs.push_back(new AVPL(100.f * glm::vec3(10.f, 2.f, 4.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, -1.f), 0));
-	
-#endif
-	/*
-	camera->Init(glm::vec3(500.f, 500.f, -1500.f), glm::vec3(500.f, 500.f, 200.f), 1.f);
-	
-	CTimer timer(CTimer::CPU);
-	timer.Start();
 
-	m_pClusterTree->BuildTree(m_ClusterTestAVPLs);
-	m_pClusterTree->Color(m_ClusterTestAVPLs, m_pConfManager->GetConfVars()->ClusterDepth);
+	m_pAVPLImportanceSampling = new CAVPLImportanceSampling(scene, m_pConfManager);
+	scene->SetAVPLImportanceSampling(m_pAVPLImportanceSampling);
 
-	timer.Stop();
-	std::cout << "ClusterTree build with " << m_ClusterTestAVPLs.size() << " lights took " << timer.GetTime() << "ms" << std::endl;
-	*/
 	return true;
 }
 
@@ -431,6 +399,7 @@ void Renderer::Release()
 	CheckGLError("CDSRenderer", "CDSRenderer::Release()");
 
 	m_pDepthBuffer->Release();
+	m_pTestTexture->Release();
 
 	m_pGBuffer->Release();
 	m_pTextureViewer->Release();
@@ -466,6 +435,7 @@ void Renderer::Release()
 	m_pNormalizeIndirectLightRenderTarget->Release();
 	m_pShadeDirectLightRenderTarget->Release();
 	m_pShadeIndirectLightRenderTarget->Release();
+	m_pAVPLRenderTarget->Release();
 
 	m_pNormalizeProgram->Release();
 	m_pGatherProgram->Release();
@@ -512,7 +482,7 @@ void Renderer::ClusteringTestRender()
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 	}
 
-	DrawLights(m_ClusterTestAVPLs);
+	DrawLights(m_ClusterTestAVPLs, m_pShadeRenderTarget);
 
 	m_pTextureViewer->DrawTexture(m_pShadeRenderTarget->GetBuffer(0), 0, 0, camera->GetWidth(), camera->GetHeight());
 }
@@ -529,8 +499,26 @@ void Renderer::Render()
 		OpenCL test
 	*/
 
+	if(m_ProfileFrame) std::cout << std::endl;
+	if(m_ProfileFrame) std::cout << "Profile frame --------------- " << std::endl;
+	if(m_ProfileFrame) std::cout << std::endl;
+
 	SetUpRender();
+
+	uint width = camera->GetWidth();
+	uint height = camera->GetHeight();
 	
+	if(m_pConfManager->GetConfVars()->UseAVPLImportanceSampling)
+	{
+		if(m_CurrentPath == 500)
+		{
+			m_pAVPLImportanceSampling->UpdateCurrentIrradiance(m_pNormalizeRenderTarget->GetBuffer(1));
+			m_pAVPLImportanceSampling->UpdateCurrentAntiirradiance(m_pNormalizeRenderTarget->GetBuffer(2));
+		}
+		m_pAVPLImportanceSampling->SetNumberOfSceneSamples(m_pConfManager->GetConfVars()->NumSceneSamples);
+		m_pAVPLImportanceSampling->CreateSceneSamples();
+	}
+
 	if(m_CurrentPath == 0)
 	{
 		m_pGlobalTimer->Start();
@@ -539,6 +527,8 @@ void Renderer::Render()
 		m_pOGLTimer->Stop("CreateGBuffer");
 	}
 	
+	std::vector<AVPL*> avpls;
+
 	if(m_pConfManager->GetConfVars()->UseAntiradiance)
 	{
 		if(m_pConfManager->GetConfVars()->UseDebugMode && !m_Finished)
@@ -585,7 +575,7 @@ void Renderer::Render()
 				}
 
 				if(m_pConfManager->GetConfVars()->DrawLights)
-					DrawLights(m_DebugAVPLs);
+					DrawLights(m_DebugAVPLs, m_pGatherRenderTarget);
 
 				m_CurrentPath += m_pConfManager->GetConfVars()->NumPaths;
 
@@ -598,21 +588,22 @@ void Renderer::Render()
 		else
 		{
 			if(m_CurrentPath < m_pConfManager->GetConfVars()->NumPaths)
-			{
-				std::vector<AVPL*> avpls;
-				
+			{	
+				if(m_ProfileFrame) cpuTimer.Start();
 				int remaining = m_pConfManager->GetConfVars()->NumPaths - m_CurrentPath;
 				if(remaining >= m_pConfManager->GetConfVars()->NumPathsPerFrame)
 				{
-					avpls = scene->CreatePaths(m_pConfManager->GetConfVars()->NumPathsPerFrame, 
+					scene->CreatePaths(avpls, m_pConfManager->GetConfVars()->NumPathsPerFrame, 
 						m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
 					m_CurrentPath += m_pConfManager->GetConfVars()->NumPathsPerFrame;
 				}
 				else
 				{
-					 avpls = scene->CreatePaths(remaining, m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
+					 scene->CreatePaths(avpls, remaining, m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
 					 m_CurrentPath += remaining;
 				}
+				if(m_ProfileFrame) std::cout << "num avpls: " << avpls.size() << std::endl;
+				if(m_ProfileFrame) cpuTimer.Stop("Create AVPLs");
 				
 				if(m_pConfManager->GetConfVars()->GatherWithAVPLAtlas)
 				{
@@ -639,20 +630,12 @@ void Renderer::Render()
 					}
 				}
 				else
-				{
+				{	
+					if(m_ProfileFrame) gpuTimer.Start();
 					Gather(avpls, m_pGatherRenderTarget);
+					if(m_ProfileFrame) gpuTimer.Stop("Gather");
 				}
-
-				if(m_pConfManager->GetConfVars()->DrawLights)
-					DrawLights(avpls);
-								
-				for(uint i = 0; i < avpls.size(); ++i)
-				{
-					delete avpls[i];
-				}
-
-				avpls.clear();
-
+				
 				if(m_CurrentPath >= m_pConfManager->GetConfVars()->NumPaths && !m_Finished)
 				{
 					std::cout << "Finished." << std::endl;
@@ -664,19 +647,17 @@ void Renderer::Render()
 	else
 	{
 		if(m_CurrentPath < m_pConfManager->GetConfVars()->NumPaths)
-		{
-			std::vector<AVPL*> avpls;
-				
+		{				
 			int remaining = m_pConfManager->GetConfVars()->NumPaths - m_CurrentPath;
 			if(remaining >= m_pConfManager->GetConfVars()->NumPathsPerFrame)
 			{
-				avpls = scene->CreatePaths(m_pConfManager->GetConfVars()->NumPathsPerFrame, 
+				scene->CreatePaths(avpls, m_pConfManager->GetConfVars()->NumPathsPerFrame, 
 					m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
 				m_CurrentPath += m_pConfManager->GetConfVars()->NumPathsPerFrame;
 			}
 			else
 			{
-				 avpls = scene->CreatePaths(remaining, m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
+				 scene->CreatePaths(avpls, remaining, m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
 				 m_CurrentPath += remaining;
 			}
 
@@ -692,11 +673,24 @@ void Renderer::Render()
 		}
 	}
 	
+	if(m_ProfileFrame) gpuTimer.Start();
 	int normFactor = std::min(m_CurrentPath, m_pConfManager->GetConfVars()->NumPaths * m_pConfManager->GetConfVars()->NumPathsPerFrame);
 	Normalize(m_pNormalizeRenderTarget, m_pGatherRenderTarget, normFactor);
-	
+
 	Shade(m_pShadeRenderTarget, m_pNormalizeRenderTarget);
-	
+	if(m_ProfileFrame) gpuTimer.Stop("normalize and shade");
+
+	if(m_pConfManager->GetConfVars()->DrawLights)
+		DrawLights(avpls, m_pAVPLRenderTarget);
+
+	if(m_ProfileFrame) cpuTimer.Start();
+	for(uint i = 0; i < avpls.size(); ++i)
+	{
+		delete avpls[i];
+	}
+	avpls.clear();
+	if(m_ProfileFrame) cpuTimer.Stop("delete avpls");
+
 	if(m_pConfManager->GetConfVars()->UseToneMapping)
 	{
 		m_pPostProcess->SetGamma(m_pConfManager->GetConfVars()->Gamma);
@@ -706,8 +700,6 @@ void Renderer::Render()
 	}
 	else
 	{
-		if(m_pConfManager->GetConfVars()->UseDebugMode && m_pConfManager->GetConfVars()->DrawLights)
-			DrawLights(m_DebugAVPLs);
 		m_pTextureViewer->DrawTexture(m_pShadeRenderTarget->GetBuffer(0), 0, 0, camera->GetWidth(), camera->GetHeight());
 	}
 	
@@ -736,11 +728,18 @@ void Renderer::Render()
 	{
 		double time = m_pGlobalTimer->GetTime();
 		std::stringstream ss;
-		ss << "result-" << m_CurrentPath << "paths-" << time << "ms" << ".pfm";
+		ss << "result-" << m_CurrentPath << "paths-" << scene->GetNumCreatedAVPLs() << "c-avpls-" << scene->GetNumAVPLsAfterIS() << "u-avpls-" << time << "ms" << ".pfm";
 		m_Export->ExportPFM(m_pShadeRenderTarget->GetBuffer(0), ss.str());
-
+		
 		std::cout << "# paths: " << m_CurrentPath << std::endl;
-	}		
+	}	
+
+	if(m_pConfManager->GetConfVars()->DrawLights)
+	{
+		m_pTextureViewer->DrawTexture(m_pAVPLRenderTarget->GetBuffer(0), 0, 0, camera->GetWidth(), camera->GetHeight());
+	}
+
+	m_ProfileFrame = false;
 }
 
 void Renderer::RenderDirectIndirectLight() 
@@ -774,14 +773,14 @@ void Renderer::RenderDirectIndirectLight()
 		int remaining = m_pConfManager->GetConfVars()->NumPaths - m_CurrentPath;
 		if(remaining >= m_pConfManager->GetConfVars()->NumPathsPerFrame)
 		{
-			avpls = scene->CreatePaths(m_pConfManager->GetConfVars()->NumPathsPerFrame, 
+			scene->CreatePaths(avpls, m_pConfManager->GetConfVars()->NumPathsPerFrame, 
 				m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
 			m_CurrentPath += m_pConfManager->GetConfVars()->NumPathsPerFrame;
 		}
 		else
 		{
-			 avpls = scene->CreatePaths(remaining, m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
-			 m_CurrentPath += remaining;
+			scene->CreatePaths(avpls, remaining, m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
+			m_CurrentPath += remaining;
 		}
 			
 		std::vector<AVPL*> indirect_avpls;
@@ -840,7 +839,7 @@ void Renderer::RenderDirectIndirectLight()
 		}
 		
 		if(m_pConfManager->GetConfVars()->DrawLights)
-			DrawLights(avpls);
+			DrawLights(avpls, m_pShadeRenderTarget);
 						
 		if(m_ProfileFrame) m_pGPUFrameProfiler->Stop("Profile Frame - Indirect Lighting - Gather");
 
@@ -868,12 +867,12 @@ void Renderer::RenderDirectIndirectLight()
 		int remaining = m_pConfManager->GetConfVars()->NumVPLsDirectLight - m_CurrentVPLDirect;
 		if(remaining >= m_pConfManager->GetConfVars()->NumVPLsDirectLightPerFrame)
 		{
-			direct_avpls = scene->CreatePrimaryVpls(m_pConfManager->GetConfVars()->NumVPLsDirectLightPerFrame);
+			scene->CreatePrimaryVpls(direct_avpls, m_pConfManager->GetConfVars()->NumVPLsDirectLightPerFrame);
 			m_CurrentVPLDirect += m_pConfManager->GetConfVars()->NumVPLsDirectLightPerFrame;
 		}
 		else
 		{
-			 direct_avpls = scene->CreatePrimaryVpls(remaining);
+			 scene->CreatePrimaryVpls(direct_avpls, remaining);
 			 m_CurrentVPLDirect += remaining;
 		}
 		if(m_ProfileFrame) std::cout << "Profile Frame - Direct Lighting - NumLights: " << direct_avpls.size() << std::endl;
@@ -1392,7 +1391,7 @@ void Renderer::Shade(CRenderTarget* target, CRenderTarget* source)
 	}
 
 	DrawAreaLight();
-		
+
 	DebugRender();
 }
 
@@ -1409,7 +1408,7 @@ void Renderer::DrawAreaLight()
 	glDisable(GL_POLYGON_OFFSET_FILL);
 }
 
-void Renderer::DrawLights(std::vector<AVPL*> avpls)
+void Renderer::DrawLights(std::vector<AVPL*>& avpls, CRenderTarget* target)
 {	
 	std::vector<POINT_CLOUD_POINT> pcp;
 	std::vector<AVPL*>::iterator it;
@@ -1439,7 +1438,7 @@ void Renderer::DrawLights(std::vector<AVPL*> avpls)
 		}
 		
 		{
-			CRenderTargetLock lock(m_pShadeRenderTarget);
+			CRenderTargetLock lock(target);
 			
 			COGLBindLock lockProgram(m_pPointCloudProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
 			
@@ -1451,7 +1450,7 @@ void Renderer::DrawLights(std::vector<AVPL*> avpls)
 			m_pUBTransform->UpdateData(&transform);
 		
 			glDepthMask(GL_FALSE);
-			//glDisable(GL_DEPTH_TEST);
+			glDisable(GL_DEPTH_TEST);
 			m_pPointCloud->Draw(positionData, colorData, (int)pcp.size());		
 			glDepthMask(GL_TRUE);
 			glEnable(GL_DEPTH_TEST);
@@ -1495,10 +1494,9 @@ void Renderer::DebugRender()
 		int border = 10;
 		int width = (camera->GetWidth() - 4 * border) / 2;
 		int height = (camera->GetHeight() - 4 * border) / 2;
-		m_pTextureViewer->DrawTexture(m_pGBuffer->GetNormalTexture(),  border, border, border+width, border+height);
-		m_pTextureViewer->DrawTexture(m_pDepthBuffer, 3 * border + width, border, 3 * border + 2 * width, border+height);
-		m_pTextureViewer->DrawTexture(m_pGBuffer->GetMaterialTexture(),  border, 3 * border + height, border+width, 3 * border+ 2 * height);
-		m_pTextureViewer->DrawTexture(m_pGBuffer->GetPositionTextureWS(),  0, 0, camera->GetWidth(), camera->GetHeight());
+		m_pTextureViewer->DrawTexture(m_pNormalizeRenderTarget->GetBuffer(0),  border, border, border+width, border+height);
+		m_pTextureViewer->DrawTexture(m_pNormalizeRenderTarget->GetBuffer(1),  3 * border + width, border, 3 * border + 2 * width, border+height);
+		m_pTextureViewer->DrawTexture(m_pNormalizeRenderTarget->GetBuffer(2),  border, 3 * border + height, border+width, 3 * border+ 2 * height);
 	}
 }
 
@@ -1560,6 +1558,11 @@ void Renderer::ClearAccumulationBuffer()
 
 	{
 		CRenderTargetLock lock(m_pShadeIndirectLightRenderTarget);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	}
+
+	{
+		CRenderTargetLock lock(m_pAVPLRenderTarget);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 
@@ -1681,8 +1684,12 @@ void Renderer::NewDebugLights()
 
 void Renderer::InitDebugLights()
 {
+	for(int i = 0; i < m_DebugAVPLs.size(); ++i)
+		delete m_DebugAVPLs[i];
+	m_DebugAVPLs.clear();
+	
 	m_pCPUTimer->Start();
-	m_DebugAVPLs = scene->CreatePaths(m_pConfManager->GetConfVars()->NumPaths, 
+	scene->CreatePaths(m_DebugAVPLs, m_pConfManager->GetConfVars()->NumPaths, 
 		m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
 	std::cout << "Number of AVPLs: " << m_DebugAVPLs.size() << std::endl;
 	m_pCPUTimer->Stop("CreatePaths");
@@ -1711,8 +1718,10 @@ float Renderer::GetAntiradFilterNormFactor()
 	else if(m_pConfManager->GetConfVars()->AntiradFilterMode == 2)
 	{
 		float b = IntegrateGauss();
-		return a / b;
+		K = a / b;
 	}
+
+	m_pConfManager->GetConfVars()->AntiradFilterK = K;
 
 	return K;
 }
@@ -1734,4 +1743,9 @@ float Renderer::IntegrateGauss()
 	}
 
 	return res;
+}
+
+void Renderer::CancelRender()
+{
+	m_Finished = true; m_CurrentPath = m_pConfManager->GetConfVars()->NumPaths;
 }

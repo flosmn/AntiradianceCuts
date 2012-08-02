@@ -12,6 +12,7 @@ typedef unsigned int uint;
 #include "CPrimitive.h"
 #include "CConfigManager.h"
 #include "CTimer.h"
+#include "CAVPLImportanceSampling.h"
 
 #include "OGLResources\COGLUniformBuffer.h"
 
@@ -31,6 +32,10 @@ Scene::Scene(CCamera* _camera, CConfigManager* pConfManager)
 	m_pConfManager = pConfManager;
 	m_CurrentBounce = 0;
 	m_pKdTreeAccelerator = 0;
+	m_pAVPLImportanceSampling = 0;
+
+	m_NumCreatedAVPLs = 0;
+	m_NumAVPLsAfterIS = 0;
 }
 
 Scene::~Scene()
@@ -75,6 +80,9 @@ void Scene::ClearScene()
 {			
 	m_CurrentBounce = 0;
 	m_NumLightPaths = 0;
+
+	m_NumAVPLsAfterIS = 0;
+	m_NumCreatedAVPLs = 0;
 }
 
 void Scene::DrawScene(COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBMaterial)
@@ -126,7 +134,7 @@ AVPL* Scene::CreateAVPL(AVPL* predecessor, int N, int nAdditionalAVPLs)
 		if(!(pdf > 0.f))
 			return avpl;
 
-		avpl = new AVPL(pos, ori, I / pdf, glm::vec3(0), glm::vec3(0), 0);
+		avpl = new AVPL(pos, ori, I / pdf, glm::vec3(0), glm::vec3(0), 0, m_pConfManager);
 	}
 	else
 	{
@@ -153,8 +161,8 @@ AVPL* Scene::ContinueAVPLPath(AVPL* pred, glm::vec3 direction, float pdf, int N,
 		
 	Intersection intersection_kd, intersection_simple;
 	float t_kd = 0.f, t_simple = 0.f;
-	bool inter_kd = m_pKdTreeAccelerator->Intersect(ray, &t_kd, &intersection_kd, isect_bfc);
-	
+	bool inter_kd = IntersectRayScene(ray, &t_kd, &intersection_kd);
+		
 	/*
 	bool inter_simple = IntersectRaySceneSimple(ray, &t_simple, &intersection_simple, isect_bfc);
 	if(inter_kd != inter_simple)
@@ -178,31 +186,69 @@ AVPL* Scene::ContinueAVPLPath(AVPL* pred, glm::vec3 direction, float pdf, int N,
 		
 		glm::vec3 antiintensity = 1.f / float(nAdditionalAVPLs + 1) * pred->GetIntensity(glm::normalize(direction)) / (pdf * area);
 			
-		avpl = new AVPL(pos, norm, intensity, antiintensity, direction, pred->GetBounce() + 1);
+		avpl = new AVPL(pos, norm, intensity, antiintensity, direction, pred->GetBounce() + 1, m_pConfManager);
 	}
 
 	return avpl;
 }
 
-std::vector<AVPL*> Scene::CreatePaths(uint numPaths, int N, int nAdditionalAVPLs)
+void Scene::CreatePaths(std::vector<AVPL*>& avpls_res, uint numPaths, int N, int nAdditionalAVPLs)
 {
-	std::vector<AVPL*> avpls;
+	std::vector<AVPL*> avpls_temp;
 	for(uint i = 0; i < numPaths; ++i)
 	{
-		std::vector<AVPL*> path = CreatePath(N, nAdditionalAVPLs);
-		for(uint j = 0; j < path.size(); ++j)
-			avpls.push_back(path[j]);
+		CreatePath(avpls_temp, N, nAdditionalAVPLs);
+	}
+	m_NumCreatedAVPLs += avpls_temp.size();
+
+	if(m_pConfManager->GetConfVars()->UseAVPLImportanceSampling)
+	{
+		CTimer timer(CTimer::CPU);
+		timer.Start();
+		std::vector<AVPL*> to_delete;
+		for(int i = 0; i < avpls_temp.size(); ++i)
+		{
+			if(avpls_temp[i]->GetBounce() > 0)
+			{
+				float scale = 1.f;
+				if(true) //m_pAVPLImportanceSampling->EvaluateAVPLAntiintensityImportance(avpls_temp[i], &scale))
+				{
+					avpls_temp[i]->SetAntiintensity(scale * avpls_temp[i]->GetMaxAntiintensity());
+					avpls_temp[i]->SetIntensity(scale * avpls_temp[i]->GetMaxIntensity());
+					avpls_res.push_back(avpls_temp[i]);
+				}
+				else
+				{
+					to_delete.push_back(avpls_temp[i]);
+				}
+			}
+			else
+			{
+				avpls_res.push_back(avpls_temp[i]);
+			}
+		}
+								
+		m_NumAVPLsAfterIS += avpls_res.size();
+		
+		for(int i = 0; i < to_delete.size(); ++i) {
+			delete to_delete[i];
+		}
+		to_delete.clear();
+		avpls_temp.clear();		
+		
+		return;
 	}
 
-	return avpls;
+	for(int i = 0; i < avpls_temp.size(); ++i)
+		avpls_res.push_back(avpls_temp[i]);
+	avpls_temp.clear();
 }
 
-std::vector<AVPL*> Scene::CreatePath(int N, int nAdditionalAVPLs) 
+ void Scene::CreatePath(std::vector<AVPL*>& path, int N, int nAdditionalAVPLs) 
 {
 	m_NumLightPaths++;
 
 	m_CurrentBounce = 0;
-	std::vector<AVPL*> path;
 	
 	AVPL *pred, *succ;
 		
@@ -258,8 +304,6 @@ std::vector<AVPL*> Scene::CreatePath(int N, int nAdditionalAVPLs)
 
 		m_CurrentBounce++;
 	}
-
-	return path;
 }
 
 void Scene::CreateAVPLs(AVPL* pred, std::vector<AVPL*>& path, int N, int nAVPLs)
@@ -280,16 +324,13 @@ void Scene::CreateAVPLs(AVPL* pred, std::vector<AVPL*>& path, int N, int nAVPLs)
 	}
 }
 
-std::vector<AVPL*> Scene::CreatePrimaryVpls(int numVpls)
+void Scene::CreatePrimaryVpls(std::vector<AVPL*>& avpls, int numVpls)
 {
-	std::vector<AVPL*> vpls;
 	for(int i = 0; i < numVpls; ++i)
 	{
 		AVPL* avpl = CreateAVPL(0, 0, 0);
-		vpls.push_back(avpl);
+		avpls.push_back(avpl);
 	}
-
-	return vpls;
 }
 
 bool Scene::IntersectRaySceneSimple(const Ray& ray, float* t, Intersection *pIntersection)
@@ -316,6 +357,11 @@ bool Scene::IntersectRaySceneSimple(const Ray& ray, float* t, Intersection *pInt
 	*t = t_best;
 		
 	return hasIntersection;
+}
+
+bool Scene::IntersectRayScene(const Ray& ray, float* t, Intersection *pIntersection)
+{	
+	return m_pKdTreeAccelerator->Intersect(ray, t, pIntersection, true);
 }
 
 void Scene::LoadSimpleScene()
@@ -386,14 +432,14 @@ void Scene::LoadCornellBoxSmall()
 	ClearScene();
 
 	CModel* model = new CModel();
-	model->Init("cornellorg-boxes-0.125");
+	model->Init("cornellorg-boxes-0.5");
 	model->SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
 
 	m_Models.push_back(model);
 
-	float scale = .125f;
+	float scale = .5f;
 	m_Camera->Init(scale * glm::vec3(278.f, 273.f, -800.f), 
-		scale * glm::vec3(278.f, 273.f, 270.f),
+		scale * glm::vec3(278.f, 273.f, -799.f),
 		2.0f);
 	
 	glm::vec3 areaLightFrontDir = glm::vec3(0.0f, -1.0f, 0.0f);

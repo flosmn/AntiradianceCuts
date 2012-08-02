@@ -2,11 +2,14 @@
 
 #include <glm/gtx/transform.hpp>
 
+#include "CConfigManager.h"
+
 #include "Utils\Util.h"
 #include "Utils\Rand.h"
 
 AVPL::AVPL(glm::vec3 p, glm::vec3 n, glm::vec3 I,
-	glm::vec3 A, glm::vec3 w_A, int bounce)
+	glm::vec3 A, glm::vec3 w_A, int bounce, CConfigManager* pConfManager)
+	: m_pConfManager(pConfManager)
 {
 	m_Position = p;
 	m_Orientation = n;
@@ -61,8 +64,9 @@ glm::vec3 AVPL::GetIntensity(glm::vec3 w)
 	return clamp(glm::dot(w, m_Orientation), 0, 1) * m_Intensity;
 }
 
-glm::vec3 AVPL::GetAntiintensity(glm::vec3 w, const float& N)
+glm::vec3 AVPL::GetAntiintensity(glm::vec3 w, const float N)
 {
+	const float N_OVER_PI = N / PI;
 	glm::vec3 res = glm::vec3(0.f);
 
 	if(glm::dot(w, m_AntiradianceDirection) < 0.01f)
@@ -74,15 +78,35 @@ glm::vec3 AVPL::GetAntiintensity(glm::vec3 w, const float& N)
 
 	if(theta < PI/N)
 	{
-		//const float K = (PI * (1 - cos(PI/N))) / (PI - N * sin(PI/N));
-		//res = K * (1 - theta / PI/N) * m_Antiintensity;
 		res = m_Antiintensity;
+
+		if(m_pConfManager->GetConfVars()->AntiradFilterMode == 1)
+		{
+			res = - 2.f * res * m_pConfManager->GetConfVars()->AntiradFilterK * (N_OVER_PI * theta - 1);
+		}
+		if(m_pConfManager->GetConfVars()->AntiradFilterMode == 2)
+		{
+			const float M = m_pConfManager->GetConfVars()->AntiradFilterGaussFactor;
+			const float s = PI / (M*N);
+			res = m_pConfManager->GetConfVars()->AntiradFilterK * ( exp(-(theta*theta)/(s*s)) - exp(-(M*M)) ) * res;
+		}
 	}
 
 	return res;
 }
 
-glm::vec3 AVPL::SampleAntiradianceDirection(const float& N)
+glm::vec3 AVPL::GetIrradiance(const SceneSample& ss)
+{
+	return G(m_Position, m_Orientation, ss.position, ss.normal) * GetIntensity(glm::normalize(ss.position - m_Position));
+}
+
+glm::vec3 AVPL::GetAntiirradiance(const SceneSample& ss, const float N)
+{
+	const glm::vec3 w = glm::normalize(ss.position - m_Position);
+	return G_A(m_Position, m_Orientation, ss.position, ss.normal) * GetAntiintensity(w, N);
+}
+
+glm::vec3 AVPL::SampleAntiradianceDirection(const float N)
 {
 	float pdf = 0.f;
 	glm::vec3 dir = SampleConeDirection(m_AntiradianceDirection, PI/N, Rand01(), Rand01(), &pdf);

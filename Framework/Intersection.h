@@ -16,6 +16,8 @@ public:
 
 	CPrimitive* GetPrimitive() const { return m_pPrimitive; }
 	glm::vec3 GetPosition() const { return m_Position; }
+	glm::vec3 GetNormal() const { return m_pPrimitive->GetNormal(); }
+	MATERIAL GetMaterial() const { return m_pPrimitive->GetMaterial(); }
 
 	void SetPrimitive(CPrimitive* pPrimitive) { m_pPrimitive = pPrimitive; }
 	void SetPosition(const glm::vec3& position) { m_Position = position; }

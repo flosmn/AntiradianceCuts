@@ -25,6 +25,7 @@ struct CONF_VARS
 	int NumVPLsDirectLightPerFrame;
 	int AntiradFilterMode;
 	float AntiradFilterGaussFactor;
+	float AntiradFilterK;
 
 	float GeoTermLimit;
 	int ClampGeoTerm;
@@ -52,6 +53,12 @@ struct CONF_VARS
 	float AreaLightPosX;
 	float AreaLightPosY;
 	float AreaLightPosZ;
+
+	int UseAVPLImportanceSampling;
+	int ConeFactorScale;
+	int NumSceneSamples;
+	float IrradAntiirradWeight;
+	float AcceptProbabEpsilon;
 };
 
 class CConfigManager

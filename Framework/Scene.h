@@ -17,6 +17,7 @@ class AVPL;
 class AreaLight;
 class CKdTreeAccelerator;
 class CConfigManager;
+class CAVPLImportanceSampling;
 
 class COGLUniformBuffer;
 
@@ -48,29 +49,33 @@ public:
 	void LoadSimpleScene();
 	void LoadCornellBoxDragon();
 		
+	bool IntersectRayScene(const Ray& ray, float* t, Intersection *pIntersection);
+	bool IntersectRaySceneSimple(const Ray& ray, float* t, Intersection *pIntersection);
+
 	CCamera* GetCamera() { return m_Camera; }
 
 	void ClearLighting();
+	void SetAVPLImportanceSampling(CAVPLImportanceSampling *pAVPLIS) { m_pAVPLImportanceSampling = pAVPLIS; }
 
 	int GetNumberOfLightPaths() { return m_NumLightPaths; }
 				
-	std::vector<AVPL*> CreatePaths(uint numPaths, int N, int nAdditionalAVPLs);
-	std::vector<AVPL*> CreatePath(int N, int nAdditionalAVPLs);
-	std::vector<AVPL*> CreatePrimaryVpls(int numVpls);
+	void CreatePaths(std::vector<AVPL*>& avpls, uint numPaths, int N, int nAdditionalAVPLs);
+	void CreatePath(std::vector<AVPL*>& avpls, int N, int nAdditionalAVPLs);
+	void CreatePrimaryVpls(std::vector<AVPL*>& avpls, int numVpls);
+
+	uint GetNumCreatedAVPLs() { return m_NumCreatedAVPLs; }
+	uint GetNumAVPLsAfterIS() { return m_NumAVPLsAfterIS; }
 
 private:
 	void ClearPath();
-
-	bool IntersectRaySceneSimple(const Ray& ray, float* t, Intersection *pIntersection);
-
+		
 	void InitKdTree();
 	void ReleaseKdTree();
 
 	AVPL* CreateAVPL(AVPL* pred, int N, int nAdditionalAVPLs);
 	AVPL* ContinueAVPLPath(AVPL* pred, glm::vec3 direction, float pdf, int N, int nAdditionalAVPLs);
 	void CreateAVPLs(AVPL* pred, std::vector<AVPL*>& path, int N, int nAVPLs);
-
-
+	
 	std::vector<CModel*> m_Models;
 		
 	int m_CurrentBounce;
@@ -82,7 +87,11 @@ private:
 	CKdTreeAccelerator* m_pKdTreeAccelerator;
 	std::vector<CPrimitive*> m_Primitives;
 
+	uint m_NumCreatedAVPLs;
+	uint m_NumAVPLsAfterIS;
+
 	CConfigManager* m_pConfManager;
+	CAVPLImportanceSampling* m_pAVPLImportanceSampling;
 };
 
 #endif SCENE_H

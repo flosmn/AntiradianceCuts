@@ -138,4 +138,11 @@ struct CLUSTERING
 	int isAlreadyCalculated;
 };
 
+struct SceneSample
+{
+	glm::vec3 position;
+	glm::vec3 normal;
+	MATERIAL material;
+};
+
 #endif // _STRUCTS_H_

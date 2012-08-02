@@ -161,6 +161,34 @@ glm::vec3 SampleConeDirection(const glm::vec3& axis, const float& theta, const f
 	return glm::normalize(direction);
 }
 
+void GetStratifiedSamples2D(std::vector<glm::vec2>& samples, const glm::vec2& range, const uint numSamples)
+{
+	uint N = GetBiggestSquareNumSmallerThan(numSamples);
+	uint n = uint(sqrt(float(N)));
+	uint remaining = numSamples - N;
+
+	// create stratified samples
+	const float grid_size_x = range.x / float(n);
+	const float grid_size_y = range.y / float(n);
+	for(uint i = 0; i < n; ++i)
+	{
+		for(uint j = 0; j < n; ++j)
+		{
+			glm::vec2 sample = glm::vec2(
+				(float(i)+Rand01()) * grid_size_x,
+				(float(j)+Rand01()) * grid_size_y);
+			samples.push_back(sample);
+		}
+	}
+
+	// create remaining uniformly distributed random samples
+	for(uint i = 0; i < remaining; ++i)
+	{
+		glm::vec2 sample = glm::vec2(Rand01() * range.x, Rand01() * range.y);
+		samples.push_back(sample);
+	}
+}
+
 glm::mat3 ComputeTangentSpace(const glm::vec3& n ) {
 	glm::vec3 nev = NeverCoLinear(n);
 
@@ -294,4 +322,45 @@ void PlaneHammersley(float *result, int n)
 float clamp(const float& x, const float& low, const float& high)
 {
 	return std::min(std::max(low, x), high);
+}
+
+uint GetBiggestSquareNumSmallerThan(uint num)
+{
+	uint t = 1;
+	while(t*t <= num) ++t;
+	--t;
+	return t*t;
+}
+
+float G(glm::vec3 p1, glm::vec3 n1, glm::vec3 p2, glm::vec3 n2)
+{
+	glm::vec3 n_1 = glm::normalize(n1);
+	glm::vec3 n_2 = glm::normalize(n2);
+	glm::vec3 w = glm::normalize(p2 - p1);
+
+	const float cos_theta_1 = clamp(glm::dot(n_1, w), 0, 1);
+	const float cos_theta_2 = clamp(glm::dot(n_2, -w), 0, 1);
+
+	const float dist = glm::length(p2 - p1);
+	
+	return (cos_theta_1 * cos_theta_2) / (dist * dist);
+}
+
+float G_A(glm::vec3 p_avpl, glm::vec3 n_avpl, glm::vec3 p_point, glm::vec3 n_point)
+{
+	const glm::vec3 w = glm::normalize(p_avpl- p_point);
+	const float cos_theta = clamp(glm::dot(p_point, w), 0, 1);
+	const float dist = glm::length(p_point - p_avpl);
+	
+	return cos_theta / (dist * dist);
+}
+
+float Luminance(glm::vec3 v)
+{
+	return 0.2126f * v.r + 0.7152f * v.g + 0.0722f * v.b;
+}
+
+float Luminance(glm::vec4 v)
+{
+	return Luminance(glm::vec3(v));
 }

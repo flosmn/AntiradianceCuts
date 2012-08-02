@@ -22,7 +22,7 @@ public:
 	virtual glm::vec3 GetNormal() const = 0;
 	virtual void Transform(CPrimitive* pPrimitive, const glm::mat4& transform) const = 0;
 	
-	const MATERIAL& GetMaterial() const { return m_Material; }
+	const MATERIAL GetMaterial() const { return m_Material; }
 	void SetMaterial(const MATERIAL& mat) { m_Material = mat; }
 
 private:
