@@ -26,8 +26,9 @@ public:
 	void UpdateCurrentAntiirradiance(COGLTexture2D* pTexture);
 	void CreateSceneSamples();
 
-	bool EvaluateAVPLImportance(const AVPL& avpl, float* scale);
-	bool EvaluateAVPLAntiintensityImportance(const AVPL& avpl, float* scale);
+	bool EvaluateAVPLImportance(AVPL& avpl, float* scale);
+	bool EvaluateAVPLImportanceAlpha(AVPL& avpl, float* scale);
+	bool EvaluateAVPLAntiintensityImportance(AVPL& avpl, float* scale);
 
 	const std::vector<SceneSample>& GetSceneSamples() const { return m_SceneSamples; }
 

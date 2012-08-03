@@ -15,7 +15,7 @@ COGLTextureBuffer::~COGLTextureBuffer()
 
 }
 
-bool COGLTextureBuffer::Init(size_t size, GLenum usage)
+bool COGLTextureBuffer::Init(size_t size, GLenum usage, GLenum type)
 {
 	V_RET_FOF(COGLResource::Init());
 
@@ -25,6 +25,7 @@ bool COGLTextureBuffer::Init(size_t size, GLenum usage)
 	CheckGLError(m_DebugName, "COGLTextureBuffer::Init()");
 
 	m_Usage = usage;
+	m_Type = type;
 	m_Size = size;
 	SetContent(NULL, m_Size);
 
@@ -65,7 +66,7 @@ void COGLTextureBuffer::Bind(COGLBindSlot slot)
 
 	glActiveTexture(GetGLSlot(m_Slot));
 	glBindTexture(GL_TEXTURE_BUFFER, m_TextureBufferTexture);
-	glTexBuffer(GL_TEXTURE_BUFFER, GL_R32F, m_Resource);
+	glTexBuffer(GL_TEXTURE_BUFFER, m_Type, m_Resource);
 
 	CheckGLError(m_DebugName, "COGLTextureBuffer::Bind()");
 }

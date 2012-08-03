@@ -84,6 +84,12 @@ public:
 
 	void ProfileFrame() { m_ProfileFrame = true; }
 
+	void StartCollectingAVPLs();
+	void EndCollectingAVPLs();
+	void StartCollectingISAVPLs();
+	void EndCollectingISAVPLs();
+	void ClearCollectedAVPLs() { m_CollectedAVPLs.clear(); m_CollectedImportanceSampledAVPLs.clear(); }
+
 private:
 	// functions of the render phase
 	void SetUpRender();
@@ -210,7 +216,10 @@ private:
 
 	std::vector<AVPL> m_DebugAVPLs;
 	std::vector<AVPL> m_ClusterTestAVPLs;
-		
+
+	std::vector<AVPL> m_CollectedAVPLs;
+	std::vector<AVPL> m_CollectedImportanceSampledAVPLs;
+	
 	CLightTree* m_pLightTree;
 	CClusterTree* m_pClusterTree;
 
@@ -218,6 +227,7 @@ private:
 	CTimer* m_pOGLTimer;
 	CTimer* m_pCPUTimer;
 	CTimer* m_pGlobalTimer;
+	CTimer* m_pResultTimer;
 	CTimer* m_pCPUFrameProfiler;
 	CTimer* m_pGPUFrameProfiler;
 };

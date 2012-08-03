@@ -274,11 +274,8 @@ void ProcessLight(in int i, in vec3 vPositionWS, in vec3 vNormalWS, out vec4 rad
 	vec4 rad = vec4(0.f);
 	vec4 antirad = vec4(0.f);
 
-	int size = 5 * 4; // sizeof(AVPL_BUFFER)
-	const vec3 p = vec3(
-		texelFetch(samplerLightBuffer, i * size + 8).r,
-		texelFetch(samplerLightBuffer, i * size + 9).r,
-		texelFetch(samplerLightBuffer, i * size + 10).r);
+	int size = 5; // sizeof(AVPL_BUFFER)
+	const vec3 p = vec3(texelFetch(samplerLightBuffer, i * size + 2));
 
 	const vec3 direction = normalize(vPositionWS - p);
 	

@@ -59,12 +59,14 @@ public:
 
 	int GetNumberOfLightPaths() { return m_NumLightPaths; }
 				
-	void CreatePaths(std::vector<AVPL>& avpls, uint numPaths, int N, int nAdditionalAVPLs);
+	void CreatePaths(std::vector<AVPL>& avpls, std::vector<AVPL>& allAVPLs, std::vector<AVPL>& isAVPLs, bool profile, uint numPaths, int N, int nAdditionalAVPLs);
 	void CreatePath(std::vector<AVPL>& avpls, int N, int nAdditionalAVPLs);
 	void CreatePrimaryVpls(std::vector<AVPL>& avpls, int numVpls);
 
 	uint GetNumCreatedAVPLs() { return m_NumCreatedAVPLs; }
 	uint GetNumAVPLsAfterIS() { return m_NumAVPLsAfterIS; }
+
+	bool ImportanceSampling(AVPL& avpl, float* scale);
 
 private:
 	void ClearPath();

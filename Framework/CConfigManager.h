@@ -42,6 +42,7 @@ struct CONF_VARS
 	int NumSqrtAtlasSamples;
 	float TexelOffsetX;
 	float TexelOffsetY;
+	float DisplacePCP;
 
 	int LightTreeCutDepth;
 	int ClusterDepth;
@@ -55,10 +56,14 @@ struct CONF_VARS
 	float AreaLightPosZ;
 
 	int UseAVPLImportanceSampling;
-	int UseAntiintensityImportance;
+	int ISMode;
 	int ConeFactorIS;
 	int NumSceneSamples;
 	int DrawSceneSamples;
+	int DrawCollectedAVPLs;
+	int DrawCollectedISAVPLs;
+	int CollectAVPLs;
+	int CollectISAVPLs;
 	float IrradAntiirradWeight;
 	float AcceptProbabEpsilon;
 };

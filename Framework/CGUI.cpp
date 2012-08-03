@@ -64,6 +64,7 @@ bool CGUI::Init(uint window_width, uint window_height)
 	TwAddSeparator(m_pTwBar, "", "");
 	TwAddVarRW(m_pTwBar, "Texel Offset X", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->TexelOffsetX), " min=0.0 max=10.0 step=0.1 ");
 	TwAddVarRW(m_pTwBar, "Texel Offset Y", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->TexelOffsetY), " min=0.0 max=10.0 step=0.1 ");
+	TwAddVarRW(m_pTwBar, "DisplacePCP", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->DisplacePCP), " min=0.0 max=100.0 step=0.01 ");
 
 	TwAddVarRW(m_pTwBar, "Cluster/Light tree", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->UseLightTree), " min=0 max=1 step=1 ");
 	TwAddVarRW(m_pTwBar, "Light Tree Cut Depth", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->LightTreeCutDepth), " min=-1 max=64 step=1 ");
@@ -87,10 +88,12 @@ bool CGUI::Init(uint window_width, uint window_height)
 
 	TwAddSeparator(m_pTwBar, "", "");
 	TwAddVarRW(m_pTwBar, "UseAVPLImpSampling", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->UseAVPLImportanceSampling), " min=0 max=1 step=1 ");
-	TwAddVarRW(m_pTwBar, "UseAntiintensityImportance", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->UseAntiintensityImportance), " min=0 max=1 step=1 ");
+	TwAddVarRW(m_pTwBar, "ImportanceSamplingMode", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->ISMode), " min=0 max=2 step=1 ");
 	TwAddVarRW(m_pTwBar, "ConeFactorIS", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->ConeFactorIS), " min=1 max=100 step=1 ");
 	TwAddVarRW(m_pTwBar, "NumSceneSamples", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumSceneSamples), " min=1 max=10000 step=1 ");
 	TwAddVarRW(m_pTwBar, "DrawSceneSamples", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawSceneSamples), " min=0 max=1 step=1 ");
+	TwAddVarRW(m_pTwBar, "DrawCollectedAVPLs", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawCollectedAVPLs), " min=0 max=1 step=1 ");
+	TwAddVarRW(m_pTwBar, "DrawCollectedISAVPLs", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawCollectedISAVPLs), " min=0 max=1 step=1 ");
 	TwAddVarRW(m_pTwBar, "AcceptProbabEpsilon", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->AcceptProbabEpsilon), " min=0.00 max=1.00 step=0.01");
 	TwAddVarRW(m_pTwBar, "WeightIrradAntiirrad", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->IrradAntiirradWeight), " min=0.0 max=1.0 step=0.1");
 	

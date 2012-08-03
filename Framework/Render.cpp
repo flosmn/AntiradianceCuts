@@ -57,6 +57,7 @@
 #include <string>
 #include <sstream>
 #include <time.h>
+#include <iterator>
 
 std::vector<Light*> initialLights;
 
@@ -141,6 +142,7 @@ Renderer::Renderer(CCamera* _camera) {
 	m_pOGLTimer = new CTimer(CTimer::OGL);
 	m_pOCLTimer = new CTimer(CTimer::OCL, m_pCLContext);
 	m_pGlobalTimer = new CTimer(CTimer::CPU);
+	m_pResultTimer = new CTimer(CTimer::CPU);
 	m_pCPUFrameProfiler = new CTimer(CTimer::CPU);
 	m_pGPUFrameProfiler = new CTimer(CTimer::OGL);
 
@@ -222,6 +224,7 @@ Renderer::~Renderer() {
 	SAFE_DELETE(m_pOCLTimer);
 	SAFE_DELETE(m_pOGLTimer);
 	SAFE_DELETE(m_pGlobalTimer);
+	SAFE_DELETE(m_pResultTimer);
 
 	SAFE_DELETE(m_pCLContext);
 
@@ -352,7 +355,7 @@ bool Renderer::Init()
 		
 	scene = new Scene(camera, m_pConfManager);
 	scene->Init();
-	scene->LoadCornellBoxSmall();
+	scene->LoadCornellBox();
 		
 	ConfigureLighting();
 
@@ -371,10 +374,10 @@ bool Renderer::Init()
 
 	m_MaxNumAVPLs = int(std::pow(float(dim_atlas) / float(dim_tile), 2.f));
 
-	V_RET_FOF(m_pAVPLPositions->Init(sizeof(AVPL_POSITION) * m_MaxNumAVPLs, GL_STATIC_DRAW));
+	V_RET_FOF(m_pAVPLPositions->Init(sizeof(AVPL_POSITION) * m_MaxNumAVPLs, GL_STATIC_DRAW, GL_R32F));
 
-	V_RET_FOF(m_pOGLLightBuffer->Init(sizeof(AVPL_BUFFER) * m_MaxNumAVPLs, GL_STATIC_DRAW));
-	V_RET_FOF(m_pOGLClusterBuffer->Init(sizeof(CLUSTER_BUFFER) * (2 * m_MaxNumAVPLs - 1), GL_STATIC_DRAW));
+	V_RET_FOF(m_pOGLLightBuffer->Init(sizeof(AVPL_BUFFER) * m_MaxNumAVPLs, GL_STATIC_DRAW, GL_RGBA32F));
+	V_RET_FOF(m_pOGLClusterBuffer->Init(sizeof(CLUSTER_BUFFER) * (2 * m_MaxNumAVPLs - 1), GL_STATIC_DRAW, GL_R32F));
 
 	m_pOctahedronAtlas->Init(dim_atlas, dim_tile, m_MaxNumAVPLs);
 	
@@ -515,6 +518,7 @@ void Renderer::Render()
 	if(m_CurrentPath == 0)
 	{
 		m_pGlobalTimer->Start();
+		m_pResultTimer->Start();
 		m_pOGLTimer->Start();
 		CreateGBuffer();
 		m_pOGLTimer->Stop("CreateGBuffer");
@@ -586,13 +590,14 @@ void Renderer::Render()
 				int remaining = m_pConfManager->GetConfVars()->NumPaths - m_CurrentPath;
 				if(remaining >= m_pConfManager->GetConfVars()->NumPathsPerFrame)
 				{
-					scene->CreatePaths(avpls, m_pConfManager->GetConfVars()->NumPathsPerFrame, 
+					scene->CreatePaths(avpls, m_CollectedAVPLs, m_CollectedImportanceSampledAVPLs, m_ProfileFrame, m_pConfManager->GetConfVars()->NumPathsPerFrame, 
 						m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
 					m_CurrentPath += m_pConfManager->GetConfVars()->NumPathsPerFrame;
 				}
 				else
 				{
-					 scene->CreatePaths(avpls, remaining, m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
+					 scene->CreatePaths(avpls, m_CollectedAVPLs, m_CollectedImportanceSampledAVPLs, m_ProfileFrame, 
+						 remaining, m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
 					 m_CurrentPath += remaining;
 				}
 				if(m_ProfileFrame) std::cout << "num avpls: " << avpls.size() << std::endl;
@@ -644,13 +649,14 @@ void Renderer::Render()
 			int remaining = m_pConfManager->GetConfVars()->NumPaths - m_CurrentPath;
 			if(remaining >= m_pConfManager->GetConfVars()->NumPathsPerFrame)
 			{
-				scene->CreatePaths(avpls, m_pConfManager->GetConfVars()->NumPathsPerFrame, 
+				scene->CreatePaths(avpls, m_CollectedAVPLs, m_CollectedImportanceSampledAVPLs, m_ProfileFrame, m_pConfManager->GetConfVars()->NumPathsPerFrame, 
 					m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
 				m_CurrentPath += m_pConfManager->GetConfVars()->NumPathsPerFrame;
 			}
 			else
 			{
-				 scene->CreatePaths(avpls, remaining, m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
+				 scene->CreatePaths(avpls, m_CollectedAVPLs, m_CollectedImportanceSampledAVPLs, m_ProfileFrame, remaining, 
+					 m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
 				 m_CurrentPath += remaining;
 			}
 
@@ -676,13 +682,32 @@ void Renderer::Render()
 	if(m_pConfManager->GetConfVars()->DrawLights)
 		DrawLights(avpls, m_pAVPLRenderTarget);
 
+	if(m_pConfManager->GetConfVars()->CollectAVPLs)
+	{
+		std::cout << m_CollectedAVPLs.size() << " avpls collected." << std::endl;
+	}
+	if(m_pConfManager->GetConfVars()->CollectISAVPLs)
+	{
+		std::cout << m_CollectedImportanceSampledAVPLs.size() << " importance sampled avpls collected." << std::endl;
+	}
+
 	if(m_ProfileFrame) cpuTimer.Start();
 	avpls.clear();
 	if(m_ProfileFrame) cpuTimer.Stop("delete avpls");
-
+	
 	if(m_pConfManager->GetConfVars()->DrawSceneSamples)
 	{
 		DrawSceneSamples(m_pShadeRenderTarget);
+	}
+
+	if(m_pConfManager->GetConfVars()->DrawCollectedAVPLs)
+	{
+		DrawLights(m_CollectedAVPLs, m_pShadeRenderTarget);
+	}
+
+	if(m_pConfManager->GetConfVars()->DrawCollectedISAVPLs)
+	{
+		DrawLights(m_CollectedImportanceSampledAVPLs, m_pShadeRenderTarget);
 	}
 
 	if(m_pConfManager->GetConfVars()->UseToneMapping)
@@ -718,14 +743,16 @@ void Renderer::Render()
 			m_pTextureViewer->DrawTexture(m_pOctahedronAtlas->GetAVPLClusterAtlasCPU(), 0, 0, camera->GetWidth(), camera->GetHeight());
 	}
 	
-	if(m_CurrentPath % 50000 == 0 && m_CurrentPath > 0 && !m_Finished)
+	int timeInMs = int(m_pResultTimer->GetTime());
+	if(timeInMs > 30000 && timeInMs > 0 && !m_Finished)
 	{
-		double time = m_pGlobalTimer->GetTime();
+		int time = int(m_pGlobalTimer->GetTime());
 		std::stringstream ss;
 		ss << "result-" << m_CurrentPath << "paths-" << scene->GetNumCreatedAVPLs() << "c-avpls-" << scene->GetNumAVPLsAfterIS() << "u-avpls-" << time << "ms" << ".pfm";
 		m_Export->ExportPFM(m_pShadeRenderTarget->GetBuffer(0), ss.str());
 		
 		std::cout << "# paths: " << m_CurrentPath << std::endl;
+		m_pResultTimer->Start();
 	}	
 
 	if(m_pConfManager->GetConfVars()->DrawLights)
@@ -767,13 +794,13 @@ void Renderer::RenderDirectIndirectLight()
 		int remaining = m_pConfManager->GetConfVars()->NumPaths - m_CurrentPath;
 		if(remaining >= m_pConfManager->GetConfVars()->NumPathsPerFrame)
 		{
-			scene->CreatePaths(avpls, m_pConfManager->GetConfVars()->NumPathsPerFrame, 
+			scene->CreatePaths(avpls, m_CollectedAVPLs, m_CollectedImportanceSampledAVPLs, m_ProfileFrame, m_pConfManager->GetConfVars()->NumPathsPerFrame, 
 				m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
 			m_CurrentPath += m_pConfManager->GetConfVars()->NumPathsPerFrame;
 		}
 		else
 		{
-			scene->CreatePaths(avpls, remaining, m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
+			scene->CreatePaths(avpls, m_CollectedAVPLs, m_CollectedImportanceSampledAVPLs, m_ProfileFrame, remaining, m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
 			m_CurrentPath += remaining;
 		}
 			
@@ -1056,31 +1083,26 @@ void Renderer::DetermineUsedAvpls(const std::vector<AVPL>& avpls, std::vector<AV
 
 void Renderer::Gather(const std::vector<AVPL>& avpls, CRenderTarget* pRenderTarget)
 {
-	try
+	CTimer cpu_timer(CTimer::CPU);
+	CTimer gpu_timer(CTimer::OGL);
+
+	AVPL_BUFFER* avplBuffer = new AVPL_BUFFER[avpls.size()];
+	memset(avplBuffer, 0, sizeof(AVPL_BUFFER) * avpls.size());
+	for(uint i = 0; i < avpls.size(); ++i)
 	{
-		AVPL_BUFFER* avplBuffer = new AVPL_BUFFER[avpls.size()];
-		memset(avplBuffer, 0, sizeof(AVPL_BUFFER) * avpls.size());
-		for(uint i = 0; i < avpls.size(); ++i)
-		{
-			AVPL_BUFFER buffer;
-			avpls[i].Fill(buffer);
-			avplBuffer[i] = buffer;
-		}
-		m_pOGLLightBuffer->SetContent(avplBuffer, sizeof(AVPL_BUFFER) * avpls.size());
-		delete [] avplBuffer;
+		AVPL_BUFFER buffer;
+		avpls[i].Fill(buffer);
+		avplBuffer[i] = buffer;
 	}
-	catch(std::bad_alloc)
-	{
-		std::cout << "bad_alloc exception at Renderer::Gather()" << std::endl;
-		return;
-	}
-		
+	m_pOGLLightBuffer->SetContent(avplBuffer, sizeof(AVPL_BUFFER) * avpls.size());	
+	delete [] avplBuffer;	
+	
 	INFO info;
 	info.numLights = (int)avpls.size();
 	info.filterAVPLAtlas = m_pConfManager->GetConfVars()->FilterAvplAtlasLinear;
 	info.drawLightingOfLight = m_pConfManager->GetConfVars()->DrawLightingOfLight;
 	m_pUBInfo->UpdateData(&info);
-
+	
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);	
 	glBlendFunc(GL_ONE, GL_ONE);
@@ -1092,9 +1114,9 @@ void Renderer::Gather(const std::vector<AVPL>& avpls, CRenderTarget* pRenderTarg
 	COGLBindLock lock0(m_pGBuffer->GetPositionTextureWS(), COGL_TEXTURE0_SLOT);
 	COGLBindLock lock1(m_pGBuffer->GetNormalTexture(), COGL_TEXTURE1_SLOT);
 	COGLBindLock lock2(m_pOGLLightBuffer, COGL_TEXTURE2_SLOT);
-
+	
 	m_pFullScreenQuad->Draw();
-
+	
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
 }
@@ -1385,8 +1407,7 @@ void Renderer::DrawLights(const std::vector<AVPL>& avpls, CRenderTarget* target)
 		if(rb == -1 || (avpls[i].GetBounce() == rb || avpls[i].GetBounce() == rb + 1))
 		{
 			POINT_CLOUD_POINT p;
-			glm::vec3 pos = avpls[i].GetPosition();
-			p.position = glm::vec4(pos, 1.0f);
+			p.position = glm::vec4(avpls[i].GetPosition() + m_pConfManager->GetConfVars()->DisplacePCP * avpls[i].GetOrientation(), 1.0f);
 			p.color = glm::vec4(avpls[i].GetColor(), 1.f);
 			pcp.push_back(p);
 		}
@@ -1415,10 +1436,8 @@ void Renderer::DrawLights(const std::vector<AVPL>& avpls, CRenderTarget* target)
 			m_pUBTransform->UpdateData(&transform);
 		
 			glDepthMask(GL_FALSE);
-			glDisable(GL_DEPTH_TEST);
 			m_pPointCloud->Draw(positionData, colorData, (int)pcp.size());		
 			glDepthMask(GL_TRUE);
-			glEnable(GL_DEPTH_TEST);
 		}
 		
 		pcp.clear();
@@ -1681,7 +1700,7 @@ void Renderer::InitDebugLights()
 	m_pAVPLImportanceSampling->CreateSceneSamples();
 
 	m_pCPUTimer->Start();
-	scene->CreatePaths(m_DebugAVPLs, m_pConfManager->GetConfVars()->NumPaths, 
+	scene->CreatePaths(m_DebugAVPLs, m_CollectedAVPLs, m_CollectedImportanceSampledAVPLs, m_ProfileFrame, m_pConfManager->GetConfVars()->NumPaths, 
 		m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
 	std::cout << "Number of AVPLs: " << m_DebugAVPLs.size() << std::endl;
 	m_pCPUTimer->Stop("CreatePaths");
@@ -1740,4 +1759,24 @@ float Renderer::IntegrateGauss()
 void Renderer::CancelRender()
 {
 	m_Finished = true; m_CurrentPath = m_pConfManager->GetConfVars()->NumPaths;
+}
+
+void Renderer::StartCollectingAVPLs()
+{
+	m_pConfManager->GetConfVars()->CollectAVPLs = m_pConfManager->GetConfVarsGUI()->CollectAVPLs = 1;
+}
+
+void Renderer::EndCollectingAVPLs()
+{
+	m_pConfManager->GetConfVars()->CollectAVPLs = m_pConfManager->GetConfVarsGUI()->CollectAVPLs = 0;
+}
+
+void Renderer::StartCollectingISAVPLs()
+{
+	m_pConfManager->GetConfVars()->CollectISAVPLs = m_pConfManager->GetConfVarsGUI()->CollectISAVPLs = 1;
+}
+
+void Renderer::EndCollectingISAVPLs()
+{
+	m_pConfManager->GetConfVars()->CollectISAVPLs = m_pConfManager->GetConfVarsGUI()->CollectISAVPLs = 0;
 }

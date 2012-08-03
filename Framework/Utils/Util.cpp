@@ -348,9 +348,9 @@ float G(glm::vec3 p1, glm::vec3 n1, glm::vec3 p2, glm::vec3 n2)
 
 float G_A(glm::vec3 p_avpl, glm::vec3 n_avpl, glm::vec3 p_point, glm::vec3 n_point)
 {
-	const glm::vec3 w = glm::normalize(p_avpl- p_point);
-	const float cos_theta = clamp(glm::dot(p_point, w), 0, 1);
-	const float dist = glm::length(p_point - p_avpl);
+	const glm::vec3 w = glm::normalize(p_avpl - p_point);
+	const float cos_theta = clamp(glm::dot(n_point, w), 0, 1);
+	const float dist = glm::length(p_avpl - p_point);
 	
 	return cos_theta / (dist * dist);
 }

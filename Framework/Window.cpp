@@ -53,7 +53,6 @@ float CalcFPS();
 
 void Render()
 {
-	
 	if(g_pConfigManager->GetConfVars()->SeparateDirectIndirectLighting)
 		g_pRenderer->RenderDirectIndirectLight();
 	else
@@ -499,7 +498,37 @@ bool HandleKeyEvent(WPARAM wParam)
 			g_pCamera->MoveRight(0.5f);
 			g_pRenderer->ClearLighting();
 			return true; break;
-			
+
+		case 'Z':
+
+			std::cout << "start collecting avpls" << std::endl;
+			g_pRenderer->StartCollectingAVPLs();
+			return true; break;
+
+		case 'U':
+
+			std::cout << "stop collecting avpls" << std::endl;
+			g_pRenderer->EndCollectingAVPLs();
+			return true; break;
+
+		case 'H':
+
+			std::cout << "start collecting importance sampled avpls" << std::endl;
+			g_pRenderer->StartCollectingISAVPLs();
+			return true; break;
+
+		case 'J':
+
+			std::cout << "stop collecting importance sampled avpls" << std::endl;
+			g_pRenderer->EndCollectingISAVPLs();
+			return true; break;
+
+		case 'I':
+
+			std::cout << "clear collected avpls" << std::endl;
+			g_pRenderer->ClearCollectedAVPLs();
+			return true; break;
+
 		default: break;
     }
 	

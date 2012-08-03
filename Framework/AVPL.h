@@ -14,8 +14,8 @@ public:
 	AVPL(glm::vec3 p, glm::vec3 n, glm::vec3 I, glm::vec3 A, glm::vec3 w_A, int bounce, CConfigManager* pConfManager);
 	~AVPL();
 
-	glm::mat4 GetViewMatrix() const { return m_ViewMatrix; }
-	glm::mat4 GetProjectionMatrix() const { return m_ProjectionMatrix; }
+	glm::mat4 GetViewMatrix() const;
+	glm::mat4 GetProjectionMatrix() const;
 
 	glm::vec3 GetPosition() const { return m_Position; }
 	glm::vec3 GetOrientation() const { return m_Orientation; }
@@ -48,8 +48,6 @@ private:
 	glm::vec3 m_Antiintensity;
 	glm::vec3 m_AntiradianceDirection;
 	glm::vec3 m_DebugColor;
-	glm::mat4 m_ViewMatrix;
-	glm::mat4 m_ProjectionMatrix;
 	int m_Bounce;
 
 	CConfigManager* m_pConfManager;

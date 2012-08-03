@@ -66,34 +66,18 @@ void main()
 	outputRadiance = vec4(0.f);
 	outputAntiradiance = vec4(0.f);
 
-	int size = 4 * 5; // sizeof(AVPL_BUFFER)
+	int size = 5; // sizeof(AVPL_BUFFER)
 	for(int i = 0; i < uInfo.numLights; ++i)
 	{		
 		vec4 radiance = vec4(0.f);
 		vec4 antiradiance = vec4(0.f);
 		vec4 diff = vec4(0.f);
 		
-		const vec4 I = vec4(texelFetch(samplerLightBuffer, i * size + 0).r,
-			texelFetch(samplerLightBuffer, i * size + 1).r,
-			texelFetch(samplerLightBuffer, i * size + 2).r,
-			texelFetch(samplerLightBuffer, i * size + 3).r);
-
-		vec4 A = vec4(texelFetch(samplerLightBuffer, i * size + 4).r,
-			texelFetch(samplerLightBuffer, i * size + 5).r,
-			texelFetch(samplerLightBuffer, i * size + 6).r,
-			texelFetch(samplerLightBuffer, i * size + 7).r);
-
-		const vec3 p = vec3(texelFetch(samplerLightBuffer, i * size + 8).r,
-			texelFetch(samplerLightBuffer, i * size + 9).r,
-			texelFetch(samplerLightBuffer, i * size + 10).r);
-
-		const vec3 n = vec3(texelFetch(samplerLightBuffer, i * size + 12).r,
-			texelFetch(samplerLightBuffer, i * size + 13).r,
-			texelFetch(samplerLightBuffer, i * size + 14).r);
-
-		const vec3 w_A = vec3(texelFetch(samplerLightBuffer, i * size + 16).r,
-			texelFetch(samplerLightBuffer, i * size + 17).r,
-			texelFetch(samplerLightBuffer, i * size + 18).r);
+		const vec4 I = texelFetch(samplerLightBuffer, i * size + 0);
+		vec4 A = texelFetch(samplerLightBuffer, i * size + 1);
+		const vec3 p = vec3(texelFetch(samplerLightBuffer, i * size + 2));
+		const vec3 n = vec3(texelFetch(samplerLightBuffer, i * size + 3));
+		const vec3 w_A = vec3(texelFetch(samplerLightBuffer, i * size + 4));
 		
 		// calc radiance
 		if(length(I) > 0.f)

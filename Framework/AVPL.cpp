@@ -7,6 +7,8 @@
 #include "Utils\Util.h"
 #include "Utils\Rand.h"
 
+static glm::mat4 projMatrix = glm::perspective(90.0f, 1.0f, 0.1f, 100.0f);
+
 AVPL::AVPL(glm::vec3 p, glm::vec3 n, glm::vec3 I,
 	glm::vec3 A, glm::vec3 w_A, int bounce, CConfigManager* pConfManager)
 	: m_pConfManager(pConfManager)
@@ -17,17 +19,21 @@ AVPL::AVPL(glm::vec3 p, glm::vec3 n, glm::vec3 I,
 	m_Antiintensity= A;
 	m_AntiradianceDirection = w_A;
 	m_Bounce = bounce;
-	
-	m_DebugColor = glm::vec3(0.8f, 0.8f, 0.0f);
+	m_DebugColor = glm::vec3(0.2f, 0.2f, 0.2f);
+}
 
-	m_ProjectionMatrix = glm::perspective(90.0f, 1.0f, 0.1f, 100.0f);
-
+glm::mat4 AVPL::GetViewMatrix() const 
+{
 	glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
 	if(glm::abs(glm::dot(up, m_Orientation)) > 0.009) {
 		up = glm::vec3(0.0f, 0.0f, 1.0f); 
 	}
 
-	m_ViewMatrix = glm::lookAt(m_Position, m_Position + m_Orientation, up);
+	return glm::lookAt(m_Position, m_Position + m_Orientation, up); 
+}
+
+glm::mat4 AVPL::GetProjectionMatrix() const {
+	return glm::perspective(90.0f, 1.0f, 0.1f, 100.0f);
 }
  
 AVPL::~AVPL()
@@ -44,8 +50,8 @@ void AVPL::Fill(AVPL_STRUCT& avpl) const
 	avpl.A = glm::vec4(m_Antiintensity, 1.f);
 	avpl.w_A = m_AntiradianceDirection;
 	avpl.DebugColor = glm::vec4(m_DebugColor, 1.f);
-	avpl.ViewMatrix = m_ViewMatrix;
-	avpl.ProjectionMatrix = m_ProjectionMatrix;
+	avpl.ViewMatrix = GetViewMatrix();
+	avpl.ProjectionMatrix = GetProjectionMatrix();
 	avpl.Bounce = m_Bounce;
 }
 

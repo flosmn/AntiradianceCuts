@@ -45,6 +45,7 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->NumSqrtAtlasSamples = m_pConfVarsGUI->NumSqrtAtlasSamples = 4;
 	m_pConfVars->TexelOffsetX = m_pConfVarsGUI->TexelOffsetX = 0.f;
 	m_pConfVars->TexelOffsetY = m_pConfVarsGUI->TexelOffsetY = 0.f;
+	m_pConfVars->DisplacePCP = m_pConfVarsGUI->DisplacePCP = 0.f;
 
 	m_pConfVars->LightTreeCutDepth = m_pConfVarsGUI->LightTreeCutDepth = -1;
 	m_pConfVars->ClusterDepth = m_pConfVarsGUI->ClusterDepth = 0;
@@ -65,10 +66,14 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->AreaLightPosZ = m_pConfVarsGUI->AreaLightPosZ = 0.f;
 
 	m_pConfVars->UseAVPLImportanceSampling = m_pConfVarsGUI->UseAVPLImportanceSampling = 1;
-	m_pConfVars->UseAntiintensityImportance = m_pConfVarsGUI->UseAntiintensityImportance = 0;
+	m_pConfVars->ISMode = m_pConfVarsGUI->ISMode = 0;
 	m_pConfVars->ConeFactorIS = m_pConfVarsGUI->ConeFactorIS = 4;
 	m_pConfVars->NumSceneSamples = m_pConfVarsGUI->NumSceneSamples = 100;
 	m_pConfVars->DrawSceneSamples = m_pConfVarsGUI->DrawSceneSamples = 0;
+	m_pConfVars->DrawCollectedAVPLs = m_pConfVarsGUI->DrawCollectedAVPLs = 0;
+	m_pConfVars->DrawCollectedISAVPLs = m_pConfVarsGUI->DrawCollectedISAVPLs = 0;
+	m_pConfVars->CollectAVPLs = m_pConfVarsGUI->CollectAVPLs = 0;
+	m_pConfVars->CollectISAVPLs = m_pConfVarsGUI->CollectISAVPLs = 0;
 	m_pConfVars->IrradAntiirradWeight = m_pConfVarsGUI->IrradAntiirradWeight = 0.5f;
 	m_pConfVars->AcceptProbabEpsilon = m_pConfVarsGUI->AcceptProbabEpsilon = 0.05f;
 }
@@ -326,6 +331,11 @@ void CConfigManager::Update()
 		clearLighting = true;
 	}
 
+	if(m_pConfVarsGUI->DisplacePCP != m_pConfVars->DisplacePCP)
+	{
+		m_pConfVars->DisplacePCP = m_pConfVarsGUI->DisplacePCP;
+	}
+
 	if(m_pConfVarsGUI->LightTreeCutDepth != m_pConfVars->LightTreeCutDepth)
 	{
 		m_pConfVars->LightTreeCutDepth = m_pConfVarsGUI->LightTreeCutDepth;
@@ -415,9 +425,9 @@ void CConfigManager::Update()
 		clearLighting = true;
 	}
 
-	if(m_pConfVarsGUI->UseAntiintensityImportance != m_pConfVars->UseAntiintensityImportance)
+	if(m_pConfVarsGUI->ISMode != m_pConfVars->ISMode)
 	{
-		m_pConfVars->UseAntiintensityImportance = m_pConfVarsGUI->UseAntiintensityImportance;
+		m_pConfVars->ISMode = m_pConfVarsGUI->ISMode;
 		configureLighting = true;
 		clearAccumBuffer = true;
 		clearLighting = true;
@@ -434,6 +444,26 @@ void CConfigManager::Update()
 	if(m_pConfVarsGUI->DrawSceneSamples != m_pConfVars->DrawSceneSamples)
 	{
 		m_pConfVars->DrawSceneSamples = m_pConfVarsGUI->DrawSceneSamples;
+	}
+
+	if(m_pConfVarsGUI->DrawCollectedAVPLs != m_pConfVars->DrawCollectedAVPLs)
+	{
+		m_pConfVars->DrawCollectedAVPLs = m_pConfVarsGUI->DrawCollectedAVPLs;
+	}
+
+	if(m_pConfVarsGUI->DrawCollectedISAVPLs != m_pConfVars->DrawCollectedISAVPLs)
+	{
+		m_pConfVars->DrawCollectedISAVPLs = m_pConfVarsGUI->DrawCollectedISAVPLs;
+	}
+
+	if(m_pConfVarsGUI->CollectAVPLs != m_pConfVars->CollectAVPLs)
+	{
+		m_pConfVars->CollectAVPLs = m_pConfVarsGUI->CollectAVPLs;
+	}
+
+	if(m_pConfVarsGUI->CollectISAVPLs != m_pConfVars->CollectISAVPLs)
+	{
+		m_pConfVars->CollectISAVPLs = m_pConfVarsGUI->CollectISAVPLs;
 	}
 
 	if(m_pConfVarsGUI->NumSceneSamples != m_pConfVars->NumSceneSamples)

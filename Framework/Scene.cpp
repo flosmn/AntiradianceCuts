@@ -25,6 +25,7 @@ typedef unsigned int uint;
 #include <set>
 #include <iostream>
 #include <algorithm>
+#include <iterator>
 
 Scene::Scene(CCamera* _camera, CConfigManager* pConfManager)
 {
@@ -201,9 +202,11 @@ bool Scene::ContinueAVPLPath(AVPL* pred, AVPL* newAVPL, glm::vec3 direction, flo
 	return false;
 }
 
-void Scene::CreatePaths(std::vector<AVPL>& avpls_res, uint numPaths, int N, int nAdditionalAVPLs)
+void Scene::CreatePaths(std::vector<AVPL>& avpls_res, std::vector<AVPL>& allAVPLs, std::vector<AVPL>& isAVPLs, bool profile, uint numPaths, int N, int nAdditionalAVPLs)
 {
-	avpls_res.reserve(numPaths * 10);
+	avpls_res.reserve(numPaths * 4);
+	allAVPLs.reserve(numPaths * 4);	
+	isAVPLs.reserve(numPaths * 4);
 
 	if(!m_pConfManager->GetConfVars()->UseAVPLImportanceSampling)
 	{
@@ -212,6 +215,11 @@ void Scene::CreatePaths(std::vector<AVPL>& avpls_res, uint numPaths, int N, int 
 			CreatePath(avpls_res, N, nAdditionalAVPLs);
 		}
 		m_NumCreatedAVPLs += uint(avpls_res.size());
+
+		if(m_pConfManager->GetConfVars()->CollectAVPLs)
+		{
+			std::copy(avpls_res.begin(), avpls_res.end(), std::back_inserter(allAVPLs));
+		}
 	}
 	else
 	{
@@ -232,9 +240,7 @@ void Scene::CreatePaths(std::vector<AVPL>& avpls_res, uint numPaths, int N, int 
 			{
 				float scale = 1.f;
 				
-				if(m_pConfManager->GetConfVars()->UseAntiintensityImportance ? 
-					m_pAVPLImportanceSampling->EvaluateAVPLAntiintensityImportance(avpls_temp[i], &scale) : 
-					m_pAVPLImportanceSampling->EvaluateAVPLImportance(avpls_temp[i], &scale))
+				if(ImportanceSampling(avpls_temp[i], &scale))
 				{
 					avpls_temp[i].SetAntiintensity(scale * avpls_temp[i].GetMaxAntiintensity());
 					avpls_temp[i].SetIntensity(scale * avpls_temp[i].GetMaxIntensity());
@@ -246,11 +252,34 @@ void Scene::CreatePaths(std::vector<AVPL>& avpls_res, uint numPaths, int N, int 
 				avpls_res.push_back(avpls_temp[i]);
 			}
 		}
+
+		if(m_pConfManager->GetConfVars()->CollectAVPLs)
+		{
+			std::copy(avpls_temp.begin(), avpls_temp.end(), std::back_inserter(allAVPLs));
+		}
+		if(m_pConfManager->GetConfVars()->CollectISAVPLs)
+		{
+			std::copy(avpls_res.begin(), avpls_res.end(), std::back_inserter(isAVPLs));
+		}
 								
 		m_NumAVPLsAfterIS += uint(avpls_res.size());
 		
 		avpls_temp.clear();
 	}
+}
+
+bool Scene::ImportanceSampling(AVPL& avpl, float* scale)
+{
+	switch(m_pConfManager->GetConfVars()->ISMode)
+	{
+	case 0:
+		return m_pAVPLImportanceSampling->EvaluateAVPLImportanceAlpha(avpl, scale);
+	case 1:
+		return m_pAVPLImportanceSampling->EvaluateAVPLImportance(avpl, scale);
+	case 2:
+		return m_pAVPLImportanceSampling->EvaluateAVPLAntiintensityImportance(avpl, scale);
+	}
+	return false;
 }
 
  void Scene::CreatePath(std::vector<AVPL>& path, int N, int nAdditionalAVPLs) 
@@ -412,7 +441,7 @@ void Scene::LoadCornellBox()
 	m_Models.push_back(model);
 
 	m_Camera->Init(glm::vec3(278.f, 273.f, -800.f), 
-		glm::vec3(278.f, 273.f, 270.f),
+		glm::vec3(278.f, 273.f, -799.f),
 		2.0f);
 	
 	glm::vec3 areaLightFrontDir = glm::vec3(0.0f, -1.0f, 0.0f);
@@ -480,15 +509,17 @@ void Scene::LoadSibernik()
 {
 	ClearScene();
 
+	float scale = 100.f;
+
 	CModel* model = new CModel();
 	model->Init("sibmaxexp");
-	model->SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
+	model->SetWorldTransform(glm::scale(glm::vec3(100.f, 100.f, 100.f)));
 
 	m_Models.push_back(model);
 
-	m_Camera->Init(glm::vec3(-16.f, -5.f, 0.f), 
-		glm::vec3(0.f, -10.f, 0.f),
-		1.0f);
+	m_Camera->Init(scale * glm::vec3(-16.f, -5.f, 0.f), 
+		scale * glm::vec3(-15.f, -5.5f, 0.f),
+		2.f);
 	/*
 	m_AreaLight = new AreaLight(0.25f, 0.25f, 
 		glm::vec3(0.f, 2.0f, 0.f), 
@@ -497,7 +528,7 @@ void Scene::LoadSibernik()
 	*/
 	
 	glm::vec3 areaLightFrontDir = glm::vec3(0.f, 0.f, 1.f);
-	glm::vec3 areaLightPosition = glm::vec3(0.f, -10.f, 3.f);
+	glm::vec3 areaLightPosition = scale * glm::vec3(0.f, -10.f, 3.f);
 	
 	m_pConfManager->GetConfVars()->AreaLightFrontDirection[0] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[0] = areaLightFrontDir.x;
 	m_pConfManager->GetConfVars()->AreaLightFrontDirection[1] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[1] = areaLightFrontDir.y;
@@ -507,13 +538,13 @@ void Scene::LoadSibernik()
 	m_pConfManager->GetConfVars()->AreaLightPosY = m_pConfManager->GetConfVarsGUI()->AreaLightPosY = areaLightPosition.y;
 	m_pConfManager->GetConfVars()->AreaLightPosZ = m_pConfManager->GetConfVarsGUI()->AreaLightPosZ = areaLightPosition.z;
 
-	m_AreaLight = new AreaLight(0.25f, 0.25f, 
+	m_AreaLight = new AreaLight(scale * 0.25f, scale * 0.25f, 
 		areaLightPosition, 
 		areaLightFrontDir,
 		Orthogonal(areaLightFrontDir));
 	
 	m_AreaLight->SetRadiance(glm::vec3(2000.f, 2000.f, 2000.f));
-
+		
 	m_AreaLight->Init();
 
 	InitKdTree();

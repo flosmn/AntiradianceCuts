@@ -65,7 +65,51 @@ void CAVPLImportanceSampling::UpdateCurrentAntiirradiance(COGLTexture2D* pTextur
 	m_AvgAntiirradiance = Luminance(antiirradiance) / float(width * height);
 }
 
-bool CAVPLImportanceSampling::EvaluateAVPLImportance(const AVPL& avpl, float* scale)
+bool CAVPLImportanceSampling::EvaluateAVPLImportance(AVPL& avpl, float* scale)
+{
+	if(m_AvgAntiirradiance == 0 || m_AvgIrradiance == 0)
+	{
+		*scale = 1.f;
+		return true;
+	}
+	
+	glm::vec3 antiirradiance = glm::vec3(0.f);
+	for(uint i = 0; i < m_NumSceneSamples; ++i)
+	{
+		if(Luminance(avpl.GetAntiirradiance(m_SceneSamples[i], m_ConeFactor)) > 0.f)
+		{
+			*scale = 1.f;
+			return true;
+		}
+	}
+	
+	glm::vec3 irradiance = glm::vec3(0.f);
+	for(uint i = 0; i < m_NumSceneSamples; ++i)
+	{
+		irradiance += avpl.GetIrradiance(m_SceneSamples[i]);
+	}
+	irradiance *= m_OneOverNumSceneSamples;
+	
+	const float frac_irr = Luminance(irradiance) / m_AvgIrradiance;
+	
+	if(frac_irr >= 1.f)
+	{
+		*scale = 1.f;
+		return true;
+	}
+
+	const float p_accept = std::min(1.f, frac_irr + m_Epsilon);
+		
+	if(Rand01() < p_accept)
+	{
+		*scale = 1.f / (p_accept);
+		return true;
+	}
+		
+	return false;
+}
+
+bool CAVPLImportanceSampling::EvaluateAVPLImportanceAlpha(AVPL& avpl, float* scale)
 {
 	if(m_AvgAntiirradiance == 0 || m_AvgIrradiance == 0)
 	{
@@ -84,9 +128,9 @@ bool CAVPLImportanceSampling::EvaluateAVPLImportance(const AVPL& avpl, float* sc
 	antiirradiance *= m_OneOverNumSceneSamples;
 	
 	const float frac_irr = Luminance(irradiance) / m_AvgIrradiance;
-	const float frac_antiirr = Luminance(irradiance) / m_AvgAntiirradiance;
+	const float frac_antiirr = Luminance(antiirradiance) / m_AvgAntiirradiance;
 
-	if(frac_irr >= 1.f || frac_antiirr)
+	if(frac_irr >= 1.f || frac_antiirr >= 1.f)
 	{
 		*scale = 1.f;
 		return true;
@@ -104,7 +148,7 @@ bool CAVPLImportanceSampling::EvaluateAVPLImportance(const AVPL& avpl, float* sc
 	return false;
 }
 
-bool CAVPLImportanceSampling::EvaluateAVPLAntiintensityImportance(const AVPL& avpl, float* scale)
+bool CAVPLImportanceSampling::EvaluateAVPLAntiintensityImportance(AVPL& avpl, float* scale)
 {
 	glm::vec3 antiirradiance = glm::vec3(0.f);
 	for(uint i = 0; i < m_SceneSamples.size(); ++i)
@@ -114,8 +158,15 @@ bool CAVPLImportanceSampling::EvaluateAVPLAntiintensityImportance(const AVPL& av
 	antiirradiance *= m_OneOverNumSceneSamples;
 			
 	const float A = Luminance(antiirradiance);
-	if(m_AvgAntiirradiance == 0 || A > 0.f)
+	if(m_AvgAntiirradiance == 0)
 	{
+		*scale = 1.f;
+		return true;
+	}
+
+	if(A > 0.f)
+	{
+		avpl.SetColor(glm::vec3(1.f, 1.f, 0.f));
 		*scale = 1.f;
 		return true;
 	}
@@ -123,6 +174,7 @@ bool CAVPLImportanceSampling::EvaluateAVPLAntiintensityImportance(const AVPL& av
 	const float p_accept = std::min(1.f, m_Alpha + m_Epsilon);
 	if(Rand01() < p_accept)
 	{
+		avpl.SetColor(glm::vec3(0.f, 1.f, 1.f));
 		*scale = 1.f / p_accept;
 		return true;
 	}
