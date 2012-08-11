@@ -1,5 +1,6 @@
 #include "Render.h"
 
+
 #include "CL/cl.h"
 
 #include <glm/gtc/type_ptr.hpp>
@@ -27,6 +28,7 @@
 #include "CLightTree.h"
 #include "CPriorityQueue.h"
 #include "CAVPLImportanceSampling.h"
+#include "CBidirInstantRadiosity.h"
 
 #include "LightTreeTypes.h"
 
@@ -65,7 +67,7 @@ Renderer::Renderer(CCamera* _camera) {
 	camera = _camera;
 	
 	scene = 0;
-
+	
 	m_pCLContext = new COCLContext();
 		
 	m_pShadowMap = new CShadowMap();
@@ -98,7 +100,7 @@ Renderer::Renderer(CCamera* _camera) {
 	m_pUBAreaLight = new COGLUniformBuffer("Renderer.m_pUBAreaLight");
 	m_pUBModel = new COGLUniformBuffer("Renderer.m_pUBModel");
 	m_pUBAtlasInfo = new COGLUniformBuffer("Renderer.m_pUBAtlasInfo");
-
+	
 	m_pGLLinearSampler = new COGLSampler("Renderer.m_pGLLinearSampler");
 	m_pGLPointSampler = new COGLSampler("Renderer.m_pGLPointSampler");
 	m_pGLShadowMapSampler = new COGLSampler("Renderer.m_pGLShadowMapSampler");
@@ -137,7 +139,7 @@ Renderer::Renderer(CCamera* _camera) {
 	m_pOGLClusterBuffer = new COGLTextureBuffer("Renderer.m_pOGLClusterBuffer");
 	
 	m_pAVPLPositions = new COGLTextureBuffer("Renderer.m_pAVPLPositions");
-	
+		
 	m_pCPUTimer = new CTimer(CTimer::CPU);
 	m_pOGLTimer = new CTimer(CTimer::OGL);
 	m_pOCLTimer = new CTimer(CTimer::OCL, m_pCLContext);
@@ -197,7 +199,7 @@ Renderer::~Renderer() {
 	SAFE_DELETE(m_pUBAreaLight);
 	SAFE_DELETE(m_pUBModel);
 	SAFE_DELETE(m_pUBAtlasInfo);
-
+	
 	SAFE_DELETE(m_pCreateGBufferProgram);
 	SAFE_DELETE(m_pCreateSMProgram);
 	SAFE_DELETE(m_pGatherRadianceWithSMProgram);
@@ -229,6 +231,7 @@ Renderer::~Renderer() {
 	SAFE_DELETE(m_pCLContext);
 
 	SAFE_DELETE(m_pAVPLImportanceSampling);
+	SAFE_DELETE(m_pBidirInstantRadiosity);
 }
 
 bool Renderer::Init() 
@@ -240,14 +243,14 @@ bool Renderer::Init()
 	
 	V_RET_FOF(m_pUBTransform->Init(sizeof(TRANSFORM), 0, GL_DYNAMIC_DRAW));
 	V_RET_FOF(m_pUBMaterial->Init(sizeof(MATERIAL), 0, GL_DYNAMIC_DRAW));
-	V_RET_FOF(m_pUBLight->Init(sizeof(AVPL), 0, GL_DYNAMIC_DRAW));
+	V_RET_FOF(m_pUBLight->Init(sizeof(AVPL_STRUCT), 0, GL_DYNAMIC_DRAW));
 	V_RET_FOF(m_pUBConfig->Init(sizeof(CONFIG), 0, GL_DYNAMIC_DRAW));
 	V_RET_FOF(m_pUBCamera->Init(sizeof(CAMERA), 0, GL_DYNAMIC_DRAW));
 	V_RET_FOF(m_pUBInfo->Init(sizeof(INFO), 0, GL_DYNAMIC_DRAW));
 	V_RET_FOF(m_pUBAreaLight->Init(sizeof(AREA_LIGHT), 0, GL_DYNAMIC_DRAW));
 	V_RET_FOF(m_pUBModel->Init(sizeof(MODEL), 0, GL_DYNAMIC_DRAW));
 	V_RET_FOF(m_pUBAtlasInfo->Init(sizeof(ATLAS_INFO), 0, GL_DYNAMIC_DRAW));
-
+	
 	V_RET_FOF(m_pTextureViewer->Init());
 	V_RET_FOF(m_pPointCloud->Init());
 	
@@ -285,21 +288,25 @@ bool Renderer::Init()
 	m_pCreateGBufferProgram->BindUniformBuffer(m_pUBTransform, "transform");
 	m_pCreateGBufferProgram->BindUniformBuffer(m_pUBMaterial, "material");
 		
-	m_pGatherRadianceWithSMProgram->BindUniformBuffer(m_pUBLight, "light");
-	m_pGatherRadianceWithSMProgram->BindUniformBuffer(m_pUBConfig, "config");
-	m_pGatherRadianceWithSMProgram->BindUniformBuffer(m_pUBCamera, "camera");
-
 	V_RET_FOF(m_pGLLinearSampler->Init(GL_LINEAR, GL_LINEAR, GL_CLAMP, GL_CLAMP));
 	V_RET_FOF(m_pGLPointSampler->Init(GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT));
 	V_RET_FOF(m_pGLShadowMapSampler->Init(GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER));
-	
-	m_pGatherRadianceWithSMProgram->BindSampler(0, m_pGLShadowMapSampler);
-	m_pGatherRadianceWithSMProgram->BindSampler(1, m_pGLPointSampler);
-	m_pGatherRadianceWithSMProgram->BindSampler(2, m_pGLPointSampler);
-
+		
 	m_pGatherProgram->BindSampler(0, m_pGLPointSampler);
 	m_pGatherProgram->BindSampler(1, m_pGLPointSampler);
 	m_pGatherProgram->BindSampler(2, m_pGLPointSampler);
+
+	m_pGatherProgram->BindUniformBuffer(m_pUBInfo, "info_block");
+	m_pGatherProgram->BindUniformBuffer(m_pUBConfig, "config");
+	m_pGatherProgram->BindUniformBuffer(m_pUBCamera, "camera");
+
+	m_pGatherRadianceWithSMProgram->BindUniformBuffer(m_pUBCamera, "camera");
+	m_pGatherRadianceWithSMProgram->BindUniformBuffer(m_pUBConfig, "config");	
+	m_pGatherRadianceWithSMProgram->BindUniformBuffer(m_pUBLight, "light");
+
+	m_pGatherRadianceWithSMProgram->BindSampler(0, m_pGLShadowMapSampler);
+	m_pGatherRadianceWithSMProgram->BindSampler(1, m_pGLPointSampler);
+	m_pGatherRadianceWithSMProgram->BindSampler(2, m_pGLPointSampler);
 
 	m_pGatherWithAtlas->BindSampler(0, m_pGLPointSampler);
 	m_pGatherWithAtlas->BindSampler(1, m_pGLPointSampler);
@@ -322,11 +329,7 @@ bool Renderer::Init()
 	m_pGatherWithClustering->BindUniformBuffer(m_pUBConfig, "config");
 	m_pGatherWithClustering->BindUniformBuffer(m_pUBCamera, "camera");
 	m_pGatherWithClustering->BindUniformBuffer(m_pUBAtlasInfo, "atlas_info");
-
-	m_pGatherProgram->BindUniformBuffer(m_pUBInfo, "info_block");
-	m_pGatherProgram->BindUniformBuffer(m_pUBConfig, "config");
-	m_pGatherProgram->BindUniformBuffer(m_pUBCamera, "camera");
-
+		
 	m_pNormalizeProgram->BindSampler(0, m_pGLPointSampler);
 	m_pNormalizeProgram->BindSampler(1, m_pGLPointSampler);
 	m_pNormalizeProgram->BindSampler(2, m_pGLPointSampler);
@@ -389,7 +392,9 @@ bool Renderer::Init()
 
 	m_pAVPLImportanceSampling = new CAVPLImportanceSampling(scene, m_pConfManager);
 	scene->SetAVPLImportanceSampling(m_pAVPLImportanceSampling);
-	
+
+	m_pBidirInstantRadiosity = new CBidirInstantRadiosity(scene, m_pConfManager);
+		
 	InitDebugLights();
 		
 	ClearAccumulationBuffer();
@@ -528,7 +533,7 @@ void Renderer::Render()
 
 	if(m_pConfManager->GetConfVars()->UseAntiradiance)
 	{
-		if(m_pConfManager->GetConfVars()->UseDebugMode && !m_Finished)
+		if(m_pConfManager->GetConfVars()->UseDebugMode)
 		{
 			if(!m_Finished)
 			{
@@ -573,9 +578,7 @@ void Renderer::Render()
 
 				if(m_pConfManager->GetConfVars()->DrawLights)
 					DrawLights(m_DebugAVPLs, m_pGatherRenderTarget);
-
-				m_CurrentPath += m_pConfManager->GetConfVars()->NumPaths;
-
+				
 				m_Finished = true;
 
 				cpuTimer.Stop("Render (CPU timer)");
@@ -587,19 +590,27 @@ void Renderer::Render()
 			if(m_CurrentPath < m_pConfManager->GetConfVars()->NumPaths)
 			{	
 				if(m_ProfileFrame) cpuTimer.Start();
-				int remaining = m_pConfManager->GetConfVars()->NumPaths - m_CurrentPath;
-				if(remaining >= m_pConfManager->GetConfVars()->NumPathsPerFrame)
+				if(m_pConfManager->GetConfVars()->UseBIDIR)
 				{
-					scene->CreatePaths(avpls, m_CollectedAVPLs, m_CollectedImportanceSampledAVPLs, m_ProfileFrame, m_pConfManager->GetConfVars()->NumPathsPerFrame, 
-						m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
-					m_CurrentPath += m_pConfManager->GetConfVars()->NumPathsPerFrame;
+					int numPaths = 0;
+					m_pBidirInstantRadiosity->CreatePath(avpls, numPaths);
+					m_CurrentPath += numPaths;
 				}
 				else
 				{
-					 scene->CreatePaths(avpls, m_CollectedAVPLs, m_CollectedImportanceSampledAVPLs, m_ProfileFrame, 
-						 remaining, m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
-					 m_CurrentPath += remaining;
+					int remaining = m_pConfManager->GetConfVars()->NumPaths - m_CurrentPath;
+					if(remaining >= m_pConfManager->GetConfVars()->NumPathsPerFrame)
+					{
+						scene->CreatePaths(avpls, m_CollectedAVPLs, m_CollectedImportanceSampledAVPLs, m_ProfileFrame, m_pConfManager->GetConfVars()->NumPathsPerFrame);
+						m_CurrentPath += m_pConfManager->GetConfVars()->NumPathsPerFrame;
+					}
+					else
+					{
+						 scene->CreatePaths(avpls, m_CollectedAVPLs, m_CollectedImportanceSampledAVPLs, m_ProfileFrame, m_pConfManager->GetConfVars()->NumPathsPerFrame);
+						 m_CurrentPath += remaining;
+					}
 				}
+
 				if(m_ProfileFrame) std::cout << "num avpls: " << avpls.size() << std::endl;
 				if(m_ProfileFrame) cpuTimer.Stop("Create AVPLs");
 				
@@ -649,14 +660,12 @@ void Renderer::Render()
 			int remaining = m_pConfManager->GetConfVars()->NumPaths - m_CurrentPath;
 			if(remaining >= m_pConfManager->GetConfVars()->NumPathsPerFrame)
 			{
-				scene->CreatePaths(avpls, m_CollectedAVPLs, m_CollectedImportanceSampledAVPLs, m_ProfileFrame, m_pConfManager->GetConfVars()->NumPathsPerFrame, 
-					m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
+				scene->CreatePaths(avpls, m_CollectedAVPLs, m_CollectedImportanceSampledAVPLs, m_ProfileFrame, m_pConfManager->GetConfVars()->NumPathsPerFrame);
 				m_CurrentPath += m_pConfManager->GetConfVars()->NumPathsPerFrame;
 			}
 			else
 			{
-				 scene->CreatePaths(avpls, m_CollectedAVPLs, m_CollectedImportanceSampledAVPLs, m_ProfileFrame, remaining, 
-					 m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
+				 scene->CreatePaths(avpls, m_CollectedAVPLs, m_CollectedImportanceSampledAVPLs, m_ProfileFrame, remaining);
 				 m_CurrentPath += remaining;
 			}
 
@@ -673,12 +682,12 @@ void Renderer::Render()
 	}
 	
 	if(m_ProfileFrame) gpuTimer.Start();
-	int normFactor = std::min(m_CurrentPath, m_pConfManager->GetConfVars()->NumPaths * m_pConfManager->GetConfVars()->NumPathsPerFrame);
-	Normalize(m_pNormalizeRenderTarget, m_pGatherRenderTarget, normFactor);
-
+		
+	Normalize(m_pNormalizeRenderTarget, m_pGatherRenderTarget, m_CurrentPath);
+	
 	Shade(m_pShadeRenderTarget, m_pNormalizeRenderTarget);
 	if(m_ProfileFrame) gpuTimer.Stop("normalize and shade");
-
+		
 	if(m_pConfManager->GetConfVars()->DrawLights)
 		DrawLights(avpls, m_pAVPLRenderTarget);
 
@@ -698,6 +707,11 @@ void Renderer::Render()
 	if(m_pConfManager->GetConfVars()->DrawSceneSamples)
 	{
 		DrawSceneSamples(m_pShadeRenderTarget);
+	}
+
+	if(m_pConfManager->GetConfVars()->DrawBIDIRSceneSamples)
+	{
+		DrawBidirSceneSamples(m_pShadeRenderTarget);
 	}
 
 	if(m_pConfManager->GetConfVars()->DrawCollectedAVPLs)
@@ -725,7 +739,10 @@ void Renderer::Render()
 	m_Frame++;
 	
 	if(m_pConfManager->GetConfVars()->DrawCutSizes)
-		m_pTextureViewer->DrawTexture(m_pGatherRenderTarget->GetBuffer(3), 0, 0, camera->GetWidth(), camera->GetHeight());
+	{
+		//m_pTextureViewer->DrawTexture(m_pGatherRenderTarget->GetBuffer(3), 0, 0, camera->GetWidth(), camera->GetHeight());
+		m_pTextureViewer->DrawTexture(m_pShadowMap->GetShadowMapTexture(), 0, 0, camera->GetWidth(), camera->GetHeight());
+	}
 
 	if(m_pConfManager->GetConfVars()->DrawAVPLAtlas)
 	{
@@ -794,13 +811,12 @@ void Renderer::RenderDirectIndirectLight()
 		int remaining = m_pConfManager->GetConfVars()->NumPaths - m_CurrentPath;
 		if(remaining >= m_pConfManager->GetConfVars()->NumPathsPerFrame)
 		{
-			scene->CreatePaths(avpls, m_CollectedAVPLs, m_CollectedImportanceSampledAVPLs, m_ProfileFrame, m_pConfManager->GetConfVars()->NumPathsPerFrame, 
-				m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
+			scene->CreatePaths(avpls, m_CollectedAVPLs, m_CollectedImportanceSampledAVPLs, m_ProfileFrame, m_pConfManager->GetConfVars()->NumPathsPerFrame);
 			m_CurrentPath += m_pConfManager->GetConfVars()->NumPathsPerFrame;
 		}
 		else
 		{
-			scene->CreatePaths(avpls, m_CollectedAVPLs, m_CollectedImportanceSampledAVPLs, m_ProfileFrame, remaining, m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
+			scene->CreatePaths(avpls, m_CollectedAVPLs, m_CollectedImportanceSampledAVPLs, m_ProfileFrame, remaining);
 			m_CurrentPath += remaining;
 		}
 			
@@ -1003,10 +1019,10 @@ void Renderer::GatherRadianceWithShadowMap(const std::vector<AVPL>& path, CRende
 void Renderer::Normalize(CRenderTarget* pTarget, CRenderTarget* source, int normFactor)
 {
 	CONFIG conf;
-	conf.GeoTermLimit = m_pConfManager->GetConfVars()->GeoTermLimit;
+	conf.GeoTermLimitRadiance = m_pConfManager->GetConfVars()->GeoTermLimitRadiance;
+	conf.GeoTermLimitAntiradiance = m_pConfManager->GetConfVars()->GeoTermLimitAntiradiance;
 	conf.ClampGeoTerm = m_pConfManager->GetConfVars()->ClampGeoTerm;
 	conf.nPaths = normFactor;
-	conf.N = m_pConfManager->GetConfVars()->ConeFactor;
 	conf.AntiradFilterK = GetAntiradFilterNormFactor();
 	conf.AntiradFilterMode = m_pConfManager->GetConfVars()->AntiradFilterMode;
 	conf.AntiradFilterGaussFactor = m_pConfManager->GetConfVars()->AntiradFilterGaussFactor;
@@ -1030,13 +1046,13 @@ void Renderer::Normalize(CRenderTarget* pTarget, CRenderTarget* source, int norm
 void Renderer::GatherRadianceFromLightWithShadowMap(const AVPL& avpl, CRenderTarget* pRenderTarget)
 {
 	FillShadowMap(avpl);
-	
+	/*
 	if(avpl.GetIntensity(avpl.GetOrientation()).length() == 0.f)
 		return;
 	
 	if(avpl.GetBounce() != m_pConfManager->GetConfVars()->RenderBounce && m_pConfManager->GetConfVars()->RenderBounce != -1)
 		return;
-	
+	*/
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);	
 	glBlendFunc(GL_ONE, GL_ONE);
@@ -1408,7 +1424,7 @@ void Renderer::DrawLights(const std::vector<AVPL>& avpls, CRenderTarget* target)
 		{
 			POINT_CLOUD_POINT p;
 			p.position = glm::vec4(avpls[i].GetPosition() + m_pConfManager->GetConfVars()->DisplacePCP * avpls[i].GetOrientation(), 1.0f);
-			p.color = glm::vec4(avpls[i].GetColor(), 1.f);
+			p.color = glm::vec4(0.5f * avpls[i].GetOrientation() + glm::vec3(0.5f), 1.f);
 			pcp.push_back(p);
 		}
 	}
@@ -1500,6 +1516,76 @@ void Renderer::DrawSceneSamples(CRenderTarget* target)
 	}
 }
 
+void Renderer::DrawBidirSceneSamples(CRenderTarget* target)
+{	
+	std::vector<SceneSample> sceneSamples = m_pBidirInstantRadiosity->GetSceneSamples();
+	std::vector<SceneSample> antiSceneSamples = m_pBidirInstantRadiosity->GetAntiSceneSamples();
+	std::vector<SceneSample> visibles = m_pBidirInstantRadiosity->GetVisibles();
+	std::vector<POINT_CLOUD_POINT> pcp;
+	/*
+	for (int i = 0; i < sceneSamples.size(); ++i)
+	{
+		POINT_CLOUD_POINT p;
+		p.position = glm::vec4(sceneSamples[i].position + m_pConfManager->GetConfVars()->DisplacePCP * sceneSamples[i].normal, 1.0f);
+		p.color = glm::vec4(0.5f * sceneSamples[i].normal + glm::vec3(0.5f), 1.0f);
+		pcp.push_back(p);
+	}
+	*/
+
+	for (int i = 0; i < antiSceneSamples.size(); ++i)
+	{
+		POINT_CLOUD_POINT p;
+		p.position = glm::vec4(antiSceneSamples[i].position + m_pConfManager->GetConfVars()->DisplacePCP * antiSceneSamples[i].normal, 1.0f);
+		p.color = glm::vec4(0.5f * antiSceneSamples[i].normal + glm::vec3(0.5f), 1.0f);
+		pcp.push_back(p);
+	}
+	
+	/*
+	for (int i = 0; i < visibles.size(); ++i)
+	{
+		POINT_CLOUD_POINT p;
+		p.position = glm::vec4(visibles[i].position + m_pConfManager->GetConfVars()->DisplacePCP * visibles[i].normal, 1.0f);
+		p.color = glm::vec4(0.5f * visibles[i].normal + glm::vec3(0.5f), 1.0f);
+		pcp.push_back(p);
+	}
+	*/
+	try
+	{
+		glm::vec4* positionData = new glm::vec4[pcp.size()];
+		glm::vec4* colorData = new glm::vec4[pcp.size()];
+		for(uint i = 0; i < pcp.size(); ++i)
+		{
+			positionData[i] = pcp[i].position;
+			colorData[i] = pcp[i].color;
+		}
+		
+		{
+			CRenderTargetLock lock(target);
+			
+			COGLBindLock lockProgram(m_pPointCloudProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
+			
+			TRANSFORM transform;
+			transform.M = IdentityMatrix();
+			transform.V = camera->GetViewMatrix();
+			transform.itM = IdentityMatrix();
+			transform.MVP = camera->GetProjectionMatrix() * camera->GetViewMatrix();
+			m_pUBTransform->UpdateData(&transform);
+		
+			glDepthMask(GL_FALSE);
+			m_pPointCloud->Draw(positionData, colorData, (int)pcp.size());		
+			glDepthMask(GL_TRUE);
+		}
+		
+		pcp.clear();
+		delete [] positionData;
+		delete [] colorData;
+	}
+	catch(std::bad_alloc)
+	{
+		std::cout << "bad_alloc exception at Renderer::DrawLights()" << std::endl;
+	}
+}
+
 void Renderer::Add(CRenderTarget* target, CRenderTarget* source1, CRenderTarget* source2)
 {
 	CRenderTargetLock lock(target);
@@ -1528,9 +1614,10 @@ void Renderer::DebugRender()
 		int border = 10;
 		int width = (camera->GetWidth() - 4 * border) / 2;
 		int height = (camera->GetHeight() - 4 * border) / 2;
-		m_pTextureViewer->DrawTexture(m_pNormalizeRenderTarget->GetBuffer(0),  border, border, border+width, border+height);
-		m_pTextureViewer->DrawTexture(m_pNormalizeRenderTarget->GetBuffer(1),  3 * border + width, border, 3 * border + 2 * width, border+height);
-		m_pTextureViewer->DrawTexture(m_pNormalizeRenderTarget->GetBuffer(2),  border, 3 * border + height, border+width, 3 * border+ 2 * height);
+		m_pTextureViewer->DrawTexture(m_pNormalizeRenderTarget->GetBuffer(0),  border, border, width, height);
+		m_pTextureViewer->DrawTexture(m_pNormalizeRenderTarget->GetBuffer(1),  3 * border + width, border, width, height);
+		m_pTextureViewer->DrawTexture(m_pNormalizeRenderTarget->GetBuffer(2),  border, 3 * border + height, width, height);
+		m_pTextureViewer->DrawTexture(m_pGBuffer->GetNormalTexture(),  3 * border + width, 3 * border + height, width, height);
 	}
 }
 
@@ -1626,10 +1713,10 @@ void Renderer::Stats()
 void Renderer::ConfigureLighting()
 {
 	CONFIG conf;
-	conf.GeoTermLimit = m_pConfManager->GetConfVars()->GeoTermLimit;
+	conf.GeoTermLimitRadiance = m_pConfManager->GetConfVars()->GeoTermLimitRadiance;
+	conf.GeoTermLimitAntiradiance = m_pConfManager->GetConfVars()->GeoTermLimitAntiradiance;
 	conf.ClampGeoTerm = m_pConfManager->GetConfVars()->ClampGeoTerm;
 	conf.nPaths = m_CurrentPath;	
-	conf.N = m_pConfManager->GetConfVars()->ConeFactor;
 	conf.AntiradFilterK = GetAntiradFilterNormFactor();
 	conf.AntiradFilterMode = m_pConfManager->GetConfVars()->AntiradFilterMode;
 	conf.AntiradFilterGaussFactor = m_pConfManager->GetConfVars()->AntiradFilterGaussFactor;
@@ -1699,9 +1786,14 @@ void Renderer::InitDebugLights()
 	m_pAVPLImportanceSampling->SetNumberOfSceneSamples(m_pConfManager->GetConfVars()->NumSceneSamples);
 	m_pAVPLImportanceSampling->CreateSceneSamples();
 
+	m_pBidirInstantRadiosity->CreateSceneSamples(true);
+
 	m_pCPUTimer->Start();
-	scene->CreatePaths(m_DebugAVPLs, m_CollectedAVPLs, m_CollectedImportanceSampledAVPLs, m_ProfileFrame, m_pConfManager->GetConfVars()->NumPaths, 
-		m_pConfManager->GetConfVars()->ConeFactor, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
+	//scene->CreatePaths(m_DebugAVPLs, m_CollectedAVPLs, m_CollectedImportanceSampledAVPLs, m_ProfileFrame, m_pConfManager->GetConfVars()->NumPaths);
+	int numPaths = 0;
+	m_pBidirInstantRadiosity->CreatePath(m_DebugAVPLs, numPaths);
+	m_CurrentPath += numPaths;
+
 	std::cout << "Number of AVPLs: " << m_DebugAVPLs.size() << std::endl;
 	m_pCPUTimer->Stop("CreatePaths");
 }
@@ -1718,12 +1810,12 @@ void Renderer::UpdateAreaLights()
 
 float Renderer::GetAntiradFilterNormFactor()
 {
-	float N = float(m_pConfManager->GetConfVars()->ConeFactor);
+	float coneFactor = m_pConfManager->GetConfVars()->ConeFactor;
 	float K = 0.f;
-	float a = 1-cos(PI/N);
+	float a = 1-cos(PI/coneFactor);
 	if(m_pConfManager->GetConfVars()->AntiradFilterMode == 1)
 	{		
-		float b = 2*(N/PI*sin(PI/N)-1);
+		float b = 2*(coneFactor/PI*sin(PI/coneFactor)-1);
 		K = - a / b;
 	}
 	else if(m_pConfManager->GetConfVars()->AntiradFilterMode == 2)
@@ -1739,11 +1831,11 @@ float Renderer::GetAntiradFilterNormFactor()
 
 float Renderer::IntegrateGauss()
 {
-	const float N = float(m_pConfManager->GetConfVars()->ConeFactor);
+	const float coneFactor = float(m_pConfManager->GetConfVars()->ConeFactor);
 	const float M = float(m_pConfManager->GetConfVars()->AntiradFilterGaussFactor);
-	const float s = PI / (M*N);
+	const float s = PI / (M*coneFactor);
 	const int numSteps = 1000;
-	const float stepSize = PI / (numSteps * N);
+	const float stepSize = PI / (numSteps * coneFactor);
 	
 	float res = 0.f;
 	for(int i = 0; i < numSteps; ++i)

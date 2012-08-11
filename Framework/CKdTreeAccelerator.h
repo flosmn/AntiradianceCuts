@@ -6,6 +6,7 @@ class CPrimitive;
 #include "BBox.h"
 #include "Ray.h"
 #include "Intersection.h"
+#include "CPrimitive.h"
 
 #include <vector>
 
@@ -24,7 +25,7 @@ public:
 
 	void BuildTree();
 
-	bool Intersect(const Ray& ray, float* t, Intersection* pIntersection, bool back_face_culling) const;
+	bool Intersect(const Ray& ray, float* t, Intersection* pIntersection, CPrimitive::IsectMode isectMode) const;
 
 	void PrintForDebug();
 

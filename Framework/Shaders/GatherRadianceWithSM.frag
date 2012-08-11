@@ -5,18 +5,6 @@ layout(std140) uniform;
 #define ONE_OVER_PI 0.3183
 #define PI 3.14159
 
-uniform config
-{
-	float GeoTermLimit;
-	float AntiradFilterK;
-	float AntiradFilterGaussFactor;
-	float Bias;
-	int ClampGeoTerm;
-	int AntiradFilterMode;	
-	int nPaths;
-	int N;
-} uConfig;
-
 uniform camera
 {
 	vec3 vPositionWS;
@@ -24,17 +12,30 @@ uniform camera
 	int height;
 } uCamera;
 
+uniform config
+{
+	float GeoTermLimitRadiance;
+	float GeoTermLimitAntiradiance;
+	float AntiradFilterK;
+	float AntiradFilterGaussFactor;
+	int ClampGeoTerm;
+	int AntiradFilterMode;	
+	int nPaths;
+	int padd;
+} uConfig;
+
 uniform light
 {
+	mat4 ViewMatrix;
+	mat4 ProjectionMatrix;
 	vec4 I;	//Intensity;
 	vec4 A;	//Antiintensity;
 	vec4 pos;	// Position
 	vec4 norm;	//Orientation;
 	vec3 w_A;	//AntiintensityDirection;
-	int Bounce;
-	vec4 DebugColor;
-	mat4 ViewMatrix;
-	mat4 ProjectionMatrix;
+	float AngleFactor;
+	vec3 DebugColor;
+	float Bounce;
 } uLight;
 
 out vec4 outputColor;
@@ -60,7 +61,7 @@ void main()
 	
 	// calc radiance
 	vec4 I = uLight.I;
-	float G = G_CLAMP(vPositionWS, vNormalWS, uLight.pos.xyz, uLight.norm.xyz);
+	float G = G(vPositionWS, vNormalWS, uLight.pos.xyz, uLight.norm.xyz);
 	vec4 Irradiance = V * I * G;	
 	
 	outputColor = Irradiance;
@@ -70,7 +71,7 @@ void main()
 float G_CLAMP(in vec3 p1, in vec3 n1, in vec3 p2, in vec3 n2)
 {
 	float g = G(p1, n1, p2, n2);
-	return uConfig.ClampGeoTerm == 1 ? clamp(g, 0, uConfig.GeoTermLimit) : g;
+	return uConfig.ClampGeoTerm == 1 ? clamp(g, 0, uConfig.GeoTermLimitRadiance) : g;
 }
 
 float G(in vec3 p1, in vec3 n1, in vec3 p2, in vec3 n2)
@@ -99,7 +100,7 @@ float IsLit(in vec3 position)
 	positionLS = positionLS / positionLS.w;
 	
 	float depthLS = positionLS.z;
-		
+			
 	if(depthLS <= 0)
 	{
 		// paraboloid projection

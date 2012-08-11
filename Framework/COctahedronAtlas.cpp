@@ -415,7 +415,7 @@ glm::vec4 COctahedronAtlas::SampleTexel(uint x, uint y, const int sqrt_num_ss_sa
 			glm::vec2 texCoord = texel_size * glm::vec2(float(x + (i+1) * delta), float(y + (j+1) * delta));
 			glm::vec3 direction = glm::normalize(GetDirForTexCoord(texCoord));
 			
-			A += avpl.GetAntiintensity(direction, N);
+			A += avpl.GetAntiintensity(direction);
 			I += avpl.GetIntensity(direction);
 		}
 	}

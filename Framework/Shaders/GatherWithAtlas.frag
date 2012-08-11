@@ -45,14 +45,14 @@ uniform info_block
 
 uniform config
 {
-	float GeoTermLimit;
+	float GeoTermLimitRadiance;
+	float GeoTermLimitAntiradiance;
 	float AntiradFilterK;
 	float AntiradFilterGaussFactor;
-	float Bias;
 	int ClampGeoTerm;
 	int AntiradFilterMode;	
 	int nPaths;
-	int N;
+	int padd;
 } uConfig;
 
 uniform camera
@@ -81,11 +81,7 @@ void main()
 	vec2 coord = gl_FragCoord.xy;
 	coord.x /= uCamera.width;
 	coord.y /= uCamera.height;
-	
-	const float N = float(uConfig.N);
-	const float PI_OVER_N = PI / N;
-	const float K = (PI * (1 - cos(PI_OVER_N))) / (PI - N * sin(PI_OVER_N));
-	
+		
 	vec3 vPositionWS = texture2D(samplerPositionWS, coord).xyz;
 	vec3 vNormalWS = normalize(texture2D(samplerNormalWS, coord).xyz);
 
@@ -145,17 +141,18 @@ void ProcessLight(in int i, in vec3 vPositionWS, in vec3 vNormalWS, out vec4 rad
 	const float dist = length(vPositionWS - p);
 	const float cos_theta = clamp(dot(vNormalWS, -direction), 0, 1);
 	
-	float G = cos_theta / (dist * dist);
-	G = uConfig.ClampGeoTerm == 1 ? clamp(G, 0, uConfig.GeoTermLimit) : G;
+	const float G = cos_theta / (dist * dist);
+	const float G_rad = uConfig.ClampGeoTerm == 1 ? clamp(G, 0, uConfig.GeoTermLimitRadiance) : G;
+	const float G_antirad = uConfig.ClampGeoTerm == 1 ? clamp(G, 0, uConfig.GeoTermLimitAntiradiance) : G;
 	
-	antiradiance = G * antirad;
-	radiance = G * rad;
+	antiradiance = G_antirad * antirad;
+	radiance = G_rad * rad;
 }
 
 float G_CLAMP(in vec3 p1, in vec3 n1, in vec3 p2, in vec3 n2)
 {
 	float g = G(p1, n1, p2, n2);
-	return uConfig.ClampGeoTerm == 1 ? clamp(g, 0, uConfig.GeoTermLimit) : g;
+	return uConfig.ClampGeoTerm == 1 ? clamp(g, 0, uConfig.GeoTermLimitRadiance) : g;
 }
 
 float G(in vec3 p1, in vec3 n1, in vec3 p2, in vec3 n2)

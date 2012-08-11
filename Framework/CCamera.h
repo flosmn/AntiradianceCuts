@@ -25,7 +25,8 @@ public:
 	glm::mat4 GetViewMatrix() const;
 	glm::vec3 GetPosition() const;
 
-	void Init(glm::vec3 position, glm::vec3 center, float speed);
+	void Init(int config, glm::vec3 position, glm::vec3 center, glm::vec3 up, float speed);
+	void UseCameraConfig(int config) { m_UseConfig = config; UpdateData(); PrintConfig(); }
 
 	void RotLeft(float t);
 	void RotRight(float t);
@@ -46,27 +47,31 @@ public:
 	void SetHeight(uint height) { m_Height = height; }
 	void SetWidth(uint width) { m_Width = width; }
 
-	Ray GetEyeRay(uint p_x, uint p_y);
+	Ray GetEyeRay(float p_x, float p_y);
 	void GetEyeRays(std::vector<Ray>& rays, std::vector<glm::vec2>& samples, uint numRays);
-	
+	float GetEyeRayPdf();
+
 	void UpdateData();
 
 	void PrintConfig();
 
 private:
 	uint m_Width, m_Height;
-	SphereCoord m_SphericalCoord;
 	float m_Speed;
 
 	float m_FOV;
-	glm::vec3 m_U, m_V, m_W, m_Up;
+	float m_Aspect;
+	glm::vec3 m_U[5], m_V[5], m_W[5], m_Up[5];
 	float m_Scale;
-	glm::vec3 m_IO;
+	glm::vec3 m_IO[5];
 
-	glm::vec3 m_Center;
-	glm::vec3 m_Position;
+	glm::vec3 m_Center[5];
+	glm::vec3 m_Position[5];
+	SphereCoord m_SphericalCoord[5];
+	glm::mat4 m_ViewMatrix[5];
 	glm::mat4 m_ProjectionMatrix;
-	glm::mat4 m_ViewMatrix;
+
+	int m_UseConfig;
 };
 
 #endif // _C_CAMERA_H_

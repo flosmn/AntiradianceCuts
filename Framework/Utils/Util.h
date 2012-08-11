@@ -18,9 +18,10 @@ glm::mat4 IdentityMatrix();
 
 float map(float x, float x0, float x1, float y0, float y1);
 
-float Rad2Deg (float Angle);
+float Rad2Deg (float AngleFactor);
 
 glm::vec2 GetUniformRandomSample2D(glm::vec2 range_u, glm::vec2 range_v);
+void GetRandomSampleDirectionProbability(glm::vec3 orientation, glm::vec3 direction, float& pdf, uint order);
 glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, float&pdf, uint order);
 glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, const float u1, const float u2, float&pdf, uint order);
 glm::vec3 SampleConeDirection(const glm::vec3& axis, const float& theta, const float& u1, const float& u2, float* pdf);

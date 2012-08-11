@@ -18,9 +18,9 @@ glm::mat4 IdentityMatrix()
 		0.0f, 0.0f, 0.0f, 1.0f );
 }
 
-float Rad2Deg (float Angle) {
+float Rad2Deg (float AngleFactor) {
 	static float ratio = 180.0f / PI;
-	return Angle * ratio;
+	return AngleFactor * ratio;
 }
 
 glm::vec3 GetArbitraryUpVector(glm::vec3 v)
@@ -93,6 +93,20 @@ glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, const float u1,
 	glm::vec3 direction = glm::normalize(glm::vec3(directionTemp));
 
 	return direction;
+}
+
+void GetRandomSampleDirectionProbability(glm::vec3 orientation, glm::vec3 direction, float& pdf, uint order)
+{
+	glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+	if(glm::abs(glm::dot(up, orientation)) > 0.009) up = glm::vec3(0.0f, 0.0f, 1.0f); 
+	
+	glm::mat4 transformDir = glm::lookAt(glm::vec3(0.f), orientation, up);
+	
+	glm::vec3 orientationLS = glm::vec3(transformDir * glm::vec4(orientation, 0.f));
+	glm::vec3 directionLS = glm::vec3(transformDir * glm::vec4(direction, 0.f));
+	
+	const float cos_theta = glm::dot(directionLS, glm::vec3(0.f, 0.f, -1.f));
+	pdf = ((float)order + 1) / (2 * PI) * std::powf(cos_theta, (float)order);
 }
 
 glm::vec2 ConcentricSampleDisk(float u1, float u2) {

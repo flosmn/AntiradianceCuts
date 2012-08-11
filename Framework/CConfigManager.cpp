@@ -24,9 +24,12 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->FilterAvplAtlasLinear = m_pConfVarsGUI->FilterAvplAtlasLinear = 0;
 	m_pConfVars->FillAvplAltasOnGPU = m_pConfVarsGUI->FillAvplAltasOnGPU = 1;
 	m_pConfVars->UseLightTree = m_pConfVarsGUI->UseLightTree = 0;
+	m_pConfVars->LimitBounces = m_pConfVarsGUI->LimitBounces = -1;
 	
-	m_pConfVars->GeoTermLimit = m_pConfVarsGUI->GeoTermLimit = 0.001f;
+	m_pConfVars->GeoTermLimitRadiance = m_pConfVarsGUI->GeoTermLimitRadiance = 1.0f;
+	m_pConfVars->GeoTermLimitAntiradiance = m_pConfVarsGUI->GeoTermLimitAntiradiance = 1.0f;
 	m_pConfVars->ClampGeoTerm = m_pConfVarsGUI->ClampGeoTerm = 1;
+	m_pConfVars->ClampCone = m_pConfVarsGUI->ClampCone = 1;
 	m_pConfVars->Gamma = m_pConfVarsGUI->Gamma = 2.2f;
 	m_pConfVars->Exposure = m_pConfVarsGUI->Exposure = 1.f;
 	m_pConfVars->Intersection_BFC = m_pConfVarsGUI->Intersection_BFC = 1;
@@ -37,7 +40,7 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->NumPaths = m_pConfVarsGUI->NumPaths = 1000;
 	m_pConfVars->NumPathsPerFrame = m_pConfVarsGUI->NumPathsPerFrame = 100;
 	m_pConfVars->NumAdditionalAVPLs = m_pConfVarsGUI->NumAdditionalAVPLs = 0;
-	m_pConfVars->ConeFactor = m_pConfVarsGUI->ConeFactor = 30;
+	m_pConfVars->ConeFactor = m_pConfVarsGUI->ConeFactor = 30.f;
 	m_pConfVars->AntiradFilterMode = m_pConfVarsGUI->AntiradFilterMode = 0;
 	m_pConfVars->AntiradFilterGaussFactor = m_pConfVarsGUI->AntiradFilterGaussFactor = 2.5f;
 	m_pConfVars->RenderBounce = m_pConfVarsGUI->RenderBounce = -1;
@@ -45,7 +48,7 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->NumSqrtAtlasSamples = m_pConfVarsGUI->NumSqrtAtlasSamples = 4;
 	m_pConfVars->TexelOffsetX = m_pConfVarsGUI->TexelOffsetX = 0.f;
 	m_pConfVars->TexelOffsetY = m_pConfVarsGUI->TexelOffsetY = 0.f;
-	m_pConfVars->DisplacePCP = m_pConfVarsGUI->DisplacePCP = 0.f;
+	m_pConfVars->DisplacePCP = m_pConfVarsGUI->DisplacePCP = 1.f;
 
 	m_pConfVars->LightTreeCutDepth = m_pConfVarsGUI->LightTreeCutDepth = -1;
 	m_pConfVars->ClusterDepth = m_pConfVarsGUI->ClusterDepth = 0;
@@ -65,6 +68,8 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->AreaLightPosY = m_pConfVarsGUI->AreaLightPosY = 0.f;
 	m_pConfVars->AreaLightPosZ = m_pConfVarsGUI->AreaLightPosZ = 0.f;
 
+	m_pConfVars->AreaLightRadianceScale = m_pConfVarsGUI->AreaLightRadianceScale = 1.f;
+
 	m_pConfVars->UseAVPLImportanceSampling = m_pConfVarsGUI->UseAVPLImportanceSampling = 1;
 	m_pConfVars->ISMode = m_pConfVarsGUI->ISMode = 0;
 	m_pConfVars->ConeFactorIS = m_pConfVarsGUI->ConeFactorIS = 4;
@@ -76,6 +81,11 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->CollectISAVPLs = m_pConfVarsGUI->CollectISAVPLs = 0;
 	m_pConfVars->IrradAntiirradWeight = m_pConfVarsGUI->IrradAntiirradWeight = 0.5f;
 	m_pConfVars->AcceptProbabEpsilon = m_pConfVarsGUI->AcceptProbabEpsilon = 0.05f;
+
+	m_pConfVars->UseBIDIR = m_pConfVarsGUI->UseBIDIR = 0;
+	m_pConfVars->DrawBIDIRSceneSamples = m_pConfVarsGUI->DrawBIDIRSceneSamples = 0;
+	m_pConfVars->NumEyeRays = m_pConfVarsGUI->NumEyeRays = 100;
+	m_pConfVars->NumSamplesForPE = m_pConfVarsGUI->NumSamplesForPE = 64;
 }
 
 CConfigManager::~CConfigManager()
@@ -91,9 +101,17 @@ void CConfigManager::Update()
 	bool clearAccumBuffer = false;
 	bool updateAreaLight = false;
 
-	if(m_pConfVarsGUI->GeoTermLimit != m_pConfVars->GeoTermLimit)
+	if(m_pConfVarsGUI->GeoTermLimitRadiance != m_pConfVars->GeoTermLimitRadiance)
 	{
-		m_pConfVars->GeoTermLimit = m_pConfVarsGUI->GeoTermLimit;
+		m_pConfVars->GeoTermLimitRadiance = m_pConfVarsGUI->GeoTermLimitRadiance;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->GeoTermLimitAntiradiance != m_pConfVars->GeoTermLimitAntiradiance)
+	{
+		m_pConfVars->GeoTermLimitAntiradiance = m_pConfVarsGUI->GeoTermLimitAntiradiance;
 		configureLighting = true;
 		clearAccumBuffer = true;
 		clearLighting = true;
@@ -102,6 +120,14 @@ void CConfigManager::Update()
 	if(m_pConfVarsGUI->ClampGeoTerm != m_pConfVars->ClampGeoTerm)
 	{
 		m_pConfVars->ClampGeoTerm = m_pConfVarsGUI->ClampGeoTerm;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->ClampCone != m_pConfVars->ClampCone)
+	{
+		m_pConfVars->ClampCone = m_pConfVarsGUI->ClampCone;
 		configureLighting = true;
 		clearAccumBuffer = true;
 		clearLighting = true;
@@ -144,6 +170,12 @@ void CConfigManager::Update()
 	if(m_pConfVarsGUI->UseLightTree != m_pConfVars->UseLightTree)
 	{
 		m_pConfVars->UseLightTree = m_pConfVarsGUI->UseLightTree;
+		clearAccumBuffer = true;
+	}
+
+	if(m_pConfVarsGUI->LimitBounces != m_pConfVars->LimitBounces)
+	{
+		m_pConfVars->LimitBounces = m_pConfVarsGUI->LimitBounces;
 		clearAccumBuffer = true;
 	}
 
@@ -409,6 +441,15 @@ void CConfigManager::Update()
 		updateAreaLight = true;
 	}
 
+	if(m_pConfVarsGUI->AreaLightRadianceScale != m_pConfVars->AreaLightRadianceScale)
+	{
+		m_pConfVars->AreaLightRadianceScale = m_pConfVarsGUI->AreaLightRadianceScale;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+		updateAreaLight = true;
+	}
+
 	if(m_pConfVarsGUI->Intersection_BFC != m_pConfVars->Intersection_BFC)
 	{
 		m_pConfVars->Intersection_BFC = m_pConfVarsGUI->Intersection_BFC;
@@ -488,6 +529,35 @@ void CConfigManager::Update()
 		configureLighting = true;
 		clearAccumBuffer = true;
 		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->UseBIDIR != m_pConfVars->UseBIDIR)
+	{
+		m_pConfVars->UseBIDIR = m_pConfVarsGUI->UseBIDIR;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->NumEyeRays != m_pConfVars->NumEyeRays)
+	{
+		m_pConfVars->NumEyeRays = m_pConfVarsGUI->NumEyeRays;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->NumSamplesForPE != m_pConfVars->NumSamplesForPE)
+	{
+		m_pConfVars->NumSamplesForPE = m_pConfVarsGUI->NumSamplesForPE;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->DrawBIDIRSceneSamples != m_pConfVars->DrawBIDIRSceneSamples)
+	{
+		m_pConfVars->DrawBIDIRSceneSamples = m_pConfVarsGUI->DrawBIDIRSceneSamples;
 	}
 		
 	if(updateAreaLight) m_pRenderer->UpdateAreaLights();

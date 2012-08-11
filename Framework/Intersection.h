@@ -6,6 +6,7 @@
 #include "CTriangle.h"
 
 class CModel;
+class CPrimitive;
 
 class Intersection
 {
@@ -16,8 +17,9 @@ public:
 
 	CPrimitive* GetPrimitive() const { return m_pPrimitive; }
 	glm::vec3 GetPosition() const { return m_Position; }
-	glm::vec3 GetNormal() const { return m_pPrimitive->GetNormal(); }
-	MATERIAL GetMaterial() const { return m_pPrimitive->GetMaterial(); }
+	
+	glm::vec3 Intersection::GetNormal() const;
+	MATERIAL GetMaterial() const;
 
 	void SetPrimitive(CPrimitive* pPrimitive) { m_pPrimitive = pPrimitive; }
 	void SetPosition(const glm::vec3& position) { m_Position = position; }
@@ -25,6 +27,19 @@ public:
 private:
 	CPrimitive* m_pPrimitive;
 	glm::vec3 m_Position;
+};
+
+struct SceneSample
+{
+	SceneSample() {}
+	SceneSample(const Intersection& i)
+		: position(i.GetPosition()), normal(i.GetNormal()), material(i.GetMaterial())
+	{}
+
+	glm::vec3 position;
+	glm::vec3 normal;
+	MATERIAL material;
+	float pdf;
 };
 
 #endif

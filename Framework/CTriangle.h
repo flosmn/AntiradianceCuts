@@ -5,10 +5,9 @@
 
 #include "CPrimitive.h"
 
+#include "Intersection.h"
 #include "BBox.h"
 #include "Ray.h"
-
-class Intersection;
 
 class CTriangle : public CPrimitive
 {
@@ -19,8 +18,7 @@ public:
 	~CTriangle();
 
 	virtual bool IntersectBBox(const Ray& ray);
-	virtual bool Intersect(const Ray& ray, float *t, Intersection* pIntersection, bool back_face_culling);
-	bool IntersectBackFace(const Ray& ray, float *t, Intersection* pIntersection);
+	virtual bool Intersect(const Ray& ray, float *t, Intersection* pIntersection, IsectMode isectMode);
 	virtual BBox GetBBox();
 	virtual void Transform(CPrimitive* pPrimitive, const glm::mat4& transform) const;
 		

@@ -7,6 +7,7 @@ typedef unsigned int uint;
 
 #include "Ray.h"
 #include "Intersection.h"
+#include "CPrimitive.h"
 
 #include "Utils\mtrand.h"
 
@@ -49,8 +50,8 @@ public:
 	void LoadSimpleScene();
 	void LoadCornellBoxDragon();
 		
-	bool IntersectRayScene(const Ray& ray, float* t, Intersection *pIntersection);
-	bool IntersectRaySceneSimple(const Ray& ray, float* t, Intersection *pIntersection);
+	bool IntersectRayScene(const Ray& ray, float* t, Intersection *pIntersection, CPrimitive::IsectMode isectMode);
+	bool IntersectRaySceneSimple(const Ray& ray, float* t, Intersection *pIntersection, CPrimitive::IsectMode isectMode);
 
 	CCamera* GetCamera() { return m_Camera; }
 
@@ -59,9 +60,10 @@ public:
 
 	int GetNumberOfLightPaths() { return m_NumLightPaths; }
 				
-	void CreatePaths(std::vector<AVPL>& avpls, std::vector<AVPL>& allAVPLs, std::vector<AVPL>& isAVPLs, bool profile, uint numPaths, int N, int nAdditionalAVPLs);
-	void CreatePath(std::vector<AVPL>& avpls, int N, int nAdditionalAVPLs);
+	void CreatePaths(std::vector<AVPL>& avpls, std::vector<AVPL>& allAVPLs, std::vector<AVPL>& isAVPLs, bool profile, uint numPaths);
+	void CreatePath(std::vector<AVPL>& avpls);
 	void CreatePrimaryVpls(std::vector<AVPL>& avpls, int numVpls);
+	bool CreateAVPL(AVPL* pred, AVPL* newAVPL);
 
 	uint GetNumCreatedAVPLs() { return m_NumCreatedAVPLs; }
 	uint GetNumAVPLsAfterIS() { return m_NumAVPLsAfterIS; }
@@ -74,9 +76,9 @@ private:
 	void InitKdTree();
 	void ReleaseKdTree();
 
-	bool CreateAVPL(AVPL* pred, AVPL* newAVPL, int N, int nAdditionalAVPLs);
-	bool ContinueAVPLPath(AVPL* pred, AVPL* newAVPL, glm::vec3 direction, float pdf, int N, int nAdditionalAVPLs);
-	void CreateAVPLs(AVPL* pred, std::vector<AVPL>& path, int N, int nAVPLs);
+	
+	bool ContinueAVPLPath(AVPL* pred, AVPL* newAVPL, glm::vec3 direction, float pdf);
+	void CreateAVPLs(AVPL* pred, std::vector<AVPL>& path, int nAVPLs);
 	
 	std::vector<CModel*> m_Models;
 		

@@ -178,6 +178,8 @@
     </ClCompile>
     <ClCompile Include="CCamera.cpp" />
     <ClCompile Include="CAVPLImportanceSampling.cpp" />
+    <ClCompile Include="CBidirInstantRadiosity.cpp" />
+    <ClCompile Include="Intersection.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Render.h" />
@@ -363,6 +365,7 @@
     </ClInclude>
     <ClInclude Include="CCamera.h" />
     <ClInclude Include="CAVPLImportanceSampling.h" />
+    <ClInclude Include="CBidirInstantRadiosity.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">

@@ -52,18 +52,18 @@ void CTestFramework::TriangleIntersectionTest()
 
 	Intersection intersection;
 	assert(triangle.IntersectBBox(ray0) == true);
-	assert(triangle.Intersect(ray0, &t, &intersection, true) == false);
+	assert(triangle.Intersect(ray0, &t, &intersection, CPrimitive::FRONT_FACE) == false);
 
 	assert(triangle.IntersectBBox(ray1) == true);
-	assert(triangle.Intersect(ray1, &t, &intersection, true) == true);
+	assert(triangle.Intersect(ray1, &t, &intersection, CPrimitive::FRONT_FACE) == true);
 	assert(t == 1.f);
 
 	assert(triangle.IntersectBBox(ray2) == true);
-	assert(triangle.Intersect(ray2, &t, &intersection, true) == true);
+	assert(triangle.Intersect(ray2, &t, &intersection, CPrimitive::FRONT_FACE) == true);
 	assert(t == 1.25f);
 
 	assert(triangle.IntersectBBox(ray3) == false);
-	assert(triangle.Intersect(ray3, &t, &intersection, true) == false);
+	assert(triangle.Intersect(ray3, &t, &intersection, CPrimitive::FRONT_FACE) == false);
 }
 
 void CTestFramework::KdTreeBuildTest()
@@ -129,19 +129,19 @@ void CTestFramework::KdTreeBuildTest()
 	float t = 1000000.f;
 
 	Intersection intersection;
-	assert(kdTree.Intersect(ray0, &t, &intersection, true) == true);
+	assert(kdTree.Intersect(ray0, &t, &intersection, CPrimitive::FRONT_FACE) == true);
 	assert(intersection.GetPosition() == glm::vec3(0.25f, 0.75f, 0.5f));
 	assert(t = 0.5f);
 
-	assert(kdTree.Intersect(ray1, &t, &intersection, true) == true);
+	assert(kdTree.Intersect(ray1, &t, &intersection, CPrimitive::FRONT_FACE) == true);
 	assert(t = 0.75f);
 
-	assert(kdTree.Intersect(ray2, &t, &intersection, true) == true);
+	assert(kdTree.Intersect(ray2, &t, &intersection, CPrimitive::FRONT_FACE) == true);
 	assert(t = 1.f);
 
-	assert(kdTree.Intersect(ray3, &t, &intersection, true) == true);
+	assert(kdTree.Intersect(ray3, &t, &intersection, CPrimitive::FRONT_FACE) == true);
 	assert(t = 1.f);
 
-	assert(kdTree.Intersect(ray4, &t, &intersection, true) == false);
-	assert(kdTree.Intersect(ray5, &t, &intersection, true) == false);
+	assert(kdTree.Intersect(ray4, &t, &intersection, CPrimitive::FRONT_FACE) == false);
+	assert(kdTree.Intersect(ray5, &t, &intersection, CPrimitive::FRONT_FACE) == false);
 }

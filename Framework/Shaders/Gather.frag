@@ -20,14 +20,14 @@ uniform info_block
 
 uniform config
 {
-	float GeoTermLimit;
+	float GeoTermLimitRadiance;
+	float GeoTermLimitAntiradiance;
 	float AntiradFilterK;
 	float AntiradFilterGaussFactor;
-	float Bias;
 	int ClampGeoTerm;
 	int AntiradFilterMode;	
 	int nPaths;
-	int N;
+	int padd;
 } uConfig;
 
 uniform camera
@@ -53,12 +53,7 @@ void main()
 	vec2 coord = gl_FragCoord.xy;
 	coord.x /= uCamera.width;
 	coord.y /= uCamera.height;
-	
-	const float N = float(uConfig.N);
-	const float PI_OVER_N = PI / N;
-	const float N_OVER_PI = N / PI;
-	//const float K = (PI * (1 - cos(PI_OVER_N))) / (PI - N * sin(PI_OVER_N));
-	
+		
 	vec3 vPositionWS = texture2D(samplerPositionWS, coord).xyz;
 	vec3 vNormalWS = normalize(texture2D(samplerNormalWS, coord).xyz);
 
@@ -77,8 +72,11 @@ void main()
 		vec4 A = texelFetch(samplerLightBuffer, i * size + 1);
 		const vec3 p = vec3(texelFetch(samplerLightBuffer, i * size + 2));
 		const vec3 n = vec3(texelFetch(samplerLightBuffer, i * size + 3));
-		const vec3 w_A = vec3(texelFetch(samplerLightBuffer, i * size + 4));
 		
+		const vec4 temp = texelFetch(samplerLightBuffer, i * size + 4);
+		const vec3 w_A = temp.xyz;		
+		const float coneFactor = temp.w;
+				
 		// calc radiance
 		if(length(I) > 0.f)
 		{
@@ -94,26 +92,26 @@ void main()
 			const float d_xz = length(vLightToPos);
 			vec3 w = normalize(vLightToPos);
 									
-			if(dot(w, w_A) > 0.01f && dot(vNormalWS, w_A) < 0.0f)
+			if(dot(w, w_A) > 0.f && dot(vNormalWS, -w) > 0.f)
 			{				
 				const float theta = acos(clamp(dot(w, w_A), 0, 1));
-				if(theta < PI_OVER_N)
+				if(theta < PI / coneFactor)
 				{
 					const float cos_theta_xz = clamp(dot(vNormalWS, -w), 0, 1);
 					
 					if(uConfig.AntiradFilterMode == 1)
 					{
-						A = - 2 * A * uConfig.AntiradFilterK * (N_OVER_PI * theta - 1);
+						A = - 2 * A * uConfig.AntiradFilterK * (coneFactor / PI * theta - 1);
 					}
 					if(uConfig.AntiradFilterMode == 2)
 					{
 						const float M = uConfig.AntiradFilterGaussFactor;
-						const float s = PI / (M*N);
+						const float s = PI / (M*coneFactor);
 						A = uConfig.AntiradFilterK * ( exp(-(theta*theta)/(s*s)) - exp(-(M*M)) ) * A;
 					}
 
 					float G = cos_theta_xz / (d_xz * d_xz);
-					G = uConfig.ClampGeoTerm == 1 ? clamp(G, 0, uConfig.GeoTermLimit) : G;
+					G = uConfig.ClampGeoTerm == 1 ? clamp(G, 0, uConfig.GeoTermLimitAntiradiance) : G;
 					vec4 A_in = G * A;
 										
 					antiradiance = A_in;
@@ -121,7 +119,7 @@ void main()
 			}
 		}
 		
-		diff = (radiance - antiradiance);
+		diff = radiance - antiradiance;
 
 		outputDiff += diff;
 		outputRadiance += radiance;
@@ -136,7 +134,7 @@ void main()
 float G_CLAMP(in vec3 p1, in vec3 n1, in vec3 p2, in vec3 n2)
 {
 	float g = G(p1, n1, p2, n2);
-	return uConfig.ClampGeoTerm == 1 ? clamp(g, 0, uConfig.GeoTermLimit) : g;
+	return uConfig.ClampGeoTerm == 1 ? clamp(g, 0, uConfig.GeoTermLimitRadiance) : g;
 }
 
 float G(in vec3 p1, in vec3 n1, in vec3 p2, in vec3 n2)

@@ -27,15 +27,16 @@ struct MODEL
 
 struct AVPL_STRUCT
 {
+	glm::mat4 ViewMatrix;
+	glm::mat4 ProjectionMatrix;
 	glm::vec4 I;	//Intensity;
 	glm::vec4 A;	//Antiintensity;
 	glm::vec4 pos;	// Position
 	glm::vec4 norm;	//Orientation;
 	glm::vec3 w_A;	//AntiintensityDirection;
-	int Bounce;
-	glm::vec4 DebugColor;
-	glm::mat4 ViewMatrix;
-	glm::mat4 ProjectionMatrix;
+	float AngleFactor;
+	glm::vec3 DebugColor;
+	float Bounce;
 };
 
 struct AVPL_BUFFER
@@ -44,7 +45,8 @@ struct AVPL_BUFFER
 	glm::vec4 A;	// Antiintensity;
 	glm::vec4 pos;	// Position
 	glm::vec4 norm;	// Orientation;
-	glm::vec4 w_A;	// AntiintensityDirection;	
+	glm::vec3 w_A;	// AntiintensityDirection;	
+	float AngleFactor;	// PI/AngleFactor = Half opening angleFactor of AR cone
 };
 
 struct CLUSTER_BUFFER
@@ -72,14 +74,14 @@ struct CLUSTER_BUFFER
 
 struct CONFIG
 {
-	float GeoTermLimit;
+	float GeoTermLimitRadiance;
+	float GeoTermLimitAntiradiance;
 	float AntiradFilterK;
 	float AntiradFilterGaussFactor;
-	float Bias;
 	int ClampGeoTerm;
 	int AntiradFilterMode;	
 	int nPaths;
-	int N;
+	int padd;
 };
 
 struct CAMERA
@@ -136,13 +138,6 @@ struct CLUSTERING
 	int rightChildId;
 	int isLeaf;
 	int isAlreadyCalculated;
-};
-
-struct SceneSample
-{
-	glm::vec3 position;
-	glm::vec3 normal;
-	MATERIAL material;
 };
 
 #endif // _STRUCTS_H_

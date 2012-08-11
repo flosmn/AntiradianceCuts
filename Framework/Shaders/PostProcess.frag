@@ -22,5 +22,5 @@ void main()
 	color.g = pow(color.g, uPostProcess.one_over_gamma);
 	color.b = pow(color.b, uPostProcess.one_over_gamma);
 	
-	outputColor = color;
+	outputColor = vec4(1.f, 0.f, 0.f, 1.f); //color;
 }

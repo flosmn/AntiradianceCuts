@@ -26,20 +26,23 @@ struct CONF_VARS
 	int AntiradFilterMode;
 	float AntiradFilterGaussFactor;
 	float AntiradFilterK;
+	int LimitBounces;
 
-	float GeoTermLimit;
+	float GeoTermLimitRadiance;
+	float GeoTermLimitAntiradiance;
 	int ClampGeoTerm;
+	int ClampCone;
 	float Gamma;
 	float Exposure;
 	int Intersection_BFC;
 	
-	int ConeFactor;
 	int NumPaths;
 	int NumPathsPerFrame;
 	int NumAdditionalAVPLs;
 	int RenderBounce;
 	int DrawLightingOfLight;
 	int NumSqrtAtlasSamples;
+	float ConeFactor;
 	float TexelOffsetX;
 	float TexelOffsetY;
 	float DisplacePCP;
@@ -54,6 +57,7 @@ struct CONF_VARS
 	float AreaLightPosX;
 	float AreaLightPosY;
 	float AreaLightPosZ;
+	float AreaLightRadianceScale;
 
 	int UseAVPLImportanceSampling;
 	int ISMode;
@@ -66,6 +70,11 @@ struct CONF_VARS
 	int CollectISAVPLs;
 	float IrradAntiirradWeight;
 	float AcceptProbabEpsilon;
+
+	int UseBIDIR;
+	int DrawBIDIRSceneSamples;
+	int NumEyeRays;	
+	int NumSamplesForPE;	
 };
 
 class CConfigManager

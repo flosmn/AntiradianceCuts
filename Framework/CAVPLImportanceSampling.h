@@ -8,7 +8,7 @@ class COGLTexture2D;
 class CConfigManager;
 class AVPL;
 
-#include "Structs.h"
+#include "Intersection.h"
 
 #include <vector>
 
@@ -26,9 +26,9 @@ public:
 	void UpdateCurrentAntiirradiance(COGLTexture2D* pTexture);
 	void CreateSceneSamples();
 
-	bool EvaluateAVPLImportance(AVPL& avpl, float* scale);
-	bool EvaluateAVPLImportanceAlpha(AVPL& avpl, float* scale);
-	bool EvaluateAVPLAntiintensityImportance(AVPL& avpl, float* scale);
+	bool EvaluateAVPLImportance0(AVPL& avpl, float* scale);
+	bool EvaluateAVPLImportance1(AVPL& avpl, float* scale);	
+	bool EvaluateAVPLImportance2(AVPL& avpl, float* scale);
 
 	const std::vector<SceneSample>& GetSceneSamples() const { return m_SceneSamples; }
 

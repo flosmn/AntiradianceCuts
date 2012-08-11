@@ -139,6 +139,7 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
     <ClCompile Include="AreaLight.cpp" />
     <ClCompile Include="CAccumulationBuffer.cpp" />
     <ClCompile Include="CAVPLImportanceSampling.cpp" />
+    <ClCompile Include="CBidirInstantRadiosity.cpp" />
     <ClCompile Include="CCamera.cpp" />
     <ClCompile Include="CClusterTree.cpp" />
     <ClCompile Include="CConfigManager.cpp" />
@@ -160,6 +161,7 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
     <ClCompile Include="AVPL.cpp" />
     <ClCompile Include="CTriangle.cpp" />
     <ClCompile Include="guicon.cpp" />
+    <ClCompile Include="Intersection.cpp" />
     <ClCompile Include="LightTreeTypes.cpp" />
     <ClCompile Include="OCLResources\COCLTexture2D.cpp" />
     <ClCompile Include="CPostprocess.cpp" />
@@ -202,6 +204,7 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
     <ClInclude Include="CAVPLImportanceSampling.h" />
     <ClInclude Include="BBox.h" />
     <ClInclude Include="CAccumulationBuffer.h" />
+    <ClInclude Include="CBidirInstantRadiosity.h" />
     <ClInclude Include="CCamera.h" />
     <ClInclude Include="CClusterTree.h" />
     <ClInclude Include="CConfigManager.h" />

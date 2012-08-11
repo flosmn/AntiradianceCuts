@@ -17,6 +17,6 @@ layout(location = 2) out vec4 outputMaterial;
 void main()
 {
 	outputPositionWS = positionWS;
-	outputNormalWS = normalize(normalWS);
+	outputNormalWS = vec4(normalize(normalWS.xyz), 1.f);
 	outputMaterial = uMaterial.diffuseMaterial;
 }

@@ -34,6 +34,7 @@ class CLightTree;
 class CClusterTree;
 class CTimer;
 class CAVPLImportanceSampling;
+class CBidirInstantRadiosity;
 class CRenderTarget;
 
 class COGLUniformBuffer;
@@ -104,7 +105,6 @@ private:
 
 	void InitDebugLights();
 	
-
 	void DetermineUsedAvpls(const std::vector<AVPL>& avpls, std::vector<AVPL>& used);
 	
 	void GatherRadianceWithShadowMap(const std::vector<AVPL>& path, CRenderTarget* pRenderTarget);	
@@ -117,6 +117,7 @@ private:
 	void FillShadowMap(const AVPL& avpl);
 	void DrawLights(const std::vector<AVPL>& avpls, CRenderTarget* target);
 	void DrawSceneSamples(CRenderTarget* target);
+	void DrawBidirSceneSamples(CRenderTarget* target);
 		
 	glm::vec4 ColorForLight(const AVPL& light);
 	
@@ -194,6 +195,7 @@ private:
 	COGLSampler* m_pGLShadowMapSampler;
 
 	CAVPLImportanceSampling* m_pAVPLImportanceSampling;
+	CBidirInstantRadiosity* m_pBidirInstantRadiosity;
 
 	CFullScreenQuad* m_pFullScreenQuad;
 
@@ -213,7 +215,7 @@ private:
 	time_t m_StartTime;
 
 	int m_MaxNumAVPLs;
-
+		
 	std::vector<AVPL> m_DebugAVPLs;
 	std::vector<AVPL> m_ClusterTestAVPLs;
 

@@ -262,7 +262,7 @@ void CPbrtKdTreeAccel::buildTree(int nodeNum, const BBox &nodeBounds,
 
 
 bool CPbrtKdTreeAccel::Intersect(const Ray &ray,
-                            Intersection *isect, bool back_face_culling) const {
+	Intersection *isect, CPrimitive::IsectMode isectMode) const {
     // Compute initial parametric range of ray inside kd-tree extent
 	float t_best = std::numeric_limits<float>::max();
 	Intersection isect_best;
@@ -327,7 +327,7 @@ bool CPbrtKdTreeAccel::Intersect(const Ray &ray,
                 CPrimitive* prim = primitives[node->onePrimitive];
                 // Check one primitive inside leaf node
 				float t = 0.f;
-                if (prim->Intersect(ray, &t, isect, back_face_culling))
+                if (prim->Intersect(ray, &t, isect, isectMode))
                 {
                     if (t < t_best && t > 0.f)
 					{
@@ -343,7 +343,7 @@ bool CPbrtKdTreeAccel::Intersect(const Ray &ray,
                     CPrimitive* prim = primitives[prims[i]];
                     // Check one primitive inside leaf node
                     float t = 0.f;
-					if (prim->Intersect(ray, &t, isect, back_face_culling))
+					if (prim->Intersect(ray, &t, isect, isectMode))
                     {
 						if(t < t_best && t > 0.f)
 						{

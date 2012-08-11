@@ -31,8 +31,8 @@
 typedef unsigned int uint;
 
 HDC g_HDC;
-int window_width = 640;
-int window_height = 480;
+int window_width = 512;
+int window_height = 512;
 bool fullScreen = false;
 
 CCamera* g_pCamera;
@@ -527,6 +527,27 @@ bool HandleKeyEvent(WPARAM wParam)
 
 			std::cout << "clear collected avpls" << std::endl;
 			g_pRenderer->ClearCollectedAVPLs();
+			return true; break;
+
+		case '1':
+
+			std::cout << "Use Camera Config 0" << std::endl;
+			g_pCamera->UseCameraConfig(0);
+			g_pRenderer->ClearLighting();
+			return true; break;
+
+		case '2':
+
+			std::cout << "Use Camera Config 1" << std::endl;
+			g_pCamera->UseCameraConfig(1);
+			g_pRenderer->ClearLighting();
+			return true; break;
+
+		case '3':
+
+			std::cout << "Use Camera Config 2" << std::endl;
+			g_pCamera->UseCameraConfig(2);
+			g_pRenderer->ClearLighting();
 			return true; break;
 
 		default: break;
