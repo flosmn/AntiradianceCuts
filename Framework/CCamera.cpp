@@ -145,6 +145,13 @@ void CCamera::PrintConfig()
 	std::cout << "Center: (" << m_Center[m_UseConfig].x << ", " << m_Center[m_UseConfig].y << ", " << m_Center[m_UseConfig].z << ")" << std::endl;
 }
 
+Ray CCamera::GetEyeRay()
+{
+	glm::vec2 range(m_Width, m_Height);
+	glm::vec2 s = GetUniformSample2D(range);
+	return GetEyeRay(s.x, s.y);
+}
+
 Ray CCamera::GetEyeRay(float p_x, float p_y)
 {
 	const float u = float(p_x) - float(m_Width)/2.f + 0.5f;

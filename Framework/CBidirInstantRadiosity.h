@@ -16,12 +16,14 @@ public:
 	~CBidirInstantRadiosity();
 
 	void CreateSceneSamples(bool profile);
-	void CreatePaths(std::vector<AVPL>& avpls, int& numCreatedPaths);
-	void CreatePath(std::vector<AVPL>& avpls, int& numCreatedPaths);
+	void CreateAntiSceneSamples(bool profile);
+	void CreatePaths(std::vector<AVPL>& avpls, int& numPaths, bool profile);
+	void CreatePath(std::vector<AVPL>& avpls, bool profile);
 
 	std::vector<SceneSample>& GetSceneSamples() { return m_SceneSamples; }
 	std::vector<SceneSample>& GetAntiSceneSamples() { return m_AntiSceneSamples; }
-	std::vector<SceneSample>& GetVisibles() { return m_Visibles; }
+	std::vector<SceneSample>& GetVisiblesSS() { return m_VisiblesSS; }
+	std::vector<SceneSample>& GetVisiblesASS() { return m_VisiblesASS; }
 
 private:
 	void ConnectToSceneSamples(AVPL& avpl, std::vector<AVPL>& avpls, float scale);
@@ -30,10 +32,17 @@ private:
 	bool CreateAVPLAtAntiSceneSample(const SceneSample& ss, const AVPL& pred, AVPL* newAVPL);
 	bool Visible(const SceneSample& ss, const AVPL& avpl, CPrimitive::IsectMode isect_mode);
 	bool Visible(const SceneSample& ss1, const SceneSample& ss2, CPrimitive::IsectMode isect_mode);
+	void CreateVisibleSceneSamples(std::vector<SceneSample>& ss, int numSS);
 
-	std::vector<SceneSample> m_Visibles;
+	void CreateVisibles(std::vector<SceneSample>& sceneSamples, int numVisibles);
+
+	std::vector<SceneSample> m_VisiblesSS;
+	std::vector<SceneSample> m_VisiblesASS;
 	std::vector<SceneSample> m_SceneSamples;		// scene samples to create imporant radiance carrying paths
 	std::vector<SceneSample> m_AntiSceneSamples;	// scene samples to create imporant antiradiance carrying paths
+
+	std::vector<SceneSample> m_Visibles;
+	int m_NumVisibles;
 
 	CConfigManager* m_pConfManager;
 	Scene* m_pScene;

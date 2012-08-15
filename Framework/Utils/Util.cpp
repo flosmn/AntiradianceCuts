@@ -203,6 +203,11 @@ void GetStratifiedSamples2D(std::vector<glm::vec2>& samples, const glm::vec2& ra
 	}
 }
 
+glm::vec2 GetUniformSample2D(const glm::vec2& range)
+{
+	return glm::vec2(Rand01() * range.x, Rand01() * range.y);
+}
+
 glm::mat3 ComputeTangentSpace(const glm::vec3& n ) {
 	glm::vec3 nev = NeverCoLinear(n);
 

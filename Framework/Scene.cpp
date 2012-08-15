@@ -449,8 +449,13 @@ void Scene::LoadCornellBox()
 		glm::vec3(0.f, 1.f, 0.f),
 		2.0f);
 
-	m_Camera->Init(1, glm::vec3(278.f, 273.f, -650.f), 
-		glm::vec3(278.f, 273.f, -649.f),
+	m_Camera->Init(1, glm::vec3(128.5f, 42.9f, 8.9f), 
+		glm::vec3(128.2f, 42.6f, 9.8f),
+		glm::vec3(0.f, 1.f, 0.f),
+		2.0f);
+
+	m_Camera->Init(2, glm::vec3(278.f, 273.f, -600.f), 
+		glm::vec3(278.f, 273.f, -599.f),
 		glm::vec3(0.f, 1.f, 0.f),
 		2.0f);
 	

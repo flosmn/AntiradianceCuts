@@ -21,33 +21,92 @@ CBidirInstantRadiosity::~CBidirInstantRadiosity()
 {
 }
 
-void CBidirInstantRadiosity::CreatePaths(std::vector<AVPL>& avpls, int& numCreatedPaths)
+void CBidirInstantRadiosity::CreatePaths(std::vector<AVPL>& avpls, int& numPaths, bool profile)
 {
+	m_NumVisibles = 49;
+	CreateVisibles(m_Visibles, m_NumVisibles);
+	
+	CreateSceneSamples(profile);
+	CreateAntiSceneSamples(profile);
+
+	for(int i = 0; i < m_pConfManager->GetConfVars()->NumPathsPerFrame; ++i)
+	{
+		CreatePath(avpls, profile);
+		numPaths++;
+	}
 }
 
-void CBidirInstantRadiosity::CreatePath(std::vector<AVPL>& avpls, int& numCreatedPaths)
+void CBidirInstantRadiosity::CreatePath(std::vector<AVPL>& avpls, bool profile)
 {
-	CreateSceneSamples(false);
-
-	numCreatedPaths = 0;
-	int currentBounce = 0;
-	
 	AVPL pred, succ;
 		
 	// create new primary light on light source
 	m_pScene->CreateAVPL(0, &pred);
 	
-	float scale = 1.f/float(m_Visibles.size());
+	float scaleSS = 1.f/float(m_VisiblesSS.size());
+	float scaleASS = 1.f/float(m_VisiblesASS.size());
 
-	ConnectToSceneSamples(pred, avpls, scale);
-	ConnectToAntiSceneSamples(pred, avpls, scale);
-
-	numCreatedPaths++;
+	ConnectToSceneSamples(pred, avpls, scaleSS);
+	ConnectToAntiSceneSamples(pred, avpls, scaleASS);
+		
 	avpls.push_back(pred);
+	
+	/*
+	int currentBounce = 2;
+	bool terminate = false;
+	int bl = m_pConfManager->GetConfVars()->LimitBounces;
+	const float rrProb = (bl == -1 ? 0.8f : 1.0f);
+	while(!terminate)
+	{
+		// decide whether to terminate path
+		float rand_01 = Rand01();
+		if(bl == -1 ? rand_01 > rrProb : currentBounce > bl)
+		{
+			terminate = true;
+		}
+		else
+		{
+			// follow the path with cos-sampled direction (importance sample diffuse surface)
+			// if the ray hits geometry
+			float pdf = 0.f;
+			glm::vec3 direction = GetRandomSampleDirectionCosCone(pred.GetOrientation(), Rand01(), Rand01(), pdf, 1);
+			Ray r(pred.GetPosition() + EPSILON * direction, direction);
+			
+			// create scene sample
+			float t = 0.f;
+			Intersection intersection;
+			bool isect = m_pScene->IntersectRayScene(r, &t, &intersection, CPrimitive::FRONT_FACE);
+			
+			if(isect) {
+				SceneSample ss(intersection);
+				ss.pdf = pdf;
+				CreateAVPLAtSceneSample(ss, pred, &succ);
+
+				succ.SetIntensity(succ.GetIntensity(succ.GetOrientation()) / rrProb);
+				avpls.push_back(succ);
+				pred = succ;
+
+				scaleSS *= scaleSS;
+				scaleASS *= scaleASS;
+				ConnectToSceneSamples(pred, avpls, scaleSS);
+				ConnectToAntiSceneSamples(pred, avpls, scaleASS);
+			}
+			else
+			{
+				// if the ray hits no geometry the transpored energy
+				// goes to nirvana and is lost
+				terminate = true;
+			}
+		}
+
+		currentBounce++;
+	}	
+	*/
 }
 
 void CBidirInstantRadiosity::ConnectToSceneSamples(AVPL& avpl, std::vector<AVPL>& avpls, float scale)
 {
+	float scaleASS = 1.f/float(m_VisiblesASS.size());
 	for(int i = 0; i < m_SceneSamples.size(); ++i)
 	{
 		if(Visible(m_SceneSamples[i], avpl, CPrimitive::FRONT_FACE))
@@ -55,7 +114,7 @@ void CBidirInstantRadiosity::ConnectToSceneSamples(AVPL& avpl, std::vector<AVPL>
 			AVPL newAvpl;
 			if(CreateAVPLAtSceneSample(m_SceneSamples[i], avpl, &newAvpl))
 			{
-				ConnectToAntiSceneSamples(newAvpl, avpls, scale * scale);
+				ConnectToAntiSceneSamples(newAvpl, avpls, scaleASS * scale);
 				newAvpl.SetIntensity(scale * newAvpl.GetMaxIntensity());
 				avpls.push_back(newAvpl);
 			}
@@ -167,7 +226,9 @@ bool CBidirInstantRadiosity::CreateAVPLAtSceneSample(const SceneSample& ss, cons
 	glm::vec3 norm = ss.normal;
 	glm::vec3 rho = glm::vec3(ss.material.diffuseColor);
 		
-	glm::vec3 intensity = rho/PI * G * 1.f/ss.pdf * pred.GetMaxIntensity();
+	glm::vec3 intensity = glm::vec3(0.f);
+	if(ss.pdf > 0.f)
+		intensity = rho/PI * G * 1.f/ss.pdf * pred.GetMaxIntensity();
 	
 	//const float cone_min = m_pConfManager->GetConfVars()->ClampCone ? PI / (PI/2.f - acos(glm::dot(norm, -direction))) : 0.f;
 	//const float coneFactor = std::max(cone_min, m_pConfManager->GetConfVars()->ConeFactor);
@@ -175,7 +236,7 @@ bool CBidirInstantRadiosity::CreateAVPLAtSceneSample(const SceneSample& ss, cons
 	const float coneFactor = m_pConfManager->GetConfVars()->ConeFactor;
 	const float area = 2 * PI * ( 1 - cos(PI/coneFactor) );
 	
-	glm::vec3 antiintensity = glm::vec3(0.f); //pred.GetMaxIntensity() * G * 1.f/ss.pdf * 1.f/area;
+	glm::vec3 antiintensity = glm::vec3(0.f);
 	
 	AVPL avpl(pos, norm, intensity, antiintensity, direction, coneFactor, pred.GetBounce() + 1, m_pConfManager);
 	*newAvpl = avpl;
@@ -221,7 +282,9 @@ bool CBidirInstantRadiosity::CreateAVPLAtAntiSceneSample(const SceneSample& ss, 
 	const float coneFactor = m_pConfManager->GetConfVars()->ConeFactor;
 	const float area = 2 * PI * ( 1 - cos(PI/coneFactor) );
 	
-	glm::vec3 antiintensity = pred.GetMaxIntensity() * G * 1.f/ss.pdf * 1.f/area;
+	glm::vec3 antiintensity = glm::vec3(0.f);
+	if(ss.pdf > 0.f)
+		antiintensity = pred.GetMaxIntensity() * G * 1.f/ss.pdf * 1.f/area;
 	
 	AVPL avpl(pos, norm, intensity, antiintensity, direction, coneFactor, pred.GetBounce() + 1, m_pConfManager);
 	*newAvpl = avpl;
@@ -232,79 +295,32 @@ void CBidirInstantRadiosity::CreateSceneSamples(bool profile)
 {
 	CTimer timer(CTimer::CPU);
 
-	std::vector<Ray> eye_rays;
-	std::vector<glm::vec2> samples;
-	
-	int N = m_pConfManager->GetConfVars()->NumEyeRays;
-	int M = m_pConfManager->GetConfVars()->NumSamplesForPE;
+	int N = m_pConfManager->GetConfVars()->NumEyeRaysSS;
+	int M = m_pConfManager->GetConfVars()->NumSamplesForPESS;
 
 	m_SceneSamples.clear();
-	m_AntiSceneSamples.clear();
-	m_Visibles.clear();
+	m_VisiblesSS.clear();
 	m_SceneSamples.reserve(N);
-	m_AntiSceneSamples.reserve(N);
-	m_Visibles.reserve(N);
+	m_VisiblesSS.reserve(N);
 
 	if(profile) timer.Start();
 
 	// determine directly visible scene samples
+	CreateVisibleSceneSamples(m_VisiblesSS, M);
 
-	// create some samples which are used for probability estimation	
-	while(m_Visibles.size() < M)
-	{
-		m_pScene->GetCamera()->GetEyeRays(eye_rays, samples, M);
-		
-		for(int i = 0; i < eye_rays.size() && m_Visibles.size() < M; ++i)
-		{		
-			float t = 0.f;
-			Intersection intersection;
-			bool isect = m_pScene->IntersectRayScene(eye_rays[i], &t, &intersection, CPrimitive::FRONT_FACE);
+	CreateVisibleSceneSamples(m_VisiblesSS, N-M);
 	
-			if(isect) {
-				SceneSample ss(intersection);
-				ss.pdf = 0.f;
-				m_Visibles.push_back(ss);
-			}
-		}
-
-		// no scene parts visible?
-		if(m_Visibles.size() == 0)
-			break;
-	}
-
-	// create rest of the visible samples
-	while(m_Visibles.size() < N)
+	if(m_VisiblesSS.size() < N)
 	{
-		m_pScene->GetCamera()->GetEyeRays(eye_rays, samples, N - M);
-		
-		for(int i = 0; i < eye_rays.size() && m_Visibles.size() < N; ++i)
-		{		
-			float t = 0.f;
-			Intersection intersection;
-			bool isect = m_pScene->IntersectRayScene(eye_rays[i], &t, &intersection, CPrimitive::FRONT_FACE);
-	
-			if(isect) {
-				SceneSample ss(intersection);
-				ss.pdf = 0.f;
-				m_Visibles.push_back(ss);
-			}
-		}
-
-		// no scene parts visible?
-		if(m_Visibles.size() == 0)
-			break;
+		std::cout << "not enough visible scene samples" << std::endl;
+		return;
 	}
-
-	eye_rays.clear();
-	samples.clear();
 
 	if(profile) timer.Stop("create directly visible scene samples");
 
-	if(m_Visibles.size() == 0) return;
-
 	if(profile) timer.Start();
 	// determine scene samples
-	for(int i = 0; i < m_Visibles.size(); ++i)
+	for(int i = 0; i < m_VisiblesSS.size(); ++i)
 	{		
 		float t = 0.f;
 		Intersection intersection;
@@ -312,8 +328,8 @@ void CBidirInstantRadiosity::CreateSceneSamples(bool profile)
 
 		// get random direction
 		float pdf = 0.f;
-		glm::vec3 direction = GetRandomSampleDirectionCosCone(m_Visibles[i].normal, Rand01(), Rand01(), pdf, 1);
-		Ray r(m_Visibles[i].position + 0.05f * direction, direction);
+		glm::vec3 direction = GetRandomSampleDirectionCosCone(m_VisiblesSS[i].normal, Rand01(), Rand01(), pdf, 1);
+		Ray r(m_VisiblesSS[i].position + 0.05f * direction, direction);
 		
 		// create scene sample
 		isect = m_pScene->IntersectRayScene(r, &t, &intersection, CPrimitive::FRONT_FACE);
@@ -322,34 +338,75 @@ void CBidirInstantRadiosity::CreateSceneSamples(bool profile)
 			SceneSample ss(intersection);
 			
 			// estimate probability
-			float p = 0.f;
-			const glm::vec3 dir = glm::normalize(ss.position - m_Visibles[i].position);
-			const float dist = glm::length(ss.position - m_Visibles[i].position);
-			const float cos_theta = glm::dot(ss.normal, -dir);
-			p += pdf * cos_theta / (dist * dist);
-					
+			float p = 0.f;					
 			for(int j = 0; j < M; ++j)
 			{
-				if(Visible(ss, m_Visibles[j], CPrimitive::FRONT_FACE))
+				if(Visible(ss, m_VisiblesSS[j], CPrimitive::FRONT_FACE))
 				{
-					const glm::vec3 dir = glm::normalize(ss.position - m_Visibles[j].position);
-					const float dist = glm::length(ss.position - m_Visibles[j].position);
+					const glm::vec3 dir = glm::normalize(ss.position - m_VisiblesSS[j].position);
+					const float dist = glm::length(ss.position - m_VisiblesSS[j].position);
 					
 					const float cos_theta = glm::dot(ss.normal, -dir);
 					if(cos_theta <= 0.f) continue;
 
 					float p_dir = 0.f;
-					GetRandomSampleDirectionProbability(m_Visibles[j].normal, dir, p_dir, 1);
+					GetRandomSampleDirectionProbability(m_VisiblesSS[j].normal, dir, p_dir, 1);
 					if(p_dir <= 0.f) continue;				
 
 					p += p_dir * cos_theta / (dist * dist);
 				}
  			}
-			ss.pdf = p / float(M+1);
+			ss.pdf = p / float(M);
 						
 			m_SceneSamples.push_back(ss);			
 		}
-		
+	}
+
+	if(profile) timer.Stop("create second bounce scene samples");
+	if(profile) std::cout << "number of scene samples: " << m_SceneSamples.size() << std::endl;
+
+}
+
+void CBidirInstantRadiosity::CreateAntiSceneSamples(bool profile)
+{
+	CTimer timer(CTimer::CPU);
+
+	int N = m_pConfManager->GetConfVars()->NumEyeRaysASS;
+	int M = m_pConfManager->GetConfVars()->NumSamplesForPEASS;
+
+	m_AntiSceneSamples.clear();
+	m_VisiblesASS.clear();
+	m_AntiSceneSamples.reserve(N);
+	m_VisiblesASS.reserve(N);
+
+	if(profile) timer.Start();
+
+	// determine directly visible scene samples
+	CreateVisibleSceneSamples(m_VisiblesASS, M);
+
+	CreateVisibleSceneSamples(m_VisiblesASS, N-M);
+	
+	if(m_VisiblesASS.size() < N)
+	{
+		std::cout << "not enough visible anti scene samples" << std::endl;
+		return;
+	}
+
+	if(profile) timer.Stop("create directly visible scene samples");
+
+	if(profile) timer.Start();
+	// determine scene samples
+	for(int i = 0; i < m_VisiblesASS.size(); ++i)
+	{		
+		float t = 0.f;
+		Intersection intersection;
+		bool isect = false;
+
+		// get random direction
+		float pdf = 0.f;
+		glm::vec3 direction = GetRandomSampleDirectionCosCone(m_VisiblesASS[i].normal, Rand01(), Rand01(), pdf, 1);
+		Ray r(m_VisiblesASS[i].position + 0.05f * direction, direction);
+				
 		// create anti scene sample
 		isect = m_pScene->IntersectRayScene(r, &t, &intersection, CPrimitive::BACK_FACE);
 		
@@ -358,36 +415,120 @@ void CBidirInstantRadiosity::CreateSceneSamples(bool profile)
 			
 			// estimate probability
 			float p = 0.f;
-			const glm::vec3 dir = glm::normalize(ss.position - m_Visibles[i].position);
-			const float dist = glm::length(ss.position - m_Visibles[i].position);
-			const float cos_theta = glm::dot(ss.normal, dir);
-			p += pdf * cos_theta / (dist * dist);
-
 			for(int j = 0; j < M; ++j)
 			{
-				if(Visible(ss, m_Visibles[j], CPrimitive::BACK_FACE))
+				if(Visible(ss, m_VisiblesASS[j], CPrimitive::BACK_FACE))
 				{
-					const glm::vec3 dir = glm::normalize(ss.position - m_Visibles[j].position);
-					const float dist = glm::length(ss.position - m_Visibles[j].position);
+					const glm::vec3 dir = glm::normalize(ss.position - m_VisiblesASS[j].position);
+					const float dist = glm::length(ss.position - m_VisiblesASS[j].position);
 					
 					const float cos_theta = glm::dot(ss.normal, dir);
 					if(cos_theta <= 0.f) continue;
 
 					float p_dir = 0.f;
-					GetRandomSampleDirectionProbability(m_Visibles[j].normal, dir, p_dir, 1);
+					GetRandomSampleDirectionProbability(m_VisiblesASS[j].normal, dir, p_dir, 1);
 					if(p_dir <= 0.f) continue;				
 
 					p += p_dir * cos_theta / (dist * dist);
 				}
  			}
-			ss.pdf = p / float(M+1);
+			ss.pdf = p / float(M);
 						
 			m_AntiSceneSamples.push_back(ss);			
 		}
 	}
 
 	if(profile) timer.Stop("create second bounce scene samples");
-	if(profile) std::cout << "number of scene samples: " << m_SceneSamples.size() 
-		<< ", number of anti scene samples: " << m_AntiSceneSamples.size() << std::endl;
+	if(profile) std::cout << "number of anti scene samples: " << m_AntiSceneSamples.size() << std::endl;
+}
 
+void CBidirInstantRadiosity::CreateVisibleSceneSamples(std::vector<SceneSample>& sceneSamples, int numSS)
+{
+	int maxGeneratedSamples = 10 * numSS;
+	int numGeneratedSamples = 0;
+	int numValidSamples = 0; 
+	
+	if(m_pConfManager->GetConfVars()->UseStratification)
+	{
+		// stratified samples
+		std::vector<Ray> rays;
+		std::vector<glm::vec2> samples;
+		m_pScene->GetCamera()->GetEyeRays(rays, samples, numSS);
+		for(int i = 0; i < numSS; ++i)
+		{
+			float t = 0.f;
+			Intersection intersection;
+			bool isect = m_pScene->IntersectRayScene(rays[i], &t, &intersection, CPrimitive::FRONT_FACE);
+			
+			if(isect) {
+				numValidSamples++;
+				SceneSample ss(intersection);
+				ss.pdf = 0.f;
+				sceneSamples.push_back(ss);
+			}
+		}
+		rays.clear();
+		samples.clear();
+	}
+
+	// non stratified samples for rest
+	while(numValidSamples < numSS && numGeneratedSamples < maxGeneratedSamples)
+	{
+		numGeneratedSamples++;
+		Ray e = m_pScene->GetCamera()->GetEyeRay();
+		
+		float t = 0.f;
+		Intersection intersection;
+		bool isect = m_pScene->IntersectRayScene(e, &t, &intersection, CPrimitive::FRONT_FACE);
+	
+		if(isect) {
+			numValidSamples++;
+			SceneSample ss(intersection);
+			ss.pdf = 0.f;
+			sceneSamples.push_back(ss);
+		}
+	}
+}
+
+void CBidirInstantRadiosity::CreateVisibles(std::vector<SceneSample>& sceneSamples, int numVisibles)
+{
+	if(m_pConfManager->GetConfVars()->UseStratification)
+	{
+		// stratified samples
+		std::vector<Ray> rays;
+		std::vector<glm::vec2> samples;
+		m_pScene->GetCamera()->GetEyeRays(rays, samples, numVisibles);
+		for(int i = 0; i < numVisibles; ++i)
+		{
+			float t = 0.f;
+			Intersection intersection;
+			bool isect = m_pScene->IntersectRayScene(rays[i], &t, &intersection, CPrimitive::FRONT_FACE);
+			
+			if(isect) {
+				SceneSample ss(intersection);
+				ss.pdf = 0.f;
+				sceneSamples.push_back(ss);
+			}
+		}
+		rays.clear();
+		samples.clear();
+	}
+	else
+	{
+		// non stratified samples for rest
+		for(int i = 0; i < numVisibles; ++i)
+		{
+			Ray e = m_pScene->GetCamera()->GetEyeRay();
+			
+			float t = 0.f;
+			Intersection intersection;
+			bool isect = m_pScene->IntersectRayScene(e, &t, &intersection, CPrimitive::FRONT_FACE);
+		
+			if(isect) {
+				SceneSample ss(intersection);
+				ss.pdf = 0.f;
+				sceneSamples.push_back(ss);
+			}
+		}
+	}
 }

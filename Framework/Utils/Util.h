@@ -28,6 +28,7 @@ glm::vec3 SampleConeDirection(const glm::vec3& axis, const float& theta, const f
 glm::vec2 ConcentricSampleDisk(float u1, float u2);
 
 void GetStratifiedSamples2D(std::vector<glm::vec2>& samples, const glm::vec2& range, const uint numSamples);
+glm::vec2 GetUniformSample2D(const glm::vec2& range);
 
 glm::mat3 ComputeTangentSpace(const glm::vec3& n );
 glm::vec3 NeverCoLinear(const glm::vec3& v);

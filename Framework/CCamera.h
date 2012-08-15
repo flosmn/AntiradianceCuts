@@ -47,6 +47,7 @@ public:
 	void SetHeight(uint height) { m_Height = height; }
 	void SetWidth(uint width) { m_Width = width; }
 
+	Ray GetEyeRay();
 	Ray GetEyeRay(float p_x, float p_y);
 	void GetEyeRays(std::vector<Ray>& rays, std::vector<glm::vec2>& samples, uint numRays);
 	float GetEyeRayPdf();

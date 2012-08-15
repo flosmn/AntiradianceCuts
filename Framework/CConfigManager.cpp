@@ -83,9 +83,13 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->AcceptProbabEpsilon = m_pConfVarsGUI->AcceptProbabEpsilon = 0.05f;
 
 	m_pConfVars->UseBIDIR = m_pConfVarsGUI->UseBIDIR = 0;
-	m_pConfVars->DrawBIDIRSceneSamples = m_pConfVarsGUI->DrawBIDIRSceneSamples = 0;
-	m_pConfVars->NumEyeRays = m_pConfVarsGUI->NumEyeRays = 100;
-	m_pConfVars->NumSamplesForPE = m_pConfVarsGUI->NumSamplesForPE = 64;
+	m_pConfVars->UseStratification = m_pConfVarsGUI->UseStratification = 0;
+	m_pConfVars->DrawBIDIRSamples = m_pConfVarsGUI->DrawBIDIRSamples = 0;
+	m_pConfVars->DrawBIDIRSamplesMode = m_pConfVarsGUI->DrawBIDIRSamplesMode = 0;
+	m_pConfVars->NumEyeRaysSS = m_pConfVarsGUI->NumEyeRaysSS = 49;
+	m_pConfVars->NumSamplesForPESS = m_pConfVarsGUI->NumSamplesForPESS = 49;
+	m_pConfVars->NumEyeRaysASS = m_pConfVarsGUI->NumEyeRaysASS = 500;
+	m_pConfVars->NumSamplesForPEASS = m_pConfVarsGUI->NumSamplesForPEASS = 49;
 }
 
 CConfigManager::~CConfigManager()
@@ -539,25 +543,54 @@ void CConfigManager::Update()
 		clearLighting = true;
 	}
 
-	if(m_pConfVarsGUI->NumEyeRays != m_pConfVars->NumEyeRays)
+	if(m_pConfVarsGUI->UseStratification != m_pConfVars->UseStratification)
 	{
-		m_pConfVars->NumEyeRays = m_pConfVarsGUI->NumEyeRays;
+		m_pConfVars->UseStratification = m_pConfVarsGUI->UseStratification;
 		configureLighting = true;
 		clearAccumBuffer = true;
 		clearLighting = true;
 	}
 
-	if(m_pConfVarsGUI->NumSamplesForPE != m_pConfVars->NumSamplesForPE)
+	if(m_pConfVarsGUI->NumEyeRaysSS != m_pConfVars->NumEyeRaysSS)
 	{
-		m_pConfVars->NumSamplesForPE = m_pConfVarsGUI->NumSamplesForPE;
+		m_pConfVars->NumEyeRaysSS = m_pConfVarsGUI->NumEyeRaysSS;
 		configureLighting = true;
 		clearAccumBuffer = true;
 		clearLighting = true;
 	}
 
-	if(m_pConfVarsGUI->DrawBIDIRSceneSamples != m_pConfVars->DrawBIDIRSceneSamples)
+	if(m_pConfVarsGUI->NumSamplesForPESS != m_pConfVars->NumSamplesForPESS)
 	{
-		m_pConfVars->DrawBIDIRSceneSamples = m_pConfVarsGUI->DrawBIDIRSceneSamples;
+		m_pConfVars->NumSamplesForPESS = m_pConfVarsGUI->NumSamplesForPESS;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->NumEyeRaysASS != m_pConfVars->NumEyeRaysASS)
+	{
+		m_pConfVars->NumEyeRaysASS = m_pConfVarsGUI->NumEyeRaysASS;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->NumSamplesForPEASS != m_pConfVars->NumSamplesForPEASS)
+	{
+		m_pConfVars->NumSamplesForPEASS = m_pConfVarsGUI->NumSamplesForPEASS;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->DrawBIDIRSamples != m_pConfVars->DrawBIDIRSamples)
+	{
+		m_pConfVars->DrawBIDIRSamples = m_pConfVarsGUI->DrawBIDIRSamples;
+	}
+
+	if(m_pConfVarsGUI->DrawBIDIRSamplesMode != m_pConfVars->DrawBIDIRSamplesMode)
+	{
+		m_pConfVars->DrawBIDIRSamplesMode = m_pConfVarsGUI->DrawBIDIRSamplesMode;
 	}
 		
 	if(updateAreaLight) m_pRenderer->UpdateAreaLights();

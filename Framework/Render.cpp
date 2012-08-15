@@ -593,7 +593,7 @@ void Renderer::Render()
 				if(m_pConfManager->GetConfVars()->UseBIDIR)
 				{
 					int numPaths = 0;
-					m_pBidirInstantRadiosity->CreatePath(avpls, numPaths);
+					m_pBidirInstantRadiosity->CreatePaths(avpls, numPaths, m_ProfileFrame);
 					m_CurrentPath += numPaths;
 				}
 				else
@@ -709,7 +709,7 @@ void Renderer::Render()
 		DrawSceneSamples(m_pShadeRenderTarget);
 	}
 
-	if(m_pConfManager->GetConfVars()->DrawBIDIRSceneSamples)
+	if(m_pConfManager->GetConfVars()->DrawBIDIRSamples)
 	{
 		DrawBidirSceneSamples(m_pShadeRenderTarget);
 	}
@@ -1046,13 +1046,7 @@ void Renderer::Normalize(CRenderTarget* pTarget, CRenderTarget* source, int norm
 void Renderer::GatherRadianceFromLightWithShadowMap(const AVPL& avpl, CRenderTarget* pRenderTarget)
 {
 	FillShadowMap(avpl);
-	/*
-	if(avpl.GetIntensity(avpl.GetOrientation()).length() == 0.f)
-		return;
 	
-	if(avpl.GetBounce() != m_pConfManager->GetConfVars()->RenderBounce && m_pConfManager->GetConfVars()->RenderBounce != -1)
-		return;
-	*/
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);	
 	glBlendFunc(GL_ONE, GL_ONE);
@@ -1424,7 +1418,12 @@ void Renderer::DrawLights(const std::vector<AVPL>& avpls, CRenderTarget* target)
 		{
 			POINT_CLOUD_POINT p;
 			p.position = glm::vec4(avpls[i].GetPosition() + m_pConfManager->GetConfVars()->DisplacePCP * avpls[i].GetOrientation(), 1.0f);
-			p.color = glm::vec4(0.5f * avpls[i].GetOrientation() + glm::vec3(0.5f), 1.f);
+			
+			if(glm::length(avpls[i].GetMaxAntiintensity()) > 0.f)
+				p.color = glm::vec4(0.f, 1.f, 1.f, 1.f);
+			else
+				p.color = glm::vec4(1.f, 1.f, 0.f, 1.f);
+
 			pcp.push_back(p);
 		}
 	}
@@ -1520,35 +1519,54 @@ void Renderer::DrawBidirSceneSamples(CRenderTarget* target)
 {	
 	std::vector<SceneSample> sceneSamples = m_pBidirInstantRadiosity->GetSceneSamples();
 	std::vector<SceneSample> antiSceneSamples = m_pBidirInstantRadiosity->GetAntiSceneSamples();
-	std::vector<SceneSample> visibles = m_pBidirInstantRadiosity->GetVisibles();
+	std::vector<SceneSample> visiblesSS = m_pBidirInstantRadiosity->GetVisiblesSS();
+	std::vector<SceneSample> visiblesASS = m_pBidirInstantRadiosity->GetVisiblesASS();
 	std::vector<POINT_CLOUD_POINT> pcp;
-	/*
-	for (int i = 0; i < sceneSamples.size(); ++i)
+	
+	if(m_pConfManager->GetConfVars()->DrawBIDIRSamplesMode == 0)
 	{
-		POINT_CLOUD_POINT p;
-		p.position = glm::vec4(sceneSamples[i].position + m_pConfManager->GetConfVars()->DisplacePCP * sceneSamples[i].normal, 1.0f);
-		p.color = glm::vec4(0.5f * sceneSamples[i].normal + glm::vec3(0.5f), 1.0f);
-		pcp.push_back(p);
-	}
-	*/
-
-	for (int i = 0; i < antiSceneSamples.size(); ++i)
-	{
-		POINT_CLOUD_POINT p;
-		p.position = glm::vec4(antiSceneSamples[i].position + m_pConfManager->GetConfVars()->DisplacePCP * antiSceneSamples[i].normal, 1.0f);
-		p.color = glm::vec4(0.5f * antiSceneSamples[i].normal + glm::vec3(0.5f), 1.0f);
-		pcp.push_back(p);
+		for (int i = 0; i < sceneSamples.size(); ++i)
+		{
+			POINT_CLOUD_POINT p;
+			p.position = glm::vec4(sceneSamples[i].position + m_pConfManager->GetConfVars()->DisplacePCP * sceneSamples[i].normal, 1.0f);
+			p.color = glm::vec4(0.5f * sceneSamples[i].normal + glm::vec3(0.5f), 1.0f);
+			pcp.push_back(p);
+		}
 	}
 	
-	/*
-	for (int i = 0; i < visibles.size(); ++i)
+	if(m_pConfManager->GetConfVars()->DrawBIDIRSamplesMode == 1)
 	{
-		POINT_CLOUD_POINT p;
-		p.position = glm::vec4(visibles[i].position + m_pConfManager->GetConfVars()->DisplacePCP * visibles[i].normal, 1.0f);
-		p.color = glm::vec4(0.5f * visibles[i].normal + glm::vec3(0.5f), 1.0f);
-		pcp.push_back(p);
+		for (int i = 0; i < antiSceneSamples.size(); ++i)
+		{
+			POINT_CLOUD_POINT p;
+			p.position = glm::vec4(antiSceneSamples[i].position + m_pConfManager->GetConfVars()->DisplacePCP * antiSceneSamples[i].normal, 1.0f);
+			p.color = glm::vec4(0.5f * antiSceneSamples[i].normal + glm::vec3(0.5f), 1.0f);
+			pcp.push_back(p);
+		}
 	}
-	*/
+
+	if(m_pConfManager->GetConfVars()->DrawBIDIRSamplesMode == 2)
+	{
+		for (int i = 0; i < visiblesSS.size(); ++i)
+		{
+			POINT_CLOUD_POINT p;
+			p.position = glm::vec4(visiblesSS[i].position + m_pConfManager->GetConfVars()->DisplacePCP * visiblesSS[i].normal, 1.0f);
+			p.color = glm::vec4(0.5f * visiblesSS[i].normal + glm::vec3(0.5f), 1.0f);
+			pcp.push_back(p);
+		}
+	}
+
+	if(m_pConfManager->GetConfVars()->DrawBIDIRSamplesMode == 3)
+	{
+		for (int i = 0; i < visiblesASS.size(); ++i)
+		{
+			POINT_CLOUD_POINT p;
+			p.position = glm::vec4(visiblesASS[i].position + m_pConfManager->GetConfVars()->DisplacePCP * visiblesASS[i].normal, 1.0f);
+			p.color = glm::vec4(0.5f * visiblesASS[i].normal + glm::vec3(0.5f), 1.0f);
+			pcp.push_back(p);
+		}
+	}
+
 	try
 	{
 		glm::vec4* positionData = new glm::vec4[pcp.size()];
@@ -1791,7 +1809,7 @@ void Renderer::InitDebugLights()
 	m_pCPUTimer->Start();
 	//scene->CreatePaths(m_DebugAVPLs, m_CollectedAVPLs, m_CollectedImportanceSampledAVPLs, m_ProfileFrame, m_pConfManager->GetConfVars()->NumPaths);
 	int numPaths = 0;
-	m_pBidirInstantRadiosity->CreatePath(m_DebugAVPLs, numPaths);
+	m_pBidirInstantRadiosity->CreatePaths(m_DebugAVPLs, numPaths, false);
 	m_CurrentPath += numPaths;
 
 	std::cout << "Number of AVPLs: " << m_DebugAVPLs.size() << std::endl;

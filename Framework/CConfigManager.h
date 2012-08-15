@@ -72,9 +72,13 @@ struct CONF_VARS
 	float AcceptProbabEpsilon;
 
 	int UseBIDIR;
-	int DrawBIDIRSceneSamples;
-	int NumEyeRays;	
-	int NumSamplesForPE;	
+	int UseStratification;
+	int DrawBIDIRSamples;
+	int DrawBIDIRSamplesMode;
+	int NumEyeRaysSS;	
+	int NumSamplesForPESS;	
+	int NumEyeRaysASS;	
+	int NumSamplesForPEASS;	
 };
 
 class CConfigManager
