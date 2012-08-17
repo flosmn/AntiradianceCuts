@@ -296,7 +296,7 @@ bool Scene::ImportanceSampling(AVPL& avpl, float* scale)
 		
 	// create new primary light on light source
 	CreateAVPL(0, &pred);
-	path.push_back(pred);
+	//path.push_back(pred);
 	
 	m_CurrentBounce++;
 	
@@ -439,7 +439,7 @@ void Scene::LoadCornellBox()
 	ClearScene();
 
 	CModel* model = new CModel();
-	model->Init("cornellorg-boxes");
+	model->Init("cb-closed");
 	model->SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
 
 	m_Models.push_back(model);
@@ -458,6 +458,8 @@ void Scene::LoadCornellBox()
 		glm::vec3(278.f, 273.f, -599.f),
 		glm::vec3(0.f, 1.f, 0.f),
 		2.0f);
+
+	m_Camera->UseCameraConfig(2);
 	
 	glm::vec3 areaLightFrontDir = glm::vec3(0.0f, -1.0f, 0.0f);
 	glm::vec3 areaLightPosition = glm::vec3(270.f, 550.0f, 280.f);

@@ -156,7 +156,7 @@ Ray CCamera::GetEyeRay(float p_x, float p_y)
 {
 	const float u = float(p_x) - float(m_Width)/2.f + 0.5f;
     const float v = float(p_y) - float(m_Height)/2.f + 0.5f;
-    const glm::vec3 dir = m_IO[m_UseConfig] + u * m_U[m_UseConfig] + v * m_V[m_UseConfig];
+    const glm::vec3 dir = glm::normalize(m_IO[m_UseConfig] + u * m_U[m_UseConfig] + v * m_V[m_UseConfig]);
     
 	Ray r(m_Position[m_UseConfig], dir);
 	return r;
@@ -179,3 +179,13 @@ float CCamera::GetEyeRayPdf()
 	const float a = (m_FOV * m_Aspect) * ( 1 - cos(m_FOV) );
 	return 1.f / a;
 };
+
+float CCamera::GetRho()
+{
+	return 4 * tan(m_FOV) * tan(m_FOV * m_Aspect);
+}
+
+glm::vec3 CCamera::GetViewDirection()
+{
+	return glm::normalize(m_Center[m_UseConfig] - m_Position[m_UseConfig]);
+}

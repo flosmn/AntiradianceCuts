@@ -12,32 +12,29 @@ class Scene;
 class CBidirInstantRadiosity
 {
 public:
+	enum SceneSampleType { SS, ASS };
+
 	CBidirInstantRadiosity(Scene* pScene, CConfigManager* pConfManager);
 	~CBidirInstantRadiosity();
 
-	void CreateSceneSamples(bool profile);
-	void CreateAntiSceneSamples(bool profile);
+	void CreateSceneSamples(bool profile, SceneSampleType ss_type);
 	void CreatePaths(std::vector<AVPL>& avpls, int& numPaths, bool profile);
 	void CreatePath(std::vector<AVPL>& avpls, bool profile);
 
 	std::vector<SceneSample>& GetSceneSamples() { return m_SceneSamples; }
 	std::vector<SceneSample>& GetAntiSceneSamples() { return m_AntiSceneSamples; }
-	std::vector<SceneSample>& GetVisiblesSS() { return m_VisiblesSS; }
-	std::vector<SceneSample>& GetVisiblesASS() { return m_VisiblesASS; }
-
+	std::vector<SceneSample>& GetVisibles() { return m_Visibles; }
+	
 private:
 	void ConnectToSceneSamples(AVPL& avpl, std::vector<AVPL>& avpls, float scale);
 	void ConnectToAntiSceneSamples(AVPL& avpl, std::vector<AVPL>& avpls, float scale);
-	bool CreateAVPLAtSceneSample(const SceneSample& ss, const AVPL& pred, AVPL* newAVPL);
-	bool CreateAVPLAtAntiSceneSample(const SceneSample& ss, const AVPL& pred, AVPL* newAVPL);
-	bool Visible(const SceneSample& ss, const AVPL& avpl, CPrimitive::IsectMode isect_mode);
-	bool Visible(const SceneSample& ss1, const SceneSample& ss2, CPrimitive::IsectMode isect_mode);
-	void CreateVisibleSceneSamples(std::vector<SceneSample>& ss, int numSS);
+	bool CreateAVPLAtSceneSample(const SceneSample& ss, const AVPL& pred, AVPL* newAVPL, SceneSampleType ss_type);
+	bool Visible(const AVPL& from, const SceneSample& to, SceneSampleType ss_type);
+	bool Visible(const SceneSample& from, const SceneSample& to_param, SceneSampleType ss_type);
 
 	void CreateVisibles(std::vector<SceneSample>& sceneSamples, int numVisibles);
+	float Probability(const SceneSample& from, const SceneSample& to, SceneSampleType ss_type);
 
-	std::vector<SceneSample> m_VisiblesSS;
-	std::vector<SceneSample> m_VisiblesASS;
 	std::vector<SceneSample> m_SceneSamples;		// scene samples to create imporant radiance carrying paths
 	std::vector<SceneSample> m_AntiSceneSamples;	// scene samples to create imporant antiradiance carrying paths
 

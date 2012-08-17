@@ -107,9 +107,9 @@ bool CGUI::Init(uint window_width, uint window_height)
 	TwAddVarRW(m_pTwBar, "DrawBIDIRSamples", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawBIDIRSamples), " min=0 max=1 step=1 ");
 	TwAddVarRW(m_pTwBar, "DrawBIDIRSamplesMode", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawBIDIRSamplesMode), " min=0 max=3 step=1 ");
 	TwAddVarRW(m_pTwBar, "NumEyeRaysSS", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumEyeRaysSS), " min=1 max=20000 step=1 ");
-	TwAddVarRW(m_pTwBar, "NumSamplesForPESS", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumSamplesForPESS), " min=9 max=1000 step=1 ");
+	TwAddVarRW(m_pTwBar, "NumSamplesForPESS", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumSamplesForPESS), " min=1 max=1000 step=1 ");
 	TwAddVarRW(m_pTwBar, "NumEyeRaysASS", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumEyeRaysASS), " min=1 max=20000 step=1 ");
-	TwAddVarRW(m_pTwBar, "NumSamplesForPEASS", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumSamplesForPEASS), " min=9 max=1000 step=1 ");
+	TwAddVarRW(m_pTwBar, "NumSamplesForPEASS", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumSamplesForPEASS), " min=1 max=1000 step=1 ");
 	
 	return true;
 }

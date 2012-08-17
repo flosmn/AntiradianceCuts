@@ -119,7 +119,7 @@ void main()
 			}
 		}
 		
-		diff = radiance - antiradiance;
+		diff = radiance; // - antiradiance;
 
 		outputDiff += diff;
 		outputRadiance += radiance;

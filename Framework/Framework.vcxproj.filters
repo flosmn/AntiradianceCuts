@@ -179,7 +179,9 @@
     <ClCompile Include="CCamera.cpp" />
     <ClCompile Include="CAVPLImportanceSampling.cpp" />
     <ClCompile Include="CBidirInstantRadiosity.cpp" />
-    <ClCompile Include="Intersection.cpp" />
+    <ClCompile Include="Intersection.cpp">
+      <Filter>RayTracingStuff</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Render.h" />

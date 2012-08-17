@@ -25,6 +25,8 @@ public:
 	glm::mat4 GetViewMatrix() const;
 	glm::vec3 GetPosition() const;
 
+	glm::vec3 GetViewDirection();
+
 	void Init(int config, glm::vec3 position, glm::vec3 center, glm::vec3 up, float speed);
 	void UseCameraConfig(int config) { m_UseConfig = config; UpdateData(); PrintConfig(); }
 
@@ -51,6 +53,8 @@ public:
 	Ray GetEyeRay(float p_x, float p_y);
 	void GetEyeRays(std::vector<Ray>& rays, std::vector<glm::vec2>& samples, uint numRays);
 	float GetEyeRayPdf();
+
+	float GetRho();
 
 	void UpdateData();
 

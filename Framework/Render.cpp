@@ -1519,8 +1519,7 @@ void Renderer::DrawBidirSceneSamples(CRenderTarget* target)
 {	
 	std::vector<SceneSample> sceneSamples = m_pBidirInstantRadiosity->GetSceneSamples();
 	std::vector<SceneSample> antiSceneSamples = m_pBidirInstantRadiosity->GetAntiSceneSamples();
-	std::vector<SceneSample> visiblesSS = m_pBidirInstantRadiosity->GetVisiblesSS();
-	std::vector<SceneSample> visiblesASS = m_pBidirInstantRadiosity->GetVisiblesASS();
+	std::vector<SceneSample> visibles = m_pBidirInstantRadiosity->GetVisibles();
 	std::vector<POINT_CLOUD_POINT> pcp;
 	
 	if(m_pConfManager->GetConfVars()->DrawBIDIRSamplesMode == 0)
@@ -1547,22 +1546,11 @@ void Renderer::DrawBidirSceneSamples(CRenderTarget* target)
 
 	if(m_pConfManager->GetConfVars()->DrawBIDIRSamplesMode == 2)
 	{
-		for (int i = 0; i < visiblesSS.size(); ++i)
+		for (int i = 0; i < visibles.size(); ++i)
 		{
 			POINT_CLOUD_POINT p;
-			p.position = glm::vec4(visiblesSS[i].position + m_pConfManager->GetConfVars()->DisplacePCP * visiblesSS[i].normal, 1.0f);
-			p.color = glm::vec4(0.5f * visiblesSS[i].normal + glm::vec3(0.5f), 1.0f);
-			pcp.push_back(p);
-		}
-	}
-
-	if(m_pConfManager->GetConfVars()->DrawBIDIRSamplesMode == 3)
-	{
-		for (int i = 0; i < visiblesASS.size(); ++i)
-		{
-			POINT_CLOUD_POINT p;
-			p.position = glm::vec4(visiblesASS[i].position + m_pConfManager->GetConfVars()->DisplacePCP * visiblesASS[i].normal, 1.0f);
-			p.color = glm::vec4(0.5f * visiblesASS[i].normal + glm::vec3(0.5f), 1.0f);
+			p.position = glm::vec4(visibles[i].position + m_pConfManager->GetConfVars()->DisplacePCP * visibles[i].normal, 1.0f);
+			p.color = glm::vec4(0.5f * visibles[i].normal + glm::vec3(0.5f), 1.0f);
 			pcp.push_back(p);
 		}
 	}
@@ -1803,8 +1791,6 @@ void Renderer::InitDebugLights()
 	m_pAVPLImportanceSampling->UpdateCurrentAntiirradiance(m_pNormalizeRenderTarget->GetBuffer(2));
 	m_pAVPLImportanceSampling->SetNumberOfSceneSamples(m_pConfManager->GetConfVars()->NumSceneSamples);
 	m_pAVPLImportanceSampling->CreateSceneSamples();
-
-	m_pBidirInstantRadiosity->CreateSceneSamples(true);
 
 	m_pCPUTimer->Start();
 	//scene->CreatePaths(m_DebugAVPLs, m_CollectedAVPLs, m_CollectedImportanceSampledAVPLs, m_ProfileFrame, m_pConfManager->GetConfVars()->NumPaths);
