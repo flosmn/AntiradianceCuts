@@ -53,11 +53,15 @@ float CalcFPS();
 
 void Render()
 {
+	/*
 	if(g_pConfigManager->GetConfVars()->SeparateDirectIndirectLighting)
 		g_pRenderer->RenderDirectIndirectLight();
 	else
 		g_pRenderer->Render();
-	
+	*/
+	g_pRenderer->Render();
+	//g_pRenderer->RenderPathTracingReference();
+
 	g_pGUI->Render(CalcFPS());
 
 	SwapBuffers(g_HDC);

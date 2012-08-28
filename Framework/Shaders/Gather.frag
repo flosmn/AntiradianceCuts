@@ -9,7 +9,7 @@ uniform info_block
 {
 	int numLights;
 	int numClusters;
-	int drawLightingOfLight;
+	int UseIBL;
 	int filterAVPLAtlas;
 	
 	int lightTreeCutDepth;
@@ -44,6 +44,7 @@ layout(location = 2) out vec4 outputAntiradiance;
 layout(binding=0) uniform sampler2D samplerPositionWS;
 layout(binding=1) uniform sampler2D samplerNormalWS;
 layout(binding=2) uniform samplerBuffer samplerLightBuffer;
+layout(binding=3) uniform samplerCube samplerCubeMap;
 
 float G(vec3 p1, vec3 n1, vec3 p2, vec3 n3);
 float G_CLAMP(vec3 p1, vec3 n1, vec3 p2, vec3 n3);
@@ -125,7 +126,7 @@ void main()
 		outputRadiance += radiance;
 		outputAntiradiance += antiradiance;
 	}
-	
+			
 	outputDiff.w = 1.f;
 	outputRadiance.w = 1.f;
 	outputAntiradiance.w = 1.f;

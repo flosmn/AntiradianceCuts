@@ -383,3 +383,35 @@ float Luminance(glm::vec4 v)
 {
 	return Luminance(glm::vec3(v));
 }
+
+float ProbPSA(const SceneSample& from, const SceneSample& to)
+{
+	float pdf = 0.f;
+	glm::vec3 direction = glm::normalize(to.position - from.position);
+	GetRandomSampleDirectionProbability(from.normal, direction, pdf, 1);
+	pdf = pdf / glm::dot(from.normal, direction);
+	return pdf;
+}
+
+float ProbSA(const SceneSample& from, const SceneSample& to)
+{
+	float pdf = 0.f;
+	glm::vec3 direction = glm::normalize(to.position - from.position);
+	GetRandomSampleDirectionProbability(from.normal, direction, pdf, 1);
+	return pdf;
+}
+
+float ProbA(const SceneSample& from, const SceneSample& to)
+{
+	return G(from, to) * ProbPSA(from, to);
+}
+
+float G(const SceneSample& ss1, const SceneSample& ss2)
+{
+	const glm::vec3 direction12 = glm::normalize(ss2.position - ss1.position);
+	const float cos_theta1 = glm::dot(ss1.normal, direction12);
+	const float cos_theta2 = glm::dot(ss2.normal, -direction12);
+	const float dist = glm::length(ss2.position - ss1.position);
+
+	return cos_theta1 * cos_theta2 / (dist * dist);
+}

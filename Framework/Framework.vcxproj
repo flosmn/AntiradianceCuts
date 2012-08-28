@@ -91,11 +91,14 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v4.2\lib\x64;$(OPENCL_LIB_PATH);external/lib;external/lib/assimp_debug_x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>assimp.lib;glew32.lib;glu32.lib;opengl32.lib;anttweakbar64.lib;opencl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>assimp.lib;glew32.lib;glu32.lib;opengl32.lib;anttweakbar64.lib;opencl.lib;DevIL.lib;ILU.lib;ILUT.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "external\dll\AntTweakBar64.dll" "$(Outdir)" /Y
-xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
+xcopy "external\dll\glew32.dll" "$(Outdir)" /Y
+xcopy "external\dll\ILU.dll" "$(Outdir)" /Y
+xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
+xcopy "external\dll\DevIL.dll" "$(Outdir)" /Y</Command>
     </PostBuildEvent>
     <ProjectReference>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
@@ -128,11 +131,15 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>external/lib/assimp_release_x64;C:\Program Files %28x86%29\AMD APP\lib\x86_64;external/lib;$(CUDA_LIB_PATH);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>assimp.lib;glew32.lib;glu32.lib;opengl32.lib;anttweakbar64.lib;opencl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>assimp.lib;glew32.lib;glu32.lib;opengl32.lib;anttweakbar64.lib;opencl.lib;DevIL.lib;ILU.lib;ILUT.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "external\dll\AntTweakBar64.dll" "$(Outdir)" /Y
-xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
+xcopy "external\dll\glew32.dll" "$(Outdir)" /Y
+xcopy "external\dll\DevIl.dll" "$(Outdir)" /Y
+xcopy "external\dll\ILU.dll" "$(Outdir)" /Y
+xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
+</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -145,10 +152,13 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
     <ClCompile Include="CConfigManager.cpp" />
     <ClCompile Include="CGBuffer.cpp" />
     <ClCompile Include="CGUI.cpp" />
+    <ClCompile Include="CImage.cpp" />
+    <ClCompile Include="CImagePlane.cpp" />
     <ClCompile Include="CKdTreeAccelerator.cpp" />
     <ClCompile Include="CLightTree.cpp" />
     <ClCompile Include="COctahedronAtlas.cpp" />
     <ClCompile Include="COctahedronMap.cpp" />
+    <ClCompile Include="CPathTracingIntegrator.cpp" />
     <ClCompile Include="CPbrtKdTreeAccelerator.cpp" />
     <ClCompile Include="CPointCloud.cpp" />
     <ClCompile Include="CPriorityQueue.cpp" />
@@ -177,6 +187,7 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
     <ClCompile Include="OCLResources\COCLProgram.cpp" />
     <ClCompile Include="OCLResources\COCLResource.cpp" />
     <ClCompile Include="OCLResources\OCLUtil.cpp" />
+    <ClCompile Include="OGLResources\COGLCubeMap.cpp" />
     <ClCompile Include="OGLResources\COGLBindLock.cpp" />
     <ClCompile Include="OGLResources\COGLFrameBuffer.cpp" />
     <ClCompile Include="OGLResources\COGLProgram.cpp" />
@@ -210,10 +221,13 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
     <ClInclude Include="CConfigManager.h" />
     <ClInclude Include="CGBuffer.h" />
     <ClInclude Include="CGUI.h" />
+    <ClInclude Include="CImage.h" />
+    <ClInclude Include="CImagePlane.h" />
     <ClInclude Include="CKdTreeAccelerator.h" />
     <ClInclude Include="CLightTree.h" />
     <ClInclude Include="COctahedronAtlas.h" />
     <ClInclude Include="COctahedronMap.h" />
+    <ClInclude Include="CPathTracingIntegrator.h" />
     <ClInclude Include="CPbrtKdTreeAccelerator.h" />
     <ClInclude Include="CPointCloud.h" />
     <ClInclude Include="CPriorityQueue.h" />
@@ -247,6 +261,7 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
     <ClInclude Include="OCLResources\OCLUtil.h" />
     <ClInclude Include="GlmUtil.h" />
     <ClInclude Include="OctahedronUtil.h" />
+    <ClInclude Include="OGLResources\COGLCubeMap.h" />
     <ClInclude Include="OGLResources\COGLBindLock.h" />
     <ClInclude Include="OGLResources\COGLBindSlot.h" />
     <ClInclude Include="OGLResources\COGLContext.h" />
@@ -290,6 +305,7 @@ xcopy "external\dll\glew32.dll" "$(Outdir)" /Y</Command>
     <None Include="Shaders\CreateGBuffer.vert" />
     <None Include="Shaders\CreateSM.frag" />
     <None Include="Shaders\CreateSM.vert" />
+    <None Include="Shaders\DirectEnvmapLighting.frag" />
     <None Include="Shaders\DrawAreaLight.frag" />
     <None Include="Shaders\DrawAreaLight.vert" />
     <None Include="Shaders\DrawOctahedron.frag" />

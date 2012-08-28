@@ -49,7 +49,10 @@ public:
 	void LoadSibernik();
 	void LoadSimpleScene();
 	void LoadCornellBoxDragon();
+	void LoadBuddha();
 		
+	bool HasLightSource() { return m_HasLightSource; }
+
 	bool IntersectRayScene(const Ray& ray, float* t, Intersection *pIntersection, CPrimitive::IsectMode isectMode);
 	bool IntersectRaySceneSimple(const Ray& ray, float* t, Intersection *pIntersection, CPrimitive::IsectMode isectMode);
 
@@ -69,6 +72,8 @@ public:
 	uint GetNumAVPLsAfterIS() { return m_NumAVPLsAfterIS; }
 
 	bool ImportanceSampling(AVPL& avpl, float* scale);
+	bool Visible(const SceneSample& ss1, const SceneSample& ss2);
+	void SampleLightSource(SceneSample& ss);
 
 private:
 	void ClearPath();
@@ -96,6 +101,8 @@ private:
 
 	CConfigManager* m_pConfManager;
 	CAVPLImportanceSampling* m_pAVPLImportanceSampling;
+
+	bool m_HasLightSource;
 };
 
 #endif SCENE_H

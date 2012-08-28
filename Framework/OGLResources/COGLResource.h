@@ -16,7 +16,7 @@ class COGLResource
 
 public:
 	enum COGLResourceType { COGL_TEXTURE_2D, COGL_FRAMEBUFFER, COGL_RENDERBUFFER, COGL_VERTEXBUFFER,
-		COGL_VERTEXARRAY, COGL_UNIFORMBUFFER, COGL_PROGRAM, COGL_SAMPLER, COGL_TEXTURE_BUFFER };
+		COGL_VERTEXARRAY, COGL_UNIFORMBUFFER, COGL_PROGRAM, COGL_SAMPLER, COGL_TEXTURE_BUFFER, COGL_CUBE_MAP };
 
 	COGLResource(COGLResourceType resourceType, std::string debugName);
 	virtual ~COGLResource();
@@ -60,6 +60,7 @@ private:
 	static std::map<COGLBindSlot, std::string> mapSlotsToCOGLVERTEXARRAY;
 	static std::map<COGLBindSlot, std::string> mapSlotsToCOGLUNIFORMBUFFER;
 	static std::map<COGLBindSlot, std::string> mapSlotsToCOGLPROGRAM;
+	static std::map<COGLBindSlot, std::string> mapSlotsToCOGLCUBEMAP;
 };
 
 

@@ -162,6 +162,13 @@ Ray CCamera::GetEyeRay(float p_x, float p_y)
 	return r;
 }
 
+Ray CCamera::GetEyeRay(glm::vec2& pixel)
+{
+	glm::vec2 range(m_Width, m_Height);
+	pixel = GetUniformSample2D(range);
+	return GetEyeRay(pixel.x, pixel.y);
+}
+
 void CCamera::GetEyeRays(std::vector<Ray>& rays, std::vector<glm::vec2>& samples, uint numRays)
 {
 	rays.clear();
@@ -188,4 +195,35 @@ float CCamera::GetRho()
 glm::vec3 CCamera::GetViewDirection()
 {
 	return glm::normalize(m_Center[m_UseConfig] - m_Position[m_UseConfig]);
+}
+
+glm::vec4 CCamera::GetWeight(const SceneSample& ss)
+{
+	SceneSample cam;
+	cam.position = GetPosition();
+	cam.normal = GetViewDirection();
+	
+	glm::vec3 d_10 = ss.position - cam.position;
+	glm::vec3 d_01 = cam.position - ss.position;
+
+	float w = G(ss, cam) * powf(glm::dot(GetViewDirection(), d_10), 3.f)/glm::dot(ss.normal, d_01) * GetRho();
+
+	return glm::vec4(w);
+}
+
+SceneSample CCamera::GetCameraAsSceneSample()
+{
+	SceneSample cam;
+	cam.position = GetPosition();
+	cam.normal = GetViewDirection();
+	return cam;
+}
+
+float CCamera::GetProbWrtArea(const SceneSample& ss)
+{
+	const SceneSample cam = GetCameraAsSceneSample();
+	const glm::vec3 d = ss.position - cam.position;
+	
+	const float temp = powf(glm::dot(cam.normal, d), 3.f)/glm::dot(ss.normal, -d) * GetRho();
+	return 1.f/temp;
 }

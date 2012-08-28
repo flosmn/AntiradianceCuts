@@ -15,9 +15,12 @@ struct TRANSFORM
 
 struct MATERIAL
 {
-	MATERIAL() : diffuseColor(glm::vec4(0.f, 0.f, 0.f, 0.f)) {}
+	MATERIAL() : 
+		emissive(glm::vec4(0.f, 0.f, 0.f, 0.f)),
+		diffuse(glm::vec4(0.f, 0.f, 0.f, 0.f)) {}
 
-	glm::vec4 diffuseColor;
+	glm::vec4 emissive;
+	glm::vec4 diffuse;
 };
 
 struct MODEL
@@ -101,7 +104,7 @@ struct INFO
 {
 	int numLights;
 	int numClusters;
-	int drawLightingOfLight;
+	int UseIBL;
 	int filterAVPLAtlas;
 	
 	int lightTreeCutDepth;

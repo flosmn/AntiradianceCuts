@@ -68,10 +68,10 @@ public:
 		memset(m_pVertexTexCoords, 0 , numberOfVertices * sizeof(glm::vec3));
 
 		// positions
-		m_pVertexPositions[0] = glm::vec4(-1.0f, -1.0f, 0.0f, 1.0f);
-		m_pVertexPositions[1] = glm::vec4(-1.0f,  1.0f, 0.0f, 1.0f);
-		m_pVertexPositions[2] = glm::vec4( 1.0f,  1.0f, 0.0f, 1.0f);
-		m_pVertexPositions[3] = glm::vec4( 1.0f, -1.0f, 0.0f, 1.0f);
+		m_pVertexPositions[0] = glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f);
+		m_pVertexPositions[1] = glm::vec4(-1.0f,  1.0f, -1.0f, 1.0f);
+		m_pVertexPositions[2] = glm::vec4( 1.0f,  1.0f, -1.0f, 1.0f);
+		m_pVertexPositions[3] = glm::vec4( 1.0f, -1.0f, -1.0f, 1.0f);
 
 		// texture coordinates
 		m_pVertexTexCoords[0] = glm::vec3(0.0f, 0.0f, 0.0f);

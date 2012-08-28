@@ -140,13 +140,19 @@ bool CModel::Init(std::string name)
  		
         // create material uniform buffer
         struct aiMaterial *mtl = scene->mMaterials[mesh->mMaterialIndex];
-         
-        glm::vec4 diffuse = glm::vec4(0.8f, 0.8f, 0.8f, 1.f);
-        aiColor4D d;
+        
+		aiColor4D d;
+
+        glm::vec4 diffuse = glm::vec4(0.8f, 0.8f, 0.8f, 1.f);        
         if(AI_SUCCESS == aiGetMaterialColor(mtl, AI_MATKEY_COLOR_DIFFUSE, &d))
             diffuse = glm::vec4(d.r, d.g, d.b, d.a);
+
+		glm::vec4 emissive = glm::vec4(0.0f, 0.0f, 0.0f, 0.f);
+		if(AI_SUCCESS == aiGetMaterialColor(mtl, AI_MATKEY_COLOR_EMISSIVE, &d))
+            emissive = glm::vec4(d.r, d.g, d.b, d.a);
         
-		material.SetDiffuseColor(diffuse);
+		material.SetDiffuse(diffuse);
+		material.SetEmissive(emissive);
 		meshGeometry.SetMeshMaterial(material);
 
 		CSubModel* subModel = new CSubModel();

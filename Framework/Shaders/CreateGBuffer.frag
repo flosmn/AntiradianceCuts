@@ -4,7 +4,8 @@ layout(std140) uniform;
 
 uniform material
 {
-	vec4 diffuseMaterial;
+	vec4 emission;
+	vec4 diffuse;
 } uMaterial;
 
 smooth in vec4 normalWS;
@@ -18,5 +19,5 @@ void main()
 {
 	outputPositionWS = positionWS;
 	outputNormalWS = vec4(normalize(normalWS.xyz), 1.f);
-	outputMaterial = uMaterial.diffuseMaterial;
+	outputMaterial = uMaterial.diffuse;
 }

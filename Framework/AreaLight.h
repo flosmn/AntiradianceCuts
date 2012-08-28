@@ -6,6 +6,9 @@
 
 #include "Defines.h"
 
+#include <vector>
+
+class CTriangle;
 class CModel;
 class CCamera;
 class Light;
@@ -43,6 +46,10 @@ public:
 	void SetFlux(glm::vec3 _flux);
 	void SetIntensity(glm::vec3 _intensity);
 	void SetRadiance(glm::vec3 _radiance);
+
+	void GetTrianglesWS(std::vector<CTriangle*>& triangles);
+
+	void Update();
 
 private:
 	void UpdateWorldTransform();

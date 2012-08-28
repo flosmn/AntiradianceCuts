@@ -400,8 +400,15 @@ bool CObjFileLoader::ParseMtlFileLine(const std::string& line, std::vector<CMesh
 		float r = 0.f, g = 0.f, b = 0.f, a = 0.f;
 		ss >> r >> g >> b >> a;
 
-		m_pCurrentMaterial->SetDiffuseColor(glm::vec4(r, g, b, a));
+		m_pCurrentMaterial->SetDiffuse(glm::vec4(r, g, b, a));
 	}
-	
+	else if (op.compare("Ke") == 0) 
+	{
+		float r = 0.f, g = 0.f, b = 0.f, a = 0.f;
+		ss >> r >> g >> b >> a;
+
+		m_pCurrentMaterial->SetEmissive(glm::vec4(r, g, b, a));
+	}
+
 	return true;
 }

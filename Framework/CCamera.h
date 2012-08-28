@@ -6,6 +6,7 @@ typedef unsigned int uint;
 #include "glm/glm.hpp"
 
 #include "Ray.h"
+#include "Intersection.h"
 
 #include <vector>
 
@@ -51,10 +52,15 @@ public:
 
 	Ray GetEyeRay();
 	Ray GetEyeRay(float p_x, float p_y);
+	Ray GetEyeRay(glm::vec2& pixel);
 	void GetEyeRays(std::vector<Ray>& rays, std::vector<glm::vec2>& samples, uint numRays);
 	float GetEyeRayPdf();
+	SceneSample GetCameraAsSceneSample();
+	float GetProbWrtArea(const SceneSample& ss);
 
 	float GetRho();
+
+	glm::vec4 GetWeight(const SceneSample& ss);
 
 	void UpdateData();
 

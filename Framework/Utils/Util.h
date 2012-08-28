@@ -8,6 +8,8 @@ typedef unsigned int uint;
 #include "..\Defines.h"
 #include "..\CTriangle.h"
 #include "..\Ray.h"
+#include "..\Intersection.h"
+#include "..\Scene.h"
 
 #include "..\Utils\rand.h"
 
@@ -26,6 +28,11 @@ glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, float&pdf, uint
 glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, const float u1, const float u2, float&pdf, uint order);
 glm::vec3 SampleConeDirection(const glm::vec3& axis, const float& theta, const float& u1, const float& u2, float* pdf);
 glm::vec2 ConcentricSampleDisk(float u1, float u2);
+
+float ProbPSA(const SceneSample& from, const SceneSample& to);
+float ProbPS(const SceneSample& from, const SceneSample& to);
+float ProbA(const SceneSample& from, const SceneSample& to);
+float G(const SceneSample& ss1, const SceneSample& ss2);
 
 void GetStratifiedSamples2D(std::vector<glm::vec2>& samples, const glm::vec2& range, const uint numSamples);
 glm::vec2 GetUniformSample2D(const glm::vec2& range);

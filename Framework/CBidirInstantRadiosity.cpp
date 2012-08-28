@@ -23,6 +23,8 @@ CBidirInstantRadiosity::~CBidirInstantRadiosity()
 
 void CBidirInstantRadiosity::CreatePaths(std::vector<AVPL>& avpls, int& numPaths, bool profile)
 {
+	return;
+	
 	m_NumVisibles = m_pConfManager->GetConfVars()->NumSamplesForPESS;
 	m_Visibles.clear();
 	CreateVisibles(m_Visibles, m_NumVisibles);
@@ -168,7 +170,7 @@ bool CBidirInstantRadiosity::CreateAVPLAtSceneSample(const SceneSample& ss, cons
 	// gather information for the new VPL
 	glm::vec3 pos = ss.position;
 	glm::vec3 norm = ss.normal;
-	glm::vec3 rho = glm::vec3(ss.material.diffuseColor);
+	glm::vec3 rho = glm::vec3(ss.material.diffuse);
 	
 	glm::vec3 intensity = glm::vec3(0.f);
 	if(ss.pdf > 0.f && ss_type == SS)
@@ -287,7 +289,7 @@ void CBidirInstantRadiosity::CreateVisibles(std::vector<SceneSample>& sceneSampl
 			glm::vec3 v = m_pScene->GetCamera()->GetViewDirection();
 			const float cos_theta_x0 = glm::dot(v, e.d);
 			const float cos_theta_x1 = glm::dot(ss.normal, -e.d);
-			const float rho = 1.f; //m_pScene->GetCamera()->GetRho();
+			const float rho = m_pScene->GetCamera()->GetRho();
 			ss.pdf = cos_theta_x1 / cos_theta_x0;
 			sceneSamples.push_back(ss);
 		}

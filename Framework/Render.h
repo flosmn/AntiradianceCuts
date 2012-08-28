@@ -17,6 +17,8 @@ class CCamera;
 class CConfigManager;
 class CShadowMap;
 class CPostprocess;
+class CImagePlane;
+class CPathTracingIntegrator;
 
 class CAccumulationBuffer;
 class CGBuffer;
@@ -43,6 +45,7 @@ class COGLTexture2D;
 class COGLTextureBuffer;
 class COGLContext;
 class COGLRenderTarget;
+class COGLCubeMap;
 
 class COCLContext;
 class COCLBuffer;
@@ -57,6 +60,7 @@ public:
 
 	void Render();
 	void RenderDirectIndirectLight();
+	void RenderPathTracingReference();
 
 	void CancelRender();
 
@@ -103,6 +107,8 @@ private:
 	void Shade(CRenderTarget* target, CRenderTarget* source);	
 	void Add(CRenderTarget* target, CRenderTarget* source1, CRenderTarget* source2);
 
+	void DirectEnvMapLighting();
+
 	void InitDebugLights();
 	
 	void DetermineUsedAvpls(const std::vector<AVPL>& avpls, std::vector<AVPL>& used);
@@ -125,6 +131,8 @@ private:
 
 	float GetAntiradFilterNormFactor();
 	float IntegrateGauss();
+
+	void UpdateTransform();
 
 	CCamera *camera;
 	CCamera *m_pClusterRenderCamera;
@@ -150,6 +158,7 @@ private:
 	CProgram* m_pNormalizeProgram;
 	CProgram* m_pShadeProgram;
 	CProgram* m_pAddProgram;
+	CProgram* m_pDirectEnvmapLighting;
 		
 	CRenderTarget* m_pLightDebugRenderTarget;
 	CRenderTarget* m_pPostProcessRenderTarget;
@@ -177,9 +186,11 @@ private:
 	COGLUniformBuffer* m_pUBAreaLight;
 	COGLUniformBuffer* m_pUBModel;
 	COGLUniformBuffer* m_pUBAtlasInfo;
-
+	
 	COGLTexture2D* m_pDepthBuffer;
 	COGLTexture2D* m_pTestTexture;
+
+	COGLCubeMap* m_pCubeMap;
 
 	COGLContext* m_pOGLContext;
 
@@ -189,6 +200,7 @@ private:
 	CProgram* m_pPointCloudProgram;
 	CProgram* m_pAreaLightProgram;
 	CProgram* m_pDrawOctahedronProgram;
+	CProgram* m_pSkyboxProgram;
 
 	COGLSampler* m_pGLLinearSampler;
 	COGLSampler* m_pGLPointSampler;
@@ -232,6 +244,9 @@ private:
 	CTimer* m_pResultTimer;
 	CTimer* m_pCPUFrameProfiler;
 	CTimer* m_pGPUFrameProfiler;
+
+	CImagePlane* m_pImagePlane;
+	CPathTracingIntegrator* m_pPathTracingIntegrator;
 };
 
 #endif

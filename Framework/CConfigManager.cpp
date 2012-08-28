@@ -25,6 +25,8 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->FillAvplAltasOnGPU = m_pConfVarsGUI->FillAvplAltasOnGPU = 1;
 	m_pConfVars->UseLightTree = m_pConfVarsGUI->UseLightTree = 0;
 	m_pConfVars->LimitBounces = m_pConfVarsGUI->LimitBounces = -1;
+
+	m_pConfVars->UseIBL = m_pConfVarsGUI->UseIBL = 0;
 	
 	m_pConfVars->GeoTermLimitRadiance = m_pConfVarsGUI->GeoTermLimitRadiance = 1.0f;
 	m_pConfVars->GeoTermLimitAntiradiance = m_pConfVarsGUI->GeoTermLimitAntiradiance = 1.0f;

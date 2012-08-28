@@ -12,10 +12,13 @@ uniform camera
 	int height;
 } uCamera;
 
+
+in vec3 direction;
 out vec4 outputColor;
 
-layout(binding=0) uniform sampler2D samplerIrradiance;
-layout(binding=1) uniform sampler2D samplerMaterial;
+layout(binding=0) uniform sampler2D samplerMaterial;
+layout(binding=1) uniform sampler2D samplerIrradiance;
+layout(binding=2) uniform samplerCube samplerCubeMap;
 
 void main()
 {
@@ -23,12 +26,14 @@ void main()
 	coord.x /= uCamera.width;
 	coord.y /= uCamera.height;
 
+	outputColor = texture(samplerCubeMap, normalize(direction));
+	
 	vec4 cIrradiance = texture2D(samplerIrradiance, coord);
 	cIrradiance = max(cIrradiance, vec4(0.f, 0.f, 0.f, 0.f));
 
 	vec4 cAlbedo = texture2D(samplerMaterial, coord);
-		
-	outputColor = ONE_OVER_PI * cAlbedo * cIrradiance;
+	
+	outputColor = ONE_OVER_PI * cAlbedo* cIrradiance;
 	outputColor.w = 1.0f;
 }
 

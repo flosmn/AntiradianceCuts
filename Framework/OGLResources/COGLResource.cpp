@@ -181,6 +181,7 @@ std::map<COGLBindSlot, std::string>& COGLResource::GetMapForResourceType(COGLRes
 	case COGL_VERTEXARRAY: return mapSlotsToCOGLVERTEXARRAY;
 	case COGL_UNIFORMBUFFER: return mapSlotsToCOGLUNIFORMBUFFER;
 	case COGL_PROGRAM: return mapSlotsToCOGLPROGRAM;
+	case COGL_CUBE_MAP: return mapSlotsToCOGLCUBEMAP;
 
 	default: std::cout << "Invalid resource type" << std::endl;
 			 return mapSlotsToCOGLTEXTURE2D;
@@ -227,3 +228,4 @@ std::map<COGLBindSlot, std::string> COGLResource::mapSlotsToCOGLVERTEXBUFFER;
 std::map<COGLBindSlot, std::string> COGLResource::mapSlotsToCOGLVERTEXARRAY;
 std::map<COGLBindSlot, std::string> COGLResource::mapSlotsToCOGLUNIFORMBUFFER;
 std::map<COGLBindSlot, std::string> COGLResource::mapSlotsToCOGLPROGRAM;
+std::map<COGLBindSlot, std::string> COGLResource::mapSlotsToCOGLCUBEMAP;

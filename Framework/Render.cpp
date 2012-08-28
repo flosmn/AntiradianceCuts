@@ -29,6 +29,8 @@
 #include "CPriorityQueue.h"
 #include "CAVPLImportanceSampling.h"
 #include "CBidirInstantRadiosity.h"
+#include "CImagePlane.h"
+#include "CPathTracingIntegrator.h"
 
 #include "LightTreeTypes.h"
 
@@ -48,6 +50,7 @@
 #include "OGLResources\COGLProgram.h"
 #include "OGLResources\COGLSampler.h"
 #include "OGLResources\COGLTextureBuffer.h"
+#include "OGLResources\COGLCubeMap.h"
 
 #include "OCLResources\COCLContext.h"
 #include "OCLResources\COCLProgram.h"
@@ -91,6 +94,8 @@ Renderer::Renderer(CCamera* _camera) {
 	
 	m_pTextureViewer = new CTextureViewer();
 
+	m_pCubeMap = new COGLCubeMap("Renderer.m_pCubeMap");
+
 	m_pUBTransform = new COGLUniformBuffer("Renderer.m_pUBTransform");
 	m_pUBMaterial = new COGLUniformBuffer("Renderer.m_pUBMaterial");
 	m_pUBLight = new COGLUniformBuffer("Renderer.m_pUBLight");
@@ -122,6 +127,7 @@ Renderer::Renderer(CCamera* _camera) {
 	m_pNormalizeProgram = new CProgram("Renderer.m_pNormalizeProgram", "Shaders\\Gather.vert", "Shaders\\Normalize.frag");
 	m_pShadeProgram = new CProgram("Renderer.m_pShadeProgram", "Shaders\\Gather.vert", "Shaders\\Shade.frag");
 	m_pAddProgram = new CProgram("Renderer.m_pAddProgram", "Shaders\\Gather.vert", "Shaders\\Add.frag");
+	m_pDirectEnvmapLighting = new CProgram("Renderer.m_pDirectEnvmapLighting", "Shaders\\Gather.vert", "Shaders\\DirectEnvMapLighting.frag");
 
 	m_pCreateGBufferProgram = new CProgram("Renderer.m_pCreateGBufferProgram", "Shaders\\CreateGBuffer.vert", "Shaders\\CreateGBuffer.frag");
 	m_pCreateSMProgram = new CProgram("Renderer.m_pCreateSMProgram", "Shaders\\CreateSM.vert", "Shaders\\CreateSM.frag");
@@ -139,6 +145,9 @@ Renderer::Renderer(CCamera* _camera) {
 	m_pOGLClusterBuffer = new COGLTextureBuffer("Renderer.m_pOGLClusterBuffer");
 	
 	m_pAVPLPositions = new COGLTextureBuffer("Renderer.m_pAVPLPositions");
+
+	m_pImagePlane = new CImagePlane();
+	m_pPathTracingIntegrator = new CPathTracingIntegrator();
 		
 	m_pCPUTimer = new CTimer(CTimer::CPU);
 	m_pOGLTimer = new CTimer(CTimer::OGL);
@@ -180,6 +189,7 @@ Renderer::~Renderer() {
 	SAFE_DELETE(m_pNormalizeProgram);
 	SAFE_DELETE(m_pShadeProgram);
 	SAFE_DELETE(m_pAddProgram);
+	SAFE_DELETE(m_pDirectEnvmapLighting);
 	
 	SAFE_DELETE(m_pLightDebugRenderTarget);
 	SAFE_DELETE(m_pPostProcessRenderTarget);
@@ -213,6 +223,8 @@ Renderer::~Renderer() {
 
 	SAFE_DELETE(m_pDepthBuffer);
 	SAFE_DELETE(m_pTestTexture);
+
+	SAFE_DELETE(m_pCubeMap);
 	
 	SAFE_DELETE(m_pAVPLPositions);
 
@@ -232,6 +244,9 @@ Renderer::~Renderer() {
 
 	SAFE_DELETE(m_pAVPLImportanceSampling);
 	SAFE_DELETE(m_pBidirInstantRadiosity);
+
+	SAFE_DELETE(m_pImagePlane);
+	SAFE_DELETE(m_pPathTracingIntegrator);
 }
 
 bool Renderer::Init() 
@@ -266,6 +281,7 @@ bool Renderer::Init()
 	V_RET_FOF(m_pShadeProgram->Init());
 	V_RET_FOF(m_pAreaLightProgram->Init());
 	V_RET_FOF(m_pAddProgram->Init());
+	V_RET_FOF(m_pDirectEnvmapLighting->Init());
 	
 	V_RET_FOF(m_pGatherRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 4, m_pDepthBuffer));
 	V_RET_FOF(m_pNormalizeRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 3, 0));
@@ -281,7 +297,7 @@ bool Renderer::Init()
 	V_RET_FOF(m_pPostProcess->Init());
 	V_RET_FOF(m_pPostProcessRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 1, 0));
 	V_RET_FOF(m_pLightDebugRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 1, m_pDepthBuffer));
-
+		
 	m_pAreaLightProgram->BindUniformBuffer(m_pUBTransform, "transform");
 	m_pAreaLightProgram->BindUniformBuffer(m_pUBAreaLight, "arealight");
 
@@ -291,7 +307,11 @@ bool Renderer::Init()
 	V_RET_FOF(m_pGLLinearSampler->Init(GL_LINEAR, GL_LINEAR, GL_CLAMP, GL_CLAMP));
 	V_RET_FOF(m_pGLPointSampler->Init(GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT));
 	V_RET_FOF(m_pGLShadowMapSampler->Init(GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER));
-		
+	
+	m_pDirectEnvmapLighting->BindUniformBuffer(m_pUBCamera, "camera");
+	m_pDirectEnvmapLighting->BindSampler(0, m_pGLPointSampler);
+	m_pDirectEnvmapLighting->BindSampler(1, m_pGLPointSampler);
+
 	m_pGatherProgram->BindSampler(0, m_pGLPointSampler);
 	m_pGatherProgram->BindSampler(1, m_pGLPointSampler);
 	m_pGatherProgram->BindSampler(2, m_pGLPointSampler);
@@ -340,6 +360,7 @@ bool Renderer::Init()
 	m_pShadeProgram->BindSampler(0, m_pGLPointSampler);
 	m_pShadeProgram->BindSampler(1, m_pGLPointSampler);
 	m_pShadeProgram->BindUniformBuffer(m_pUBCamera, "camera");
+	m_pShadeProgram->BindUniformBuffer(m_pUBTransform, "transform");
 
 	m_pAddProgram->BindSampler(0, m_pGLPointSampler);
 	m_pAddProgram->BindSampler(1, m_pGLPointSampler);
@@ -355,7 +376,10 @@ bool Renderer::Init()
 	V_RET_FOF(m_pShadowMap->Init(2048));
 	
 	V_RET_FOF(m_pGBuffer->Init(camera->GetWidth(), camera->GetHeight(), m_pDepthBuffer));
-		
+	
+	m_pCubeMap->Init(512, 512, GL_RGBA32F, 10);
+	m_pCubeMap->LoadCubeMapFromPath("Resources\\CubeMaps\\Castle\\box\\");
+
 	scene = new Scene(camera, m_pConfManager);
 	scene->Init();
 	scene->LoadCornellBox();
@@ -394,11 +418,14 @@ bool Renderer::Init()
 	scene->SetAVPLImportanceSampling(m_pAVPLImportanceSampling);
 
 	m_pBidirInstantRadiosity = new CBidirInstantRadiosity(scene, m_pConfManager);
-		
+	
+	m_pImagePlane->Init(scene->GetCamera());
+	m_pPathTracingIntegrator->Init(scene, m_pImagePlane);
+	
 	InitDebugLights();
 		
 	ClearAccumulationBuffer();
-	
+
 	return true;
 }
 
@@ -433,6 +460,7 @@ void Renderer::Release()
 	m_pAreaLightProgram->Release();
 	m_pDrawOctahedronProgram->Release();
 	m_pAddProgram->Release();
+	m_pDirectEnvmapLighting->Release();
 
 	m_pGatherRenderTarget->Release();
 	m_pNormalizeRenderTarget->Release();
@@ -471,10 +499,14 @@ void Renderer::Release()
 		
 	m_pCLContext->Release();
 
+	m_pCubeMap->Release();
+
 	m_pLightTree->Release();
 	m_pClusterTree->Release();
 		
 	m_ClusterTestAVPLs.clear();
+
+	m_pImagePlane->Release();
 }
 
 void Renderer::ClusteringTestRender()
@@ -526,7 +558,6 @@ void Renderer::Render()
 		m_pResultTimer->Start();
 		m_pOGLTimer->Start();
 		CreateGBuffer();
-		m_pOGLTimer->Stop("CreateGBuffer");
 	}
 	
 	std::vector<AVPL> avpls;
@@ -681,10 +712,15 @@ void Renderer::Render()
 		}
 	}
 	
+	UpdateTransform();
+
 	if(m_ProfileFrame) gpuTimer.Start();
 		
 	Normalize(m_pNormalizeRenderTarget, m_pGatherRenderTarget, m_CurrentPath);
 	
+	//if(m_pConfManager->GetConfVars()->UseIBL)
+	//	DirectEnvMapLighting();
+
 	Shade(m_pShadeRenderTarget, m_pNormalizeRenderTarget);
 	if(m_ProfileFrame) gpuTimer.Stop("normalize and shade");
 		
@@ -740,8 +776,7 @@ void Renderer::Render()
 	
 	if(m_pConfManager->GetConfVars()->DrawCutSizes)
 	{
-		//m_pTextureViewer->DrawTexture(m_pGatherRenderTarget->GetBuffer(3), 0, 0, camera->GetWidth(), camera->GetHeight());
-		m_pTextureViewer->DrawTexture(m_pShadowMap->GetShadowMapTexture(), 0, 0, camera->GetWidth(), camera->GetHeight());
+		m_pTextureViewer->DrawTexture(m_pGatherRenderTarget->GetBuffer(3), 0, 0, camera->GetWidth(), camera->GetHeight());
 	}
 
 	if(m_pConfManager->GetConfVars()->DrawAVPLAtlas)
@@ -799,7 +834,6 @@ void Renderer::RenderDirectIndirectLight()
 		m_pGlobalTimer->Start();
 		m_pOGLTimer->Start();
 		CreateGBuffer();
-		m_pOGLTimer->Stop("CreateGBuffer");
 	}
 	
 	if(m_CurrentPath < m_pConfManager->GetConfVars()->NumPaths)
@@ -923,6 +957,8 @@ void Renderer::RenderDirectIndirectLight()
 		}
 	}	
 	
+	UpdateTransform();
+
 	int normFactorDirect = std::min(m_CurrentVPLDirect, m_pConfManager->GetConfVars()->NumVPLsDirectLight * m_pConfManager->GetConfVars()->NumVPLsDirectLightPerFrame);
 	int normFactorIndirect = std::min(m_CurrentPath, m_pConfManager->GetConfVars()->NumPaths * m_pConfManager->GetConfVars()->NumPathsPerFrame);
 	
@@ -1110,7 +1146,7 @@ void Renderer::Gather(const std::vector<AVPL>& avpls, CRenderTarget* pRenderTarg
 	INFO info;
 	info.numLights = (int)avpls.size();
 	info.filterAVPLAtlas = m_pConfManager->GetConfVars()->FilterAvplAtlasLinear;
-	info.drawLightingOfLight = m_pConfManager->GetConfVars()->DrawLightingOfLight;
+	info.UseIBL = m_pConfManager->GetConfVars()->UseIBL;
 	m_pUBInfo->UpdateData(&info);
 	
 	glDisable(GL_DEPTH_TEST);
@@ -1167,7 +1203,7 @@ void Renderer::GatherWithAtlas(const std::vector<AVPL>& avpls, CRenderTarget* pR
 
 		INFO info;
 		info.numLights = (int)avpls.size();
-		info.drawLightingOfLight = m_pConfManager->GetConfVars()->DrawLightingOfLight;
+		info.UseIBL = m_pConfManager->GetConfVars()->UseIBL;
 		info.filterAVPLAtlas = m_pConfManager->GetConfVars()->FilterAvplAtlasLinear;
 		m_pUBInfo->UpdateData(&info);
 
@@ -1290,7 +1326,7 @@ void Renderer::GatherWithClustering(const std::vector<AVPL>& avpls, CRenderTarge
 		else
 			info.numClusters = m_pClusterTree->GetClusteringSize();
 		
-		info.drawLightingOfLight = m_pConfManager->GetConfVars()->DrawLightingOfLight;
+		info.UseIBL = m_pConfManager->GetConfVars()->UseIBL;
 		info.filterAVPLAtlas = m_pConfManager->GetConfVars()->FilterAvplAtlasLinear;
 		info.lightTreeCutDepth = m_pConfManager->GetConfVars()->LightTreeCutDepth;
 		info.clusterRefinementThreshold = m_pConfManager->GetConfVars()->ClusterRefinementThreshold;
@@ -1380,8 +1416,10 @@ void Renderer::Shade(CRenderTarget* target, CRenderTarget* source)
 
 		COGLBindLock lockProgram(m_pShadeProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
 
-		COGLBindLock lock0(source->GetBuffer(0), COGL_TEXTURE0_SLOT);
-		COGLBindLock lock2(m_pGBuffer->GetMaterialTexture(), COGL_TEXTURE1_SLOT);
+		COGLBindLock lock0(m_pGBuffer->GetMaterialTexture(), COGL_TEXTURE0_SLOT);
+		COGLBindLock lock1(source->GetBuffer(0), COGL_TEXTURE1_SLOT);
+		if(m_pConfManager->GetConfVars()->UseIBL)
+			COGLBindLock lock3(m_pCubeMap, COGL_TEXTURE2_SLOT);
 
 		m_pFullScreenQuad->Draw();
 		
@@ -1437,19 +1475,12 @@ void Renderer::DrawLights(const std::vector<AVPL>& avpls, CRenderTarget* target)
 			positionData[i] = pcp[i].position;
 			colorData[i] = pcp[i].color;
 		}
-		
+
 		{
 			CRenderTargetLock lock(target);
 			
 			COGLBindLock lockProgram(m_pPointCloudProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
 			
-			TRANSFORM transform;
-			transform.M = IdentityMatrix();
-			transform.V = camera->GetViewMatrix();
-			transform.itM = IdentityMatrix();
-			transform.MVP = camera->GetProjectionMatrix() * camera->GetViewMatrix();
-			m_pUBTransform->UpdateData(&transform);
-		
 			glDepthMask(GL_FALSE);
 			m_pPointCloud->Draw(positionData, colorData, (int)pcp.size());		
 			glDepthMask(GL_TRUE);
@@ -1493,13 +1524,6 @@ void Renderer::DrawSceneSamples(CRenderTarget* target)
 			
 			COGLBindLock lockProgram(m_pPointCloudProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
 			
-			TRANSFORM transform;
-			transform.M = IdentityMatrix();
-			transform.V = camera->GetViewMatrix();
-			transform.itM = IdentityMatrix();
-			transform.MVP = camera->GetProjectionMatrix() * camera->GetViewMatrix();
-			m_pUBTransform->UpdateData(&transform);
-		
 			glDepthMask(GL_FALSE);
 			m_pPointCloud->Draw(positionData, colorData, (int)pcp.size());		
 			glDepthMask(GL_TRUE);
@@ -1570,13 +1594,6 @@ void Renderer::DrawBidirSceneSamples(CRenderTarget* target)
 			
 			COGLBindLock lockProgram(m_pPointCloudProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
 			
-			TRANSFORM transform;
-			transform.M = IdentityMatrix();
-			transform.V = camera->GetViewMatrix();
-			transform.itM = IdentityMatrix();
-			transform.MVP = camera->GetProjectionMatrix() * camera->GetViewMatrix();
-			m_pUBTransform->UpdateData(&transform);
-		
 			glDepthMask(GL_FALSE);
 			m_pPointCloud->Draw(positionData, colorData, (int)pcp.size());		
 			glDepthMask(GL_TRUE);
@@ -1612,6 +1629,29 @@ void Renderer::Add(CRenderTarget* target, CRenderTarget* source1, CRenderTarget*
 	}
 }
 
+void Renderer::DirectEnvMapLighting()
+{
+	CRenderTargetLock lock(m_pNormalizeRenderTarget);
+	{
+		glDisable(GL_DEPTH_TEST);
+		glDepthMask(GL_FALSE);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_ONE, GL_ONE);
+
+		COGLBindLock lockProgram(m_pDirectEnvmapLighting->GetGLProgram(), COGL_PROGRAM_SLOT);
+
+		COGLBindLock lock0(m_pGBuffer->GetPositionTextureWS(), COGL_TEXTURE0_SLOT);
+		COGLBindLock lock1(m_pGBuffer->GetNormalTexture(), COGL_TEXTURE1_SLOT);
+		COGLBindLock lock2(m_pCubeMap, COGL_TEXTURE2_SLOT);
+		
+		m_pFullScreenQuad->Draw();
+		
+		glDisable(GL_BLEND);
+		glEnable(GL_DEPTH_TEST);
+		glDepthMask(GL_TRUE);
+	}
+}
+
 void Renderer::DebugRender()
 {
 	// draw gbuffer info for debuging
@@ -1623,7 +1663,7 @@ void Renderer::DebugRender()
 		m_pTextureViewer->DrawTexture(m_pNormalizeRenderTarget->GetBuffer(0),  border, border, width, height);
 		m_pTextureViewer->DrawTexture(m_pNormalizeRenderTarget->GetBuffer(1),  3 * border + width, border, width, height);
 		m_pTextureViewer->DrawTexture(m_pNormalizeRenderTarget->GetBuffer(2),  border, 3 * border + height, width, height);
-		m_pTextureViewer->DrawTexture(m_pGBuffer->GetNormalTexture(),  3 * border + width, 3 * border + height, width, height);
+		m_pTextureViewer->DrawTexture(m_pGBuffer->GetMaterialTexture(),  3 * border + width, 3 * border + height, width, height);
 	}
 }
 
@@ -1693,6 +1733,8 @@ void Renderer::ClearAccumulationBuffer()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 
+	m_pImagePlane->Clear();
+
 	m_CurrentPath = 0;
 	m_CurrentVPLDirect = 0;
 	m_Finished = false;
@@ -1755,12 +1797,8 @@ glm::vec4 Renderer::ColorForLight(const AVPL& avpl)
 
 void Renderer::Export()
 {
-	m_Export->ExportPFM(m_pNormalizeRenderTarget->GetBuffer(0), "result.pfm");
-	m_Export->ExportPFM(m_pNormalizeRenderTarget->GetBuffer(1), "radiance.pfm");
-	m_Export->ExportPFM(m_pNormalizeRenderTarget->GetBuffer(2), "antiradiance.pfm");
-	m_Export->ExportPFM(m_pShadeRenderTarget->GetBuffer(0), "shade_result.pfm");
-	m_Export->ExportPFM(m_pLightDebugRenderTarget->GetBuffer(0), "lights.pfm");
-	m_Export->ExportPFM(m_pPostProcessRenderTarget->GetBuffer(0), "pp_result.pfm");
+	m_Export->ExportPFM(m_pShadeRenderTarget->GetBuffer(0), "result.pfm");
+	m_Export->ExportPFM(m_pImagePlane->GetOGLTexture(), "imageplane.pfm");
 }
 
 void Renderer::ExportPartialResult()
@@ -1793,11 +1831,18 @@ void Renderer::InitDebugLights()
 	m_pAVPLImportanceSampling->CreateSceneSamples();
 
 	m_pCPUTimer->Start();
-	//scene->CreatePaths(m_DebugAVPLs, m_CollectedAVPLs, m_CollectedImportanceSampledAVPLs, m_ProfileFrame, m_pConfManager->GetConfVars()->NumPaths);
-	int numPaths = 0;
-	m_pBidirInstantRadiosity->CreatePaths(m_DebugAVPLs, numPaths, false);
-	m_CurrentPath += numPaths;
-
+	if(m_pConfManager->GetConfVars()->UseBIDIR)
+	{
+		int numPaths = 0;
+		m_pBidirInstantRadiosity->CreatePaths(m_DebugAVPLs, numPaths, false);
+		m_CurrentPath += numPaths;
+	}
+	else
+	{
+		scene->CreatePaths(m_DebugAVPLs, m_CollectedAVPLs, m_CollectedImportanceSampledAVPLs, m_ProfileFrame, m_pConfManager->GetConfVars()->NumPaths);
+		m_CurrentPath += m_pConfManager->GetConfVars()->NumPaths;
+	}
+	
 	std::cout << "Number of AVPLs: " << m_DebugAVPLs.size() << std::endl;
 	m_pCPUTimer->Stop("CreatePaths");
 }
@@ -1875,4 +1920,20 @@ void Renderer::StartCollectingISAVPLs()
 void Renderer::EndCollectingISAVPLs()
 {
 	m_pConfManager->GetConfVars()->CollectISAVPLs = m_pConfManager->GetConfVarsGUI()->CollectISAVPLs = 0;
+}
+
+void Renderer::UpdateTransform()
+{
+	TRANSFORM transform;
+	transform.M = IdentityMatrix();
+	transform.V = camera->GetViewMatrix();
+	transform.itM = IdentityMatrix();
+	transform.MVP = camera->GetProjectionMatrix() * camera->GetViewMatrix();
+	m_pUBTransform->UpdateData(&transform);
+}
+
+void Renderer::RenderPathTracingReference()
+{
+	m_pPathTracingIntegrator->Integrate(64 * 64);
+	m_pTextureViewer->DrawTexture(m_pImagePlane->GetOGLTexture(), 0, 0, scene->GetCamera()->GetWidth(), scene->GetCamera()->GetHeight());
 }

@@ -28,6 +28,8 @@ struct CONF_VARS
 	float AntiradFilterK;
 	int LimitBounces;
 
+	int UseIBL;
+
 	float GeoTermLimitRadiance;
 	float GeoTermLimitAntiradiance;
 	int ClampGeoTerm;

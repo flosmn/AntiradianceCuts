@@ -27,6 +27,8 @@ typedef unsigned int uint;
 #include <algorithm>
 #include <iterator>
 
+const float EPSILON = 0.005f;
+
 Scene::Scene(CCamera* _camera, CConfigManager* pConfManager)
 {
 	m_Camera = _camera;
@@ -34,9 +36,11 @@ Scene::Scene(CCamera* _camera, CConfigManager* pConfManager)
 	m_CurrentBounce = 0;
 	m_pKdTreeAccelerator = 0;
 	m_pAVPLImportanceSampling = 0;
+	m_AreaLight = 0;
 
 	m_NumCreatedAVPLs = 0;
 	m_NumAVPLsAfterIS = 0;
+	m_HasLightSource = true;
 }
 
 Scene::~Scene()
@@ -54,7 +58,8 @@ bool Scene::Init()
 
 void Scene::Release()
 {
-	m_AreaLight->Release();
+	if(m_AreaLight)
+		m_AreaLight->Release();
 	
 	ClearScene();
 
@@ -118,11 +123,18 @@ void Scene::DrawScene(const glm::mat4& mView, const glm::mat4& mProj, COGLUnifor
 
 void Scene::DrawAreaLight(COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBAreaLight)
 {
-	m_AreaLight->Draw(m_Camera, pUBTransform, pUBAreaLight);
+	if(m_AreaLight)
+		m_AreaLight->Draw(m_Camera, pUBTransform, pUBAreaLight);
 }
 
 bool Scene::CreateAVPL(AVPL* predecessor, AVPL* newAVPL)
 {
+	if(!m_AreaLight)
+	{
+		newAVPL = 0;
+		return false;
+	}
+	
 	if(predecessor == 0)
 	{
 		// create VPL on light source
@@ -184,7 +196,7 @@ bool Scene::ContinueAVPLPath(AVPL* pred, AVPL* newAVPL, glm::vec3 direction, flo
 		// gather information for the new VPL
 		glm::vec3 pos = intersection.GetPosition();
 		glm::vec3 norm = intersection.GetPrimitive()->GetNormal();
-		glm::vec3 rho = glm::vec3(intersection.GetPrimitive()->GetMaterial().diffuseColor);
+		glm::vec3 rho = glm::vec3(intersection.GetPrimitive()->GetMaterial().diffuse);
 		const float cos_theta = glm::dot(pred_norm, direction);
 			
 		glm::vec3 intensity = rho/PI * pred->GetMaxIntensity() * cos_theta / pdf;	
@@ -296,7 +308,7 @@ bool Scene::ImportanceSampling(AVPL& avpl, float* scale)
 		
 	// create new primary light on light source
 	CreateAVPL(0, &pred);
-	//path.push_back(pred);
+	path.push_back(pred);
 	
 	m_CurrentBounce++;
 	
@@ -439,7 +451,7 @@ void Scene::LoadCornellBox()
 	ClearScene();
 
 	CModel* model = new CModel();
-	model->Init("cb-closed");
+	model->Init("cornellorg-boxes");
 	model->SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
 
 	m_Models.push_back(model);
@@ -462,7 +474,52 @@ void Scene::LoadCornellBox()
 	m_Camera->UseCameraConfig(2);
 	
 	glm::vec3 areaLightFrontDir = glm::vec3(0.0f, -1.0f, 0.0f);
-	glm::vec3 areaLightPosition = glm::vec3(270.f, 550.0f, 280.f);
+	glm::vec3 areaLightPosition = glm::vec3(270.f, 549.5f, 280.f);
+	
+	m_pConfManager->GetConfVars()->AreaLightFrontDirection[0] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[0] = areaLightFrontDir.x;
+	m_pConfManager->GetConfVars()->AreaLightFrontDirection[1] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[1] = areaLightFrontDir.y;
+	m_pConfManager->GetConfVars()->AreaLightFrontDirection[2] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[2] = areaLightFrontDir.z;
+
+	m_pConfManager->GetConfVars()->AreaLightPosX = m_pConfManager->GetConfVarsGUI()->AreaLightPosX = areaLightPosition.x;
+	m_pConfManager->GetConfVars()->AreaLightPosY = m_pConfManager->GetConfVarsGUI()->AreaLightPosY = areaLightPosition.y;
+	m_pConfManager->GetConfVars()->AreaLightPosZ = m_pConfManager->GetConfVarsGUI()->AreaLightPosZ = areaLightPosition.z;
+
+	float AreaLightRadianceScale = 100;
+	m_pConfManager->GetConfVars()->AreaLightRadianceScale = m_pConfManager->GetConfVarsGUI()->AreaLightRadianceScale = AreaLightRadianceScale;
+
+	m_AreaLight = new AreaLight(140.0f, 100.0f, 
+		areaLightPosition, 
+		areaLightFrontDir,
+		Orthogonal(areaLightFrontDir));
+
+	m_AreaLight->Init();
+
+	m_AreaLight->SetRadiance(glm::vec3(100.f, 100.f, 100.f));
+
+	m_pConfManager->GetConfVars()->UseIBL = m_pConfManager->GetConfVarsGUI()->UseIBL = 0;
+		
+	InitKdTree();
+}
+
+void Scene::LoadBuddha()
+{
+	ClearScene();
+
+	float scale = 300.f; 
+
+	CModel* model = new CModel();
+	model->Init("dragon43k");
+	model->SetWorldTransform(glm::scale(scale * glm::vec3(1.f, 1.f, 1.f)));
+
+	m_Models.push_back(model);
+
+	m_Camera->Init(0, glm::vec3(0.f, 273.f, -800.f), 
+		glm::vec3(0.f, 273.f, -799.f),
+		glm::vec3(0.f, 1.f, 0.f),
+		2.0f);
+
+	glm::vec3 areaLightFrontDir = glm::vec3(0.0f, -1.0f, 0.0f);
+	glm::vec3 areaLightPosition = glm::vec3(0.f, 800.0f, 0.f);
 	
 	m_pConfManager->GetConfVars()->AreaLightFrontDirection[0] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[0] = areaLightFrontDir.x;
 	m_pConfManager->GetConfVars()->AreaLightFrontDirection[1] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[1] = areaLightFrontDir.y;
@@ -483,6 +540,9 @@ void Scene::LoadCornellBox()
 	m_AreaLight->SetRadiance(glm::vec3(AreaLightRadianceScale));
 
 	m_AreaLight->Init();
+
+	m_pConfManager->GetConfVars()->UseIBL = m_pConfManager->GetConfVarsGUI()->UseIBL = 1;
+	//m_HasLightSource = false;
 
 	InitKdTree();
 }
@@ -601,6 +661,14 @@ void Scene::InitKdTree()
 			}
 		}
 	}
+
+	// add area light source
+	std::vector<CTriangle*> triangles;
+	m_AreaLight->GetTrianglesWS(triangles);
+	for(uint i = 0; i < triangles.size(); ++i)
+	{
+		m_Primitives.push_back(triangles[i]);
+	}
 	
 	m_pKdTreeAccelerator = new CKdTreeAccelerator(m_Primitives, 80, 1, 5, 0);
 	CTimer timer(CTimer::CPU);
@@ -622,6 +690,9 @@ void Scene::ReleaseKdTree()
 
 void Scene::UpdateAreaLights()
 {
+	if(!m_AreaLight)
+		return; 
+	
 	glm::vec3 pos = glm::vec3(
 		m_pConfManager->GetConfVars()->AreaLightPosX, 
 		m_pConfManager->GetConfVars()->AreaLightPosY, 
@@ -635,4 +706,45 @@ void Scene::UpdateAreaLights()
 	m_AreaLight->SetFrontDirection(front);
 
 	m_AreaLight->SetRadiance(glm::vec3(m_pConfManager->GetConfVars()->AreaLightRadianceScale));
+}
+
+bool Scene::Visible(const SceneSample& ss1, const SceneSample& ss2)
+{
+	glm::vec3 direction12 = glm::normalize(ss2.position - ss1.position);
+		
+	if(glm::dot(ss1.normal, direction12) <= 0.f || glm::dot(ss2.normal, -direction12) <= 0.f)
+		return false;
+
+	glm::vec3 ray_origin = ss1.position + EPSILON * direction12;
+	Ray r(ray_origin, direction12);
+	float dist = glm::length(ss2.position - ray_origin);
+
+	float t = 0.f;
+	Intersection intersection;
+	bool isect = IntersectRaySceneSimple(r, &t, &intersection, CPrimitive::FRONT_FACE);
+			
+	const float big = std::max(dist, t);
+	const float small = std::min(dist, t);
+
+	const float temp = small/big;
+
+	if(isect && temp > 0.99f ) {
+		return true;
+	}
+
+	return false;
+}
+
+void Scene::SampleLightSource(SceneSample& ss)
+{
+	float pdf = 0.f;
+	ss.position = m_AreaLight->SamplePos(pdf);
+	ss.normal = m_AreaLight->GetFrontDirection();
+	ss.pdf = pdf;
+	MATERIAL mat;
+	mat.emissive = glm::vec4(m_AreaLight->GetRadiance(), 1.f);
+	ss.material = mat;
+
+	if(!(pdf > 0.f))
+		std::cout << "Warning: pdf is 0" << std::endl;
 }
