@@ -7,6 +7,7 @@
 #include <vector>
 
 class CConfigManager;
+
 class Scene;
 
 class CBidirInstantRadiosity

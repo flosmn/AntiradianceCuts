@@ -13,16 +13,6 @@ struct TRANSFORM
 	glm::mat4 MVP;
 };
 
-struct MATERIAL
-{
-	MATERIAL() : 
-		emissive(glm::vec4(0.f, 0.f, 0.f, 0.f)),
-		diffuse(glm::vec4(0.f, 0.f, 0.f, 0.f)) {}
-
-	glm::vec4 emissive;
-	glm::vec4 diffuse;
-};
-
 struct MODEL
 {
 	glm::vec3 positionWS;
@@ -32,24 +22,29 @@ struct AVPL_STRUCT
 {
 	glm::mat4 ViewMatrix;
 	glm::mat4 ProjectionMatrix;
-	glm::vec4 I;	//Intensity;
-	glm::vec4 A;	//Antiintensity;
-	glm::vec4 pos;	// Position
-	glm::vec4 norm;	//Orientation;
-	glm::vec3 w_A;	//AntiintensityDirection;
-	float AngleFactor;
-	glm::vec3 DebugColor;
-	float Bounce;
+	glm::vec4 L;		// radiance
+	glm::vec4 A;		// antiradiance;
+	glm::vec4 pos;		// Position
+	glm::vec4 norm;		// orientation;
+	glm::vec4 w;		// direction of antiradiance, incident light direction;
+	glm::vec4 DebugColor;
+	float angleFactor;	
+	float bounce;
+	float materialIndex;
+	float padd0;
 };
 
 struct AVPL_BUFFER
 {
-	glm::vec4 I;	// Intensity;
-	glm::vec4 A;	// Antiintensity;
-	glm::vec4 pos;	// Position
-	glm::vec4 norm;	// Orientation;
-	glm::vec3 w_A;	// AntiintensityDirection;	
-	float AngleFactor;	// PI/AngleFactor = Half opening angleFactor of AR cone
+	glm::vec4 L;	// radiance;
+	glm::vec4 A;	// antiradiance;
+	glm::vec4 pos;	// position
+	glm::vec4 norm;	// orientation;
+	glm::vec4 w;	// direction of antiradiance, incident light direction;
+	float angleFactor;	// PI/AngleFactor = Half opening angleFactor of AR cone
+	float materialIndex;
+	float padd0;
+	float padd1;
 };
 
 struct CLUSTER_BUFFER

@@ -8,17 +8,20 @@
 
 #include <vector>
 
+typedef unsigned int uint;
+
 class CTriangle;
 class CModel;
 class CCamera;
 class Light;
 class COGLUniformBuffer;
+class CMaterialBuffer;
 
 class AreaLight
 {
 public:
 	AreaLight(float _width, float _height, glm::vec3 _centerPosition, 
-		glm::vec3 _frontDirection, glm::vec3 _upDirection);
+		glm::vec3 _frontDirection, glm::vec3 _upDirection, CMaterialBuffer* pMaterialBuffer);
 	~AreaLight();
 
 	bool Init();
@@ -49,6 +52,8 @@ public:
 
 	void GetTrianglesWS(std::vector<CTriangle*>& triangles);
 
+	uint GetMaterialIndex() { return m_MaterialIndex; }
+
 	void Update();
 
 private:
@@ -67,6 +72,9 @@ private:
 
 	float* m_pPlaneHammersleyNumbers;
 	int m_PlaneHammersleyIndex;
+
+	CMaterialBuffer* m_pMaterialBuffer;
+	uint m_MaterialIndex;
 };
 
 #endif

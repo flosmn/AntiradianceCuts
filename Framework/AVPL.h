@@ -6,12 +6,14 @@
 #include "Intersection.h"
 
 class CConfigManager;
+class CMaterialBuffer;
 
 class AVPL
 {
 public:
 	AVPL();
-	AVPL(glm::vec3 p, glm::vec3 n, glm::vec3 I, glm::vec3 A, glm::vec3 w_A, float m_ConeAngle, int bounce, CConfigManager* pConfManager);
+	AVPL(glm::vec3 p, glm::vec3 n, glm::vec3 L_in, glm::vec3 A, glm::vec3 w, float m_ConeAngle, int bounce, int materialIndex, 
+		CMaterialBuffer* pMaterialBuffer, CConfigManager* pConfManager);
 	~AVPL();
 
 	glm::mat4 GetViewMatrix() const;
@@ -19,15 +21,18 @@ public:
 
 	glm::vec3 GetPosition() const { return m_Position; }
 	glm::vec3 GetOrientation() const { return m_Orientation; }
-	glm::vec3 GetIntensity(const glm::vec3& w) const;
-	glm::vec3 GetAntiintensity(const glm::vec3& w) const;
-	glm::vec3 GetAntiradianceDirection() const { return m_AntiradianceDirection; }
-	glm::vec3 GetMaxAntiintensity() const { return m_Antiintensity; }
-	glm::vec3 GetMaxIntensity() const { return m_Intensity; }
-	float GetConeAngle() const { return m_ConeAngle; }
 	
-	void SetIntensity(glm::vec3 i) { m_Intensity = i; }
-	void SetAntiintensity(glm::vec3 a) { m_Antiintensity = a; }
+	glm::vec3 GetRadiance(const glm::vec3& w) const;
+	glm::vec3 GetAntiradiance(const glm::vec3& w) const;
+
+	glm::vec3 GetIncidentRadiance() const { return m_Radiance; }
+
+	glm::vec3 GetDirection() const { return m_Direction; }
+	float GetConeAngle() const { return m_ConeAngle; }
+	int GetMaterialIndex() const { return m_MaterialIndex; }
+	
+	void ScaleIncidentRadiance(float s) { m_Radiance *= s; }
+	void ScaleAntiradiance(float s) { m_Antiradiance *= s; }
 	
 	glm::vec3 GetIrradiance(const SceneSample& ss) const;
 	glm::vec3 GetAntiirradiance(const SceneSample& ss, const float angleFactor) const;
@@ -43,18 +48,21 @@ public:
 	glm::vec3 GetColor() const { return m_DebugColor; }
 
 private:
-	glm::vec3 GetAntiintensity(const glm::vec3& w, const float angleFactor) const;
+	glm::vec3 GetAntiradiance(const glm::vec3& w, const float angleFactor) const;
 
 	glm::vec3 m_Position;
 	glm::vec3 m_Orientation;
-	glm::vec3 m_Intensity;
-	glm::vec3 m_Antiintensity;
-	glm::vec3 m_AntiradianceDirection;
+	glm::vec3 m_Radiance;
+	glm::vec3 m_Antiradiance;
+	glm::vec3 m_Direction;
 	glm::vec3 m_DebugColor;
 	float m_ConeAngle;
 	int m_Bounce;
+	int m_MaterialIndex;
+	int padd;
 
 	CConfigManager* m_pConfManager;
+	CMaterialBuffer* m_pMaterialBuffer;
 };
 
 #endif

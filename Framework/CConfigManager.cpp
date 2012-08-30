@@ -25,6 +25,11 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->FillAvplAltasOnGPU = m_pConfVarsGUI->FillAvplAltasOnGPU = 1;
 	m_pConfVars->UseLightTree = m_pConfVarsGUI->UseLightTree = 0;
 	m_pConfVars->LimitBounces = m_pConfVarsGUI->LimitBounces = -1;
+	
+	m_pConfVars->DrawReference = m_pConfVarsGUI->DrawReference = 0;
+	m_pConfVars->UsePathTracing = m_pConfVarsGUI->UsePathTracing = 0;
+	m_pConfVars->UseMIS = m_pConfVarsGUI->UseMIS = 0;
+	m_pConfVars->GaussianBlur = m_pConfVarsGUI->GaussianBlur = 0;
 
 	m_pConfVars->UseIBL = m_pConfVarsGUI->UseIBL = 0;
 	
@@ -72,7 +77,7 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 
 	m_pConfVars->AreaLightRadianceScale = m_pConfVarsGUI->AreaLightRadianceScale = 1.f;
 
-	m_pConfVars->UseAVPLImportanceSampling = m_pConfVarsGUI->UseAVPLImportanceSampling = 1;
+	m_pConfVars->UseAVPLImportanceSampling = m_pConfVarsGUI->UseAVPLImportanceSampling = 0;
 	m_pConfVars->ISMode = m_pConfVarsGUI->ISMode = 0;
 	m_pConfVars->ConeFactorIS = m_pConfVarsGUI->ConeFactorIS = 4;
 	m_pConfVars->NumSceneSamples = m_pConfVarsGUI->NumSceneSamples = 100;
@@ -143,6 +148,16 @@ void CConfigManager::Update()
 	{
 		m_pConfVars->Gamma = m_pConfVarsGUI->Gamma;
 		configureLighting = true;
+	}
+
+	if(m_pConfVarsGUI->DrawReference != m_pConfVars->DrawReference)
+	{
+		m_pConfVars->DrawReference = m_pConfVarsGUI->DrawReference;
+	}
+
+	if(m_pConfVarsGUI->GaussianBlur != m_pConfVars->GaussianBlur)
+	{
+		m_pConfVars->GaussianBlur = m_pConfVarsGUI->GaussianBlur;
 	}
 
 	if(m_pConfVarsGUI->Exposure != m_pConfVars->Exposure)
@@ -233,6 +248,22 @@ void CConfigManager::Update()
 		m_pConfVars->DrawLights = m_pConfVarsGUI->DrawLights;
 		configureLighting = true;
 		clearAccumBuffer = true;
+	}
+
+	if(m_pConfVarsGUI->UsePathTracing != m_pConfVars->UsePathTracing)
+	{
+		m_pConfVars->UsePathTracing = m_pConfVarsGUI->UsePathTracing;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->UseMIS != m_pConfVars->UseMIS)
+	{
+		m_pConfVars->UseMIS = m_pConfVarsGUI->UseMIS;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
 	}
 
 	if(m_pConfVarsGUI->FilterAvplAtlasLinear != m_pConfVars->FilterAvplAtlasLinear)

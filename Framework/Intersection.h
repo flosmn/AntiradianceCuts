@@ -19,7 +19,7 @@ public:
 	glm::vec3 GetPosition() const { return m_Position; }
 	
 	glm::vec3 Intersection::GetNormal() const;
-	MATERIAL GetMaterial() const;
+	uint GetMaterialIndex () const;
 
 	void SetPrimitive(CPrimitive* pPrimitive) { m_pPrimitive = pPrimitive; }
 	void SetPosition(const glm::vec3& position) { m_Position = position; }
@@ -33,12 +33,12 @@ struct SceneSample
 {
 	SceneSample() {}
 	SceneSample(const Intersection& i)
-		: position(i.GetPosition()), normal(i.GetNormal()), material(i.GetMaterial())
+		: position(i.GetPosition()), normal(i.GetNormal()), materialIndex(i.GetMaterialIndex())
 	{}
 
 	glm::vec3 position;
 	glm::vec3 normal;
-	MATERIAL material;
+	uint materialIndex;
 	float pdf;
 };
 

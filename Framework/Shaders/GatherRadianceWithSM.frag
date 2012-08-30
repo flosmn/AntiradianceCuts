@@ -28,14 +28,16 @@ uniform light
 {
 	mat4 ViewMatrix;
 	mat4 ProjectionMatrix;
-	vec4 I;	//Intensity;
+	vec4 L;	//Intensity;
 	vec4 A;	//Antiintensity;
 	vec4 pos;	// Position
 	vec4 norm;	//Orientation;
-	vec3 w_A;	//AntiintensityDirection;
+	vec4 w_A;	//AntiintensityDirection;
+	vec4 debugColor;
 	float AngleFactor;
-	vec3 DebugColor;
 	float Bounce;
+	float materialIndex;
+	float padd0;
 } uLight;
 
 out vec4 outputColor;
@@ -43,10 +45,29 @@ out vec4 outputColor;
 layout(binding=0) uniform sampler2D samplerShadowMap;
 layout(binding=1) uniform sampler2D samplerPositionWS;
 layout(binding=2) uniform sampler2D samplerNormalWS;
+layout(binding=3) uniform samplerBuffer samplerMaterialBuffer;
 
 float IsLit(in vec3 positionWS);
 float G(vec3 p1, vec3 n1, vec3 p2, vec3 n3);
 float G_CLAMP(vec3 p1, vec3 n1, vec3 p2, vec3 n3);
+
+vec4 f_r(in vec3 w_i, in vec3 w_o, in vec3 n, in vec4 diffuse, in vec4 specular, in float exponent);
+vec4 f_r(in vec3 from, in vec3 over, in vec3 to, in vec3 n, in vec4 diffuse, in vec4 specular, in float exponent);
+
+vec4 f_r(in vec3 from, in vec3 over, in vec3 to, in vec3 n, in vec4 diffuse, in vec4 specular, in float exponent)
+{
+	const vec3 w_i = normalize(from - over);
+	const vec3 w_o = normalize(to - over);
+	return f_r(w_i, w_o, n, diffuse, specular, exponent);
+}
+
+vec4 f_r(in vec3 w_i, in vec3 w_o, in vec3 n, in vec4 diffuse, in vec4 specular, in float exponent)
+{
+	const vec4 d = ONE_OVER_PI * diffuse;
+	const float cos_theta = max(0.f, dot(reflect(-w_i, n), w_o));
+	const vec4 s = clamp(0.5f * ONE_OVER_PI * (exponent+2.f) * pow(cos_theta, exponent) * specular, 0.f, 1.f);
+	return vec4(d.x + s.x, d.y + s.y, d.z + s.z, 1.f);
+}
 
 void main()
 {
@@ -59,10 +80,31 @@ void main()
 	
 	float V = IsLit(vPositionWS);
 	
+	int sizeMaterial = 4;
+	int materialIndex = int(texture2D(samplerNormalWS, coord).w);
+	const vec4 cDiffuse =	texelFetch(samplerMaterialBuffer, materialIndex * sizeMaterial + 1);
+	const vec4 cSpecular =	texelFetch(samplerMaterialBuffer, materialIndex * sizeMaterial + 2);
+	const float exponent =	texelFetch(samplerMaterialBuffer, materialIndex * sizeMaterial + 3).r;
+
+	const int lightMaterialIndex = int(uLight.materialIndex);
+	const vec4 cEmissiveLight	=	texelFetch(samplerMaterialBuffer, lightMaterialIndex * sizeMaterial + 0);
+	const vec4 cDiffuseLight	=	texelFetch(samplerMaterialBuffer, lightMaterialIndex * sizeMaterial + 1);
+	const vec4 cSpecularLight	=	texelFetch(samplerMaterialBuffer, lightMaterialIndex * sizeMaterial + 2);
+	const float exponentLight	=	texelFetch(samplerMaterialBuffer, lightMaterialIndex * sizeMaterial + 3).r;
+	
+	const vec3 direction = normalize(vPositionWS - vec3(uLight.pos));
+			
+	vec4 BRDF_light = f_r(-vec3(uLight.w_A), direction, vec3(uLight.norm), cDiffuseLight, cSpecularLight, exponentLight);
+	// check for light source AVPL
+	if(length(vec3(uLight.w_A)) == 0.f)
+		BRDF_light = vec4(1.f);
+		 
+	vec4 BRDF = f_r(vec3(uLight.pos), vPositionWS, uCamera.vPositionWS, vNormalWS, cDiffuse, cSpecular, exponent);
+
 	// calc radiance
-	vec4 I = uLight.I;
+	vec4 L = uLight.L;
 	float G = G(vPositionWS, vNormalWS, uLight.pos.xyz, uLight.norm.xyz);
-	vec4 Irradiance = V * I * G;	
+	vec4 Irradiance = V * L * BRDF_light * G * BRDF;	
 	
 	outputColor = Irradiance;
 	outputColor.w = 1.0f;

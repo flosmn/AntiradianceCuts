@@ -8,8 +8,16 @@
 
 CProgram::CProgram(const std::string debugName, const std::string VS, const std::string FS)
 {
-	m_pGLProgram = new COGLProgram(debugName, VS, FS);
+	std::vector<std::string> headerFiles;
+	m_pGLProgram = new COGLProgram(debugName, VS, FS, headerFiles);
 }
+
+
+CProgram::CProgram(const std::string debugName, const std::string VS, const std::string FS, std::vector<std::string> headerFiles)
+{
+	m_pGLProgram = new COGLProgram(debugName, VS, FS, headerFiles);
+}
+
 
 CProgram::~CProgram()
 {

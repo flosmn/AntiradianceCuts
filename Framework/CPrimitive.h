@@ -15,8 +15,8 @@ class CPrimitive
 public:
 	enum IsectMode { BACK_FACE, FRONT_FACE };
 
-	CPrimitive() { }
-	virtual ~CPrimitive() { }
+	CPrimitive() { m_MaterialIndex = 0; }
+	virtual ~CPrimitive() {}
 
 	virtual bool IntersectBBox(const Ray& ray) = 0;
 	virtual bool Intersect(const Ray& ray, float* t, Intersection* pIntersection, IsectMode isectMode) = 0;
@@ -24,11 +24,11 @@ public:
 	virtual glm::vec3 GetNormal() const = 0;
 	virtual void Transform(CPrimitive* pPrimitive, const glm::mat4& transform) const = 0;
 	
-	const MATERIAL GetMaterial() const { return m_Material; }
-	void SetMaterial(const MATERIAL& mat) { m_Material = mat; }
+	uint GetMaterialIndex() const { return m_MaterialIndex; }
+	void SetMaterialIndex(uint index) { m_MaterialIndex = index; }
 
 private:
-	MATERIAL m_Material;
+	uint m_MaterialIndex;
 };
 
 #endif _C_PRIMITIVE_H_

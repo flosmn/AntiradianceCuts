@@ -188,7 +188,7 @@ void CClusterTree::CreateLeafClusters(const std::vector<AVPL>& avpls,
 		leaf->id = id;
 		leaf->bbox = BBox(pos, pos);
 		leaf->depth = -1;
-		leaf->intensity = avpls[i].GetMaxIntensity() + avpls[i].GetMaxAntiintensity();
+		leaf->intensity = avpls[i].GetIncidentRadiance() + avpls[i].GetAntiradiance(avpls[i].GetDirection());
 		leaf->mean = pos;
 		leaf->normal = avpls[i].GetOrientation();
 		leaf->size = 1;

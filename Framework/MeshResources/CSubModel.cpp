@@ -2,12 +2,13 @@
 
 #include "CMesh.h"
 #include "CMeshGeometry.h"
-#include "CMeshMaterial.h"
 
 #include "..\Macros.h"
 #include "..\Structs.h"
 
 #include "..\Utils\GLErrorUtil.h"
+
+#include "..\CMaterialBuffer.h"
 
 #include "..\OGLResources\COGLVertexBuffer.h"
 #include "..\OGLResources\COGLVertexArray.h"
@@ -26,13 +27,14 @@ CSubModel::~CSubModel()
 	SAFE_DELETE(m_pGLVARenderData);
 };
 
-bool CSubModel::Init(const CMeshGeometry& meshGeometry) 
+bool CSubModel::Init(const CMeshGeometry& meshGeometry, CMaterialBuffer* pMaterialBuffer) 
 {
 	V_RET_FOF(m_pGLVARenderData->Init(GL_TRIANGLES));
 
+	m_pMaterialBuffer = pMaterialBuffer;
 	uint nVertices = meshGeometry.GetNumberOfVertices();
 	m_nTriangles = meshGeometry.GetNumberOfFaces();
-	m_Material = meshGeometry.GetMeshMaterial();
+	m_MaterialIndex = meshGeometry.GetMaterialIndex();
 
 	GLuint positionDataSize = sizeof(glm::vec4) * nVertices;
 	GLuint normalDataSize = sizeof(glm::vec3) * nVertices;
@@ -105,7 +107,7 @@ void CSubModel::Release()
 
 void CSubModel::Draw(COGLUniformBuffer* pUBMaterial) 
 {
-	MATERIAL material = m_Material.GetMaterialData();
+	MATERIAL material = *(m_pMaterialBuffer->GetMaterial(m_MaterialIndex));
 	pUBMaterial->UpdateData(&material);
 	
 	Draw();
@@ -126,16 +128,6 @@ const std::vector<CTriangle*>& CSubModel::GetTrianglesWS() const
 	return m_TrianglesWS;
 }
 
-void CSubModel::SetMaterial(const MATERIAL& mat)
-{
-	m_Material.SetMaterialData(mat); 
-}
-
-MATERIAL CSubModel::GetMaterial() const
-{
-	return m_Material.GetMaterialData(); 
-}
-
 void CSubModel::SetWorldTransform(const glm::mat4& transform)
 {
 	m_WorldTransform = transform;
@@ -154,7 +146,7 @@ void CSubModel::SetWorldTransform(const glm::mat4& transform)
 			glm::vec3(m_WorldTransform * glm::vec4(triangleOS.P0(), 1.f)),
 			glm::vec3(m_WorldTransform * glm::vec4(triangleOS.P1(), 1.f)),
 			glm::vec3(m_WorldTransform * glm::vec4(triangleOS.P2(), 1.f)));
-		triangleWS->SetMaterial(m_Material.GetMaterialData());
+		triangleWS->SetMaterialIndex(m_MaterialIndex);
 		m_TrianglesWS.push_back(triangleWS);
 	}	
 }
@@ -179,7 +171,7 @@ void CSubModel::CreateTriangleData(uint nFaces, const uint* pIndexData,
 			normal = glm::normalize(glm::cross(p3-p1, p2-p1));
 
 		CTriangle* triangle = new CTriangle(p1, p2, p3);
-		triangle->SetMaterial(m_Material.GetMaterialData());
-		m_TrianglesOS.push_back(triangle);														 
+		triangle->SetMaterialIndex(m_MaterialIndex);
+		m_TrianglesOS.push_back(triangle);
 	}
 } 

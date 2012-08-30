@@ -1,11 +1,7 @@
 #include "CMeshGeometry.h"
 
 #include "..\Macros.h"
-
-#include "CMeshMaterial.h"
-
 #include "..\Utils\Util.h"
-
 #include "..\CTriangle.h"
 
 #include <iostream>
@@ -89,5 +85,5 @@ void CMeshGeometry::PrintGeometryData()
 		}
 	}
 
-	std::cout << "material: " << m_MeshMaterial.GetMaterialName() << std::endl;
+	std::cout << "material index: " << m_MaterialIndex << std::endl;
 }

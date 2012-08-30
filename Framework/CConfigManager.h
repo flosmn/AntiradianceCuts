@@ -27,6 +27,11 @@ struct CONF_VARS
 	float AntiradFilterGaussFactor;
 	float AntiradFilterK;
 	int LimitBounces;
+	
+	int DrawReference;
+	int UsePathTracing;
+	int UseMIS;
+	int GaussianBlur;
 
 	int UseIBL;
 
@@ -80,7 +85,7 @@ struct CONF_VARS
 	int NumEyeRaysSS;	
 	int NumSamplesForPESS;	
 	int NumEyeRaysASS;	
-	int NumSamplesForPEASS;	
+	int NumSamplesForPEASS;
 };
 
 class CConfigManager

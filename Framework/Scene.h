@@ -8,6 +8,7 @@ typedef unsigned int uint;
 #include "Ray.h"
 #include "Intersection.h"
 #include "CPrimitive.h"
+#include "Material.h"
 
 #include "Utils\mtrand.h"
 
@@ -19,6 +20,8 @@ class AreaLight;
 class CKdTreeAccelerator;
 class CConfigManager;
 class CAVPLImportanceSampling;
+class CMaterialBuffer;
+class CReferenceImage;
 
 class COGLUniformBuffer;
 
@@ -67,6 +70,7 @@ public:
 	void CreatePath(std::vector<AVPL>& avpls);
 	void CreatePrimaryVpls(std::vector<AVPL>& avpls, int numVpls);
 	bool CreateAVPL(AVPL* pred, AVPL* newAVPL);
+	bool CreatePrimaryAVPL(AVPL* newAVPL);
 
 	uint GetNumCreatedAVPLs() { return m_NumCreatedAVPLs; }
 	uint GetNumAVPLsAfterIS() { return m_NumAVPLsAfterIS; }
@@ -74,6 +78,11 @@ public:
 	bool ImportanceSampling(AVPL& avpl, float* scale);
 	bool Visible(const SceneSample& ss1, const SceneSample& ss2);
 	void SampleLightSource(SceneSample& ss);
+
+	CMaterialBuffer* GetMaterialBuffer() { return m_pMaterialBuffer; }
+	MATERIAL* GetMaterial(const SceneSample& ss);
+
+	CReferenceImage* GetReferenceImage() { return m_pReferenceImage; }
 
 private:
 	void ClearPath();
@@ -103,6 +112,9 @@ private:
 	CAVPLImportanceSampling* m_pAVPLImportanceSampling;
 
 	bool m_HasLightSource;
+
+	CMaterialBuffer* m_pMaterialBuffer;
+	CReferenceImage* m_pReferenceImage;
 };
 
 #endif SCENE_H

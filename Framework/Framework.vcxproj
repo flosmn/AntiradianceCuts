@@ -87,6 +87,7 @@
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -150,12 +151,14 @@ xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
     <ClCompile Include="CCamera.cpp" />
     <ClCompile Include="CClusterTree.cpp" />
     <ClCompile Include="CConfigManager.cpp" />
+    <ClCompile Include="CExperimentData.cpp" />
     <ClCompile Include="CGBuffer.cpp" />
     <ClCompile Include="CGUI.cpp" />
     <ClCompile Include="CImage.cpp" />
     <ClCompile Include="CImagePlane.cpp" />
     <ClCompile Include="CKdTreeAccelerator.cpp" />
     <ClCompile Include="CLightTree.cpp" />
+    <ClCompile Include="CMaterialBuffer.cpp" />
     <ClCompile Include="COctahedronAtlas.cpp" />
     <ClCompile Include="COctahedronMap.cpp" />
     <ClCompile Include="CPathTracingIntegrator.cpp" />
@@ -163,6 +166,7 @@ xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
     <ClCompile Include="CPointCloud.cpp" />
     <ClCompile Include="CPriorityQueue.cpp" />
     <ClCompile Include="CProgram.cpp" />
+    <ClCompile Include="CReferenceImage.cpp" />
     <ClCompile Include="CRenderTarget.cpp" />
     <ClCompile Include="CShadowMap.cpp" />
     <ClCompile Include="CSimpleKdTree.cpp" />
@@ -177,7 +181,6 @@ xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
     <ClCompile Include="CPostprocess.cpp" />
     <ClCompile Include="MeshResources\CFullScreenQuad.cpp" />
     <ClCompile Include="MeshResources\CMeshGeometry.cpp" />
-    <ClCompile Include="MeshResources\CMeshMaterial.cpp" />
     <ClCompile Include="MeshResources\CModel.cpp" />
     <ClCompile Include="MeshResources\CObjFileLoader.cpp" />
     <ClCompile Include="MeshResources\CSubModel.cpp" />
@@ -219,12 +222,14 @@ xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
     <ClInclude Include="CCamera.h" />
     <ClInclude Include="CClusterTree.h" />
     <ClInclude Include="CConfigManager.h" />
+    <ClInclude Include="CExperimentData.h" />
     <ClInclude Include="CGBuffer.h" />
     <ClInclude Include="CGUI.h" />
     <ClInclude Include="CImage.h" />
     <ClInclude Include="CImagePlane.h" />
     <ClInclude Include="CKdTreeAccelerator.h" />
     <ClInclude Include="CLightTree.h" />
+    <ClInclude Include="CMaterialBuffer.h" />
     <ClInclude Include="COctahedronAtlas.h" />
     <ClInclude Include="COctahedronMap.h" />
     <ClInclude Include="CPathTracingIntegrator.h" />
@@ -232,6 +237,7 @@ xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
     <ClInclude Include="CPointCloud.h" />
     <ClInclude Include="CPriorityQueue.h" />
     <ClInclude Include="CProgram.h" />
+    <ClInclude Include="CReferenceImage.h" />
     <ClInclude Include="CRenderTarget.h" />
     <ClInclude Include="CShadowMap.h" />
     <ClInclude Include="CSimpleKdTree.h" />
@@ -245,10 +251,10 @@ xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
     <ClInclude Include="LightTreeTypes.h" />
     <ClInclude Include="Macros.h" />
     <ClInclude Include="CPostprocess.h" />
+    <ClInclude Include="Material.h" />
     <ClInclude Include="MeshResources\CFullScreenQuad.h" />
     <ClInclude Include="MeshResources\CMesh.h" />
     <ClInclude Include="MeshResources\CMeshGeometry.h" />
-    <ClInclude Include="MeshResources\CMeshMaterial.h" />
     <ClInclude Include="MeshResources\CModel.h" />
     <ClInclude Include="MeshResources\CObjFileLoader.h" />
     <ClInclude Include="MeshResources\CSubModel.h" />
@@ -301,6 +307,7 @@ xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
     <None Include="Kernels\FillAVPLAtlas.cl" />
     <None Include="Kernels\OctahedronUtil.cl" />
     <None Include="Kernels\vec.cl" />
+    <None Include="Shaders\Constants.glsl" />
     <None Include="Shaders\CreateGBuffer.frag" />
     <None Include="Shaders\CreateGBuffer.vert" />
     <None Include="Shaders\CreateSM.frag" />
@@ -318,11 +325,13 @@ xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
     <None Include="Shaders\GatherWithAtlas.frag" />
     <None Include="Shaders\GatherWithClustering.frag" />
     <None Include="Shaders\Normalize.frag" />
+    <None Include="Shaders\Phong.glsl" />
     <None Include="Shaders\PointCloud.frag" />
     <None Include="Shaders\PointCloud.vert" />
     <None Include="Shaders\PostProcess.frag" />
     <None Include="Shaders\PostProcess.vert" />
     <None Include="Shaders\Shade.frag" />
+    <None Include="Shaders\Util.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

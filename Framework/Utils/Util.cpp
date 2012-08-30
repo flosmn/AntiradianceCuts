@@ -42,28 +42,15 @@ glm::vec2 GetUniformRandomSample2D(glm::vec2 range_u, glm::vec2 range_v) {
 	return glm::vec2(u, v);
 }
 
-glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, float&pdf, uint order)
+glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, const float u1, const float u2, float &pdf, uint order)
 {
-	glm::vec3 direction = glm::vec3(0.f);
+	glm::mat3 TS_to_WS = ComputeTangentSpace(orientation);
 
-	do {
-		float xi_1 = glm::linearRand(0.f, 1.f);
-		float xi_2 = glm::linearRand(0.f, 1.f);
-		
-		direction = GetRandomSampleDirectionCosCone(orientation, xi_1, xi_2, pdf, order);
-
-	} while (pdf < 0.0001f);
-	
-	return direction;
-}
-
-glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, const float u1, const float u2, float&pdf, uint order)
-{
 	glm::vec3 sampleDir = glm::vec3(0.f);
 
 	float xi_1 = u1;
 	float xi_2 = u2;
-		
+	
 	// cos-sampled point with orientation (0, 0, 1)
 	float power = 1.0f / ((float)order + 1.0f);
 	float theta = acos(pow(xi_1, power));
@@ -72,40 +59,35 @@ glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, const float u1,
 	sampleDir = glm::normalize(glm::vec3(
 		sin(theta) * cos(phi),
 		sin(theta) * sin(phi),
-		-cos(theta)) );
+		cos(theta)));
 		
-	const float cos_theta = glm::dot(sampleDir, glm::vec3(0.f, 0.f, -1.f));
+	const float cos_theta = glm::dot(sampleDir, glm::vec3(0.f, 0.f, 1.f));
 	pdf = ((float)order + 1) / (2 * PI) * std::powf(cos_theta, (float)order);
 			
-	glm::vec4 directionTemp = glm::vec4(sampleDir, 0.0f);
-	
-	glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-		
-	// make sure that orientation and up are not similar
-	if(glm::abs(glm::dot(up, orientation)) > 0.009) up = glm::vec3(0.0f, 0.0f, 1.0f); 
+	glm::vec3 direction = glm::normalize(TS_to_WS * sampleDir);
 
-	// transformation to get the sampled oriented after 
-	// the orientation vector
-	glm::mat4 transformDir = glm::inverse(glm::lookAt(glm::vec3(0.f), orientation, up));
-	
-	directionTemp = transformDir * directionTemp;
-	
-	glm::vec3 direction = glm::normalize(glm::vec3(directionTemp));
+	if(glm::dot(direction, orientation) < 0.f)
+		std::cout << "wrong direction" << std::endl;
 
 	return direction;
 }
 
+glm::mat3 ComputeTangentSpace(const glm::vec3& n)
+{
+	glm::vec3 t = NeverCoLinear(n);
+	const glm::vec3 U = glm::normalize( glm::cross( t, n ) );
+	const glm::vec3 V = glm::normalize( glm::cross( U, n ) );
+	return glm::mat3(U, V, n);
+}
+
 void GetRandomSampleDirectionProbability(glm::vec3 orientation, glm::vec3 direction, float& pdf, uint order)
 {
-	glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-	if(glm::abs(glm::dot(up, orientation)) > 0.009) up = glm::vec3(0.0f, 0.0f, 1.0f); 
+	glm::mat3 TS_to_WS = ComputeTangentSpace(orientation);
+	glm::mat3 WS_to_TS = glm::transpose(TS_to_WS);
+		
+	glm::vec3 directionTS = WS_to_TS * direction;
 	
-	glm::mat4 transformDir = glm::lookAt(glm::vec3(0.f), orientation, up);
-	
-	glm::vec3 orientationLS = glm::vec3(transformDir * glm::vec4(orientation, 0.f));
-	glm::vec3 directionLS = glm::vec3(transformDir * glm::vec4(direction, 0.f));
-	
-	const float cos_theta = glm::dot(directionLS, glm::vec3(0.f, 0.f, -1.f));
+	const float cos_theta = glm::dot(directionTS, glm::vec3(0.f, 0.f, 1.f));
 	pdf = ((float)order + 1) / (2 * PI) * std::powf(cos_theta, (float)order);
 }
 
@@ -206,15 +188,6 @@ void GetStratifiedSamples2D(std::vector<glm::vec2>& samples, const glm::vec2& ra
 glm::vec2 GetUniformSample2D(const glm::vec2& range)
 {
 	return glm::vec2(Rand01() * range.x, Rand01() * range.y);
-}
-
-glm::mat3 ComputeTangentSpace(const glm::vec3& n ) {
-	glm::vec3 nev = NeverCoLinear(n);
-
-	glm::vec3 T = glm::normalize( glm::cross( nev, n ) );
-	glm::vec3 B = glm::cross( n, T );
-	
-	return glm::transpose(glm::mat3( T, B, n ));
 }
 
 glm::vec3 NeverCoLinear(const glm::vec3& v)
@@ -384,26 +357,21 @@ float Luminance(glm::vec4 v)
 	return Luminance(glm::vec3(v));
 }
 
-float ProbPSA(const SceneSample& from, const SceneSample& to)
+float ProbPSA(const SceneSample& from, const SceneSample& to, const float pdfSA)
 {
-	float pdf = 0.f;
 	glm::vec3 direction = glm::normalize(to.position - from.position);
-	GetRandomSampleDirectionProbability(from.normal, direction, pdf, 1);
-	pdf = pdf / glm::dot(from.normal, direction);
+	const float pdf = pdfSA / glm::dot(from.normal, direction);
+	if(pdf <= 0.f)
+		std::cout << "ProbPSA: pdf <= 0" << std::endl;
 	return pdf;
 }
 
-float ProbSA(const SceneSample& from, const SceneSample& to)
+float ProbA(const SceneSample& from, const SceneSample& to, const float pdfSA)
 {
-	float pdf = 0.f;
-	glm::vec3 direction = glm::normalize(to.position - from.position);
-	GetRandomSampleDirectionProbability(from.normal, direction, pdf, 1);
+	const float pdf = G(from, to) * ProbPSA(from, to, pdfSA);
+	if(pdf <= 0.f)
+		std::cout << "ProbA: pdf <= 0" << std::endl;
 	return pdf;
-}
-
-float ProbA(const SceneSample& from, const SceneSample& to)
-{
-	return G(from, to) * ProbPSA(from, to);
 }
 
 float G(const SceneSample& ss1, const SceneSample& ss2)
@@ -414,4 +382,134 @@ float G(const SceneSample& ss1, const SceneSample& ss2)
 	const float dist = glm::length(ss2.position - ss1.position);
 
 	return cos_theta1 * cos_theta2 / (dist * dist);
+}
+
+glm::vec4 Phong(const glm::vec3& from, const glm::vec3& over, const glm::vec3& to, const glm::vec3& n, MATERIAL* mat)
+{
+	const glm::vec3 w_i = glm::normalize(from - over);
+	const glm::vec3 w_o = glm::normalize(to - over);
+	return Phong(w_i, w_o, n, mat);
+}
+
+glm::vec4 Phong(const glm::vec3& w_i, const glm::vec3& w_o, const glm::vec3& n, MATERIAL* mat)
+{
+	glm::vec4 diffuse = ONE_OVER_PI * mat->diffuse;
+	glm::vec3 refl = reflect(w_i, n);
+	const float cos = std::max(0.f, glm::dot(refl, w_o));
+	glm::vec4 specular = 0.5f * ONE_OVER_PI * (mat->exponent+2) * powf(cos, mat->exponent) * mat->specular;
+	const glm::vec4 res = diffuse + specular;
+
+	return res;
+}
+
+glm::vec3 reflect(const glm::vec3& v, const glm::vec3& n)
+{
+	const float cos_theta = glm::dot(v,n);
+	if(cos_theta < 0.f)
+		std::cout << "reflect wrong" << std::endl;
+
+	return glm::normalize(2 * cos_theta * n - v);
+}
+
+glm::vec3 SamplePhong(const glm::vec3& w_o, const glm::vec3& n, MATERIAL* mat, float& pdf, bool MIS)
+{
+	if(!MIS)
+	{
+		glm::vec3 direction = GetRandomSampleDirectionCosCone(n, Rand01(), Rand01(), pdf, 1);
+		if(pdf <= 0.f)
+			std::cout << "SamplePhong: pdf <= 0.f" << std::endl;
+		return direction;
+	}
+	else
+	{
+		const float k_d = 1.f/3.f * (mat->diffuse.x + mat->diffuse.y + mat->diffuse.z);
+		const float k_s = 1.f/3.f * (mat->specular.x + mat->specular.y + mat->specular.z);
+
+		const float p_d = k_d / (k_d + k_s);
+			
+		if(Rand01() <= p_d)
+		{
+			// sample diffuse
+			float p = 0.f;
+			glm::vec3 direction = GetRandomSampleDirectionCosCone(n, Rand01(), Rand01(), p, 1);
+			const float p_1 = p_d * p;
+			
+			glm::vec3 w_i = reflect(w_o, n);
+			GetRandomSampleDirectionProbability(w_i, direction, p, (uint)mat->exponent);
+			const float p_2 = (1.f - p_d) * p;
+			
+			const float w = p_1 / (p_1 + p_2);
+
+			pdf = p_1 / w;
+			
+			if(pdf <= 0.f)
+				std::cout << "SamplePhong: pdf <= 0.f" << std::endl;
+			return direction;
+		}
+		else
+		{
+			// sample specular
+			float p = 0.f;
+			glm::vec3 w_i = reflect(w_o, n);
+			glm::vec3 direction = GetRandomSampleDirectionCosCone(w_i, Rand01(), Rand01(), p, (uint)mat->exponent);
+			if(glm::dot(direction, n) <= 0.f)
+			{
+				pdf = 0.f;
+				return n;
+			}
+			
+			const float p_2 = (1.f - p_d) * p;
+			
+			GetRandomSampleDirectionProbability(n, direction, p, 1);
+			const float p_1 = p_d * p;
+			
+			const float w = p_2 / (p_1 + p_2);
+
+			pdf = p_2 / w;
+
+			if(pdf <= 0.f)
+				std::cout << "SamplePhong: pdf <= 0.f" << std::endl;
+			return direction;
+		}
+	}
+}
+
+float PhongPdf(const glm::vec3& w_i, const glm::vec3& w_o, const glm::vec3& n, MATERIAL* mat, bool MIS)
+{
+	if(!MIS)
+	{
+		float p = 0.f;
+		GetRandomSampleDirectionProbability(n, w_o, p, 1);
+		if(p <= 0.f)
+				std::cout << "PhongPdf: pdf <= 0.f" << std::endl;
+		return p;
+	}
+	else
+	{
+		const float k_d = 1.f/3.f * (mat->diffuse.x + mat->diffuse.y + mat->diffuse.z);
+		const float k_s = 1.f/3.f * (mat->specular.x + mat->specular.y + mat->specular.z);
+
+		const float p_d = k_d / (k_d + k_s);
+
+		// sample diffuse
+		float p = 0.f;
+		GetRandomSampleDirectionProbability(n, w_o, p, 1);
+		const float p_1 = p_d * p;
+
+		glm::vec3 refl = reflect(w_i, n);
+		GetRandomSampleDirectionProbability(refl, w_o, p, (uint)mat->exponent);
+		const float p_2 = (1.f-p_d) * p;
+
+		const float pdf = p_1 + p_2;
+		if(pdf <= 0.f)
+			std::cout << "PhongPdf: pdf <= 0.f" << std::endl;
+		return pdf;
+	}
+}
+
+float PhongPdf(const glm::vec3& from, const glm::vec3& over, const glm::vec3& to, const glm::vec3& n, MATERIAL* mat, bool MIS)
+{
+	const glm::vec3 w_i = glm::normalize(from - over);
+	const glm::vec3 w_o = glm::normalize(to - over);
+	return PhongPdf(w_i, w_o, n, mat, MIS);
 }

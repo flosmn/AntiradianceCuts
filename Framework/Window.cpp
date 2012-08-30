@@ -31,8 +31,8 @@
 typedef unsigned int uint;
 
 HDC g_HDC;
-int window_width = 512;
-int window_height = 512;
+int window_width = 256;
+int window_height = 256;
 bool fullScreen = false;
 
 CCamera* g_pCamera;
@@ -53,15 +53,16 @@ float CalcFPS();
 
 void Render()
 {
-	/*
-	if(g_pConfigManager->GetConfVars()->SeparateDirectIndirectLighting)
-		g_pRenderer->RenderDirectIndirectLight();
+	if(g_pConfigManager->GetConfVars()->UsePathTracing)
+		g_pRenderer->RenderPathTracingReference();
 	else
-		g_pRenderer->Render();
-	*/
-	g_pRenderer->Render();
-	//g_pRenderer->RenderPathTracingReference();
-
+	{
+		if(g_pConfigManager->GetConfVars()->SeparateDirectIndirectLighting)
+			g_pRenderer->RenderDirectIndirectLight();
+		else
+			g_pRenderer->Render();
+	}
+	
 	g_pGUI->Render(CalcFPS());
 
 	SwapBuffers(g_HDC);

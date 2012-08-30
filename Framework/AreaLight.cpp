@@ -8,6 +8,7 @@
 #include "Utils\Util.h"
 
 #include "CTriangle.h"
+#include "CMaterialBuffer.h"
 
 #include "MeshResources\CMesh.h"
 #include "MeshResources\CModel.h"
@@ -18,7 +19,7 @@
 #define NUM_QR_NUMBERS 1024
 
 AreaLight::AreaLight(float _width, float _height, glm::vec3 _centerPosition, 
-	glm::vec3 _frontDirection, glm::vec3 _upDirection)
+	glm::vec3 _frontDirection, glm::vec3 _upDirection, CMaterialBuffer* pMaterialBuffer)
 {
 	width = _width;
 	height = _height;
@@ -36,6 +37,9 @@ AreaLight::AreaLight(float _width, float _height, glm::vec3 _centerPosition,
 	PlaneHammersley(m_pPlaneHammersleyNumbers, NUM_QR_NUMBERS);
 
 	m_pAreaLightModel = new CModel();
+
+	m_pMaterialBuffer = pMaterialBuffer;
+	m_MaterialIndex = 0;
 }
 
 AreaLight::~AreaLight()
@@ -60,10 +64,16 @@ void AreaLight::Release()
 
 void AreaLight::Update()
 {
-	MATERIAL m;
-	m.emissive = glm::vec4(radiance, 1.f);
-	m_pAreaLightModel->SetMaterial(m);
-
+	if(m_MaterialIndex == 0)
+	{
+		MATERIAL m;
+		m.emissive = glm::vec4(radiance, 1.f);
+		m_MaterialIndex = m_pMaterialBuffer->AddMaterial("LightSource", m);
+	}
+	else
+	{
+		m_pMaterialBuffer->GetMaterial(m_MaterialIndex)->emissive =  glm::vec4(radiance, 1.f);
+	}
 	UpdateWorldTransform();
 }
 
@@ -165,6 +175,7 @@ void AreaLight::UpdateWorldTransform()
 		std::vector<CTriangle*> t = subModel->GetTrianglesWS();
 		for(uint i = 0; i < t.size(); ++i)
 		{
+			t[i]->SetMaterialIndex(m_MaterialIndex);
 			triangles.push_back(t[i]);
 		}
 	}

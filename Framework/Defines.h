@@ -9,7 +9,8 @@
 
 #define ARRAY_COUNT( array ) (sizeof( array ) / (sizeof( array[0] ) * (sizeof( array ) != sizeof(void*) || sizeof( array[0] ) <= sizeof(void*))))
 
-#define PI 3.14159265f
+const float PI = 3.14159265f;
+const float ONE_OVER_PI = 0.31830988618f;
 
 #define LOCAL_DIR ".\\"
 #define LOCAL_FILE_DIR "data\\"

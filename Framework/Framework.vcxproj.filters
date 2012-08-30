@@ -32,6 +32,9 @@
     <Filter Include="Misc">
       <UniqueIdentifier>{23eab4a5-e565-4973-bb51-1534963e000a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\ShaderHeaders">
+      <UniqueIdentifier>{127117b1-6707-4fc4-90fc-c7f12b3be8ed}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Render.cpp" />
@@ -48,9 +51,6 @@
       <Filter>MeshResources</Filter>
     </ClCompile>
     <ClCompile Include="MeshResources\CMeshGeometry.cpp">
-      <Filter>MeshResources</Filter>
-    </ClCompile>
-    <ClCompile Include="MeshResources\CMeshMaterial.cpp">
       <Filter>MeshResources</Filter>
     </ClCompile>
     <ClCompile Include="MeshResources\CModel.cpp">
@@ -188,6 +188,9 @@
     <ClCompile Include="CImage.cpp" />
     <ClCompile Include="CImagePlane.cpp" />
     <ClCompile Include="CPathTracingIntegrator.cpp" />
+    <ClCompile Include="CMaterialBuffer.cpp" />
+    <ClCompile Include="CReferenceImage.cpp" />
+    <ClCompile Include="CExperimentData.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Render.h" />
@@ -204,9 +207,6 @@
       <Filter>MeshResources</Filter>
     </ClInclude>
     <ClInclude Include="MeshResources\CMeshGeometry.h">
-      <Filter>MeshResources</Filter>
-    </ClInclude>
-    <ClInclude Include="MeshResources\CMeshMaterial.h">
       <Filter>MeshResources</Filter>
     </ClInclude>
     <ClInclude Include="MeshResources\CModel.h">
@@ -380,6 +380,10 @@
     <ClInclude Include="CImage.h" />
     <ClInclude Include="CImagePlane.h" />
     <ClInclude Include="CPathTracingIntegrator.h" />
+    <ClInclude Include="CMaterialBuffer.h" />
+    <ClInclude Include="Material.h" />
+    <ClInclude Include="CReferenceImage.h" />
+    <ClInclude Include="CExperimentData.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">
@@ -456,6 +460,15 @@
     </None>
     <None Include="Shaders\DirectEnvmapLighting.frag">
       <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\Phong.glsl">
+      <Filter>Shaders\ShaderHeaders</Filter>
+    </None>
+    <None Include="Shaders\Util.glsl">
+      <Filter>Shaders\ShaderHeaders</Filter>
+    </None>
+    <None Include="Shaders\Constants.glsl">
+      <Filter>Shaders\ShaderHeaders</Filter>
     </None>
   </ItemGroup>
 </Project>

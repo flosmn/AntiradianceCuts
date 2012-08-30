@@ -1,7 +1,6 @@
 #include "CObjFileLoader.h"
 
 #include "CMeshGeometry.h"
-#include "CMeshMaterial.h"
 
 #include "..\Defines.h"
 #include "..\CTimer.h"
@@ -200,7 +199,7 @@ void CObjFileLoader::CreateMeshGeometry(CTempMesh* pTempMesh, CMeshGeometry* pMe
 
 	pMeshGeometry->SetNumberOfVertices(nGLVertices);
 	pMeshGeometry->SetNumberOfFaces((uint)pTempMesh->m_Triangles.size());
-	pMeshGeometry->SetMeshMaterial(*pTempMesh->m_Material);
+	//pMeshGeometry->SetMeshMaterial(*pTempMesh->m_Material);
 	pMeshGeometry->SetIndexData(pGLIndexData);
 	
 	if(pGLPositions)
@@ -345,6 +344,7 @@ bool CObjFileLoader::ParseObjFileLine(const std::string& line, const std::vector
 		std::string materialName;
 		ss >> materialName;
 		
+		/*
 		bool matFound = false;
 		for(uint i = 0; i < materials.size(); ++i)
 		{
@@ -360,7 +360,7 @@ bool CObjFileLoader::ParseObjFileLine(const std::string& line, const std::vector
 			std::cout << "material not found: " << materialName << std::endl;	
 			return matFound;
 		}
-
+		*/
 		timer->Stop();
 		parseMaterialInfoTime += timer->GetTime();
 	}
@@ -370,6 +370,9 @@ bool CObjFileLoader::ParseObjFileLine(const std::string& line, const std::vector
 
 bool CObjFileLoader::ParseMtlFileLine(const std::string& line, std::vector<CMeshMaterial*>& materials)
 {
+	std::cout << "MTL file parsing deaktivated. material handling changed" << std::endl;
+	
+	/*
 	std::string op;
 	if (line.empty())
 		return true;
@@ -409,6 +412,7 @@ bool CObjFileLoader::ParseMtlFileLine(const std::string& line, std::vector<CMesh
 
 		m_pCurrentMaterial->SetEmissive(glm::vec4(r, g, b, a));
 	}
+	*/
 
 	return true;
 }

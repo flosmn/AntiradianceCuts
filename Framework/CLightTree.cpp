@@ -272,7 +272,7 @@ void CLightTree::CreateInitialClusters(const std::vector<AVPL>& avpls, uint* clu
 		c->bbox = BBox(pos, pos);
 		c->id = id;
 		c->avplIndex = (int)i;
-		c->intensity = avpls[i].GetMaxIntensity() + avpls[i].GetMaxAntiintensity();
+		c->intensity = avpls[i].GetIncidentRadiance()+ avpls[i].GetAntiradiance(avpls[i].GetDirection());
 		c->normal = avpls[i].GetOrientation();
 		c->left = 0;
 		c->right = 0;

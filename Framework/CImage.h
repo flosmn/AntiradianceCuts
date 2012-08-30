@@ -10,7 +10,11 @@ public:
 	~CImage();
 
 	void LoadFromFile(const char* path, bool flipImage);
+	
+	void SetData(glm::vec4* pData);
 	glm::vec4* GetData();
+
+	void GaussianBlur(int iterations);
 
 private:
 	int m_Width;

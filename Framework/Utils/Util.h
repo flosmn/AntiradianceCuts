@@ -24,15 +24,25 @@ float Rad2Deg (float AngleFactor);
 
 glm::vec2 GetUniformRandomSample2D(glm::vec2 range_u, glm::vec2 range_v);
 void GetRandomSampleDirectionProbability(glm::vec3 orientation, glm::vec3 direction, float& pdf, uint order);
-glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, float&pdf, uint order);
 glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, const float u1, const float u2, float&pdf, uint order);
 glm::vec3 SampleConeDirection(const glm::vec3& axis, const float& theta, const float& u1, const float& u2, float* pdf);
 glm::vec2 ConcentricSampleDisk(float u1, float u2);
 
-float ProbPSA(const SceneSample& from, const SceneSample& to);
-float ProbPS(const SceneSample& from, const SceneSample& to);
-float ProbA(const SceneSample& from, const SceneSample& to);
+glm::mat3 ComputeTangentSpace(const glm::vec3& n);
+
+float ProbPSA(const SceneSample& from, const SceneSample& to, const float pdfSA);
+float ProbA(const SceneSample& from, const SceneSample& to, const float pdfSA);
 float G(const SceneSample& ss1, const SceneSample& ss2);
+
+glm::vec3 reflect(const glm::vec3& v, const glm::vec3& norm);
+
+glm::vec4 Phong(const glm::vec3& from, const glm::vec3& over, const glm::vec3& to, const glm::vec3& n, MATERIAL* mat);
+glm::vec4 Phong(const glm::vec3& w_i, const glm::vec3& w_o, const glm::vec3& n, MATERIAL* mat);
+
+float PhongPdf(const glm::vec3& w_i, const glm::vec3& w_o, const glm::vec3& n, MATERIAL* mat, bool MIS);
+float PhongPdf(const glm::vec3& from, const glm::vec3& over, const glm::vec3& to, const glm::vec3& n, MATERIAL* mat, bool MIS);
+
+glm::vec3 SamplePhong(const glm::vec3& w_o, const glm::vec3& n, MATERIAL* mat, float& pdf, bool MIS);
 
 void GetStratifiedSamples2D(std::vector<glm::vec2>& samples, const glm::vec2& range, const uint numSamples);
 glm::vec2 GetUniformSample2D(const glm::vec2& range);

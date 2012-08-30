@@ -3,6 +3,9 @@
 
 typedef unsigned int uint;
 
+#include "Material.h"
+#include "Intersection.h"
+
 class Scene;
 class CImagePlane;
 
@@ -14,7 +17,7 @@ public:
 
 	bool Init(Scene* pScene, CImagePlane* pImagePlane);
 
-	void Integrate(uint numPaths);
+	void Integrate(uint numPaths, bool MIS);
 
 private:
 	Scene* m_pScene;

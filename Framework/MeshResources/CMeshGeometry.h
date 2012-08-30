@@ -7,8 +7,6 @@ typedef unsigned int uint;
 
 #include <vector>
 
-#include "CMeshMaterial.h"
-
 class CTriangle;
 
 class CMeshVertex
@@ -94,25 +92,23 @@ public:
 	void SetNormalData(glm::vec3* pNormalData) { m_pNormalData = pNormalData; }
 	void SetTexCoordData(glm::vec3* pTexCoordData) { m_pTexCoordData = pTexCoordData; }
 	void SetIndexData(uint* pIndexData) { m_pIndexData = pIndexData; }
+	void SetMaterialIndex(uint index) { m_MaterialIndex = index; }
 
 	uint GetNumberOfVertices() const { return m_nVertices; }
 	uint GetNumberOfFaces() const { return m_nFaces; }
+	uint GetMaterialIndex() const { return m_MaterialIndex; }
 
 	void SetNumberOfVertices(uint nVertices) { m_nVertices = nVertices; }
 	void SetNumberOfFaces(uint nFaces) { m_nFaces = nFaces; }
-
-	CMeshMaterial GetMeshMaterial() const { return m_MeshMaterial; }
-	void SetMeshMaterial(const CMeshMaterial& meshMaterial) { m_MeshMaterial = meshMaterial; }
-
+		
 	void FillWithTriangleData(std::vector<CTriangle*>& triangles);
 
 	void PrintGeometryData();
 	
 private:
-	CMeshMaterial m_MeshMaterial;
-		
 	uint m_nVertices;
 	uint m_nFaces;
+	uint m_MaterialIndex;
 	glm::vec4* m_pPositionData;
 	glm::vec3* m_pNormalData;
 	glm::vec3* m_pTexCoordData;

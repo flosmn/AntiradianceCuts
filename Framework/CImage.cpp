@@ -94,6 +94,48 @@ void CImage::LoadFromFile(const char* path, bool flipImage)
 	ilDeleteImages(1, &handle);
 }
 
+void CImage::SetData(glm::vec4* pData)
+{
+	if(!m_pData)
+		m_pData = new glm::vec4[m_Width * m_Height];
+
+	memcpy(m_pData, pData, m_Width * m_Height * sizeof(glm::vec4));
+}
+
+void CImage::GaussianBlur(int interations)
+{
+	ILuint handle;
+	ilGenImages(1, &handle);
+		
+	ilBindImage(handle);
+
+	ilTexImage(m_Width, m_Height, 1, 4,	IL_RGBA, IL_FLOAT, m_pData);
+
+	ILenum err = ilGetError();
+	if (err != IL_NO_ERROR)
+	{
+		const char* err_str = iluErrorString(err);
+		std::cout << "error tex image: " <<  err_str << std::endl;
+	}
+
+	iluBlurGaussian(interations);
+
+	err = ilGetError();
+	if (err != IL_NO_ERROR)
+	{
+		const char* err_str = iluErrorString(err);
+		std::cout << "error gaussian blur: " <<  err_str << std::endl;
+	}
+
+	ilCopyPixels(0, 0, 0, m_Width, m_Height, 1, IL_RGBA, IL_FLOAT, m_pData);
+	err = ilGetError();
+	if (err != IL_NO_ERROR)
+	{
+		const char* err_str = iluErrorString(err);
+		std::cout << "error copy pixels" << std::endl;
+	}
+}
+
 glm::vec4* CImage::GetData()
 {
 	return m_pData;

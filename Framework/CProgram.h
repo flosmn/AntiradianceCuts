@@ -4,6 +4,7 @@
 typedef unsigned int uint;
 
 #include <string>
+#include <vector>
 
 class COGLProgram;
 class COGLUniformBuffer;
@@ -13,6 +14,7 @@ class CProgram
 {
 public:
 	CProgram(const std::string debugName, const std::string VS, const std::string FS);
+	CProgram(const std::string debugName, const std::string VS, const std::string FS, std::vector<std::string> headerFiles);
 	~CProgram();
 
 	bool Init();

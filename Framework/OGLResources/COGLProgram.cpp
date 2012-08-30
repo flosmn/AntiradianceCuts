@@ -13,8 +13,8 @@
 #include <sstream>
 #include <assert.h>
 
-COGLProgram::COGLProgram(const std::string debugName, const std::string VS, const std::string FS)
-	: COGLResource(COGL_PROGRAM, debugName), m_VS(VS), m_FS(FS)
+COGLProgram::COGLProgram(const std::string debugName, const std::string VS, const std::string FS, std::vector<std::string> headerFiles)
+	: COGLResource(COGL_PROGRAM, debugName), m_VS(VS), m_FS(FS), m_HeaderFiles(headerFiles)
 {
 	
 }
@@ -27,6 +27,26 @@ COGLProgram::~COGLProgram()
 bool COGLProgram::Init()
 {
 	V_RET_FOF(COGLResource::Init());
+	/*
+	for(int i = 0; i < m_HeaderFiles.size(); ++i)
+	{
+		std::stringstream ss;
+		ss << "/" << m_HeaderFiles[i]; 
+		std::string name(ss.str());
+		
+		m_HeaderFileNames.push_back(name);
+		std::string content = GetFileContent(m_HeaderFiles[i]);
+
+		std::cout << "header file name: " << name.c_str() << std::endl;
+		std::cout << "header file content: " << content << std::endl;
+
+		glNamedStringARB(GL_SHADER_INCLUDE_ARB, 
+			-1, name.c_str(),
+			-1, content.c_str());
+
+		CheckGLError("CGLProgram", "glNamedStringARB");
+	}
+	*/
 
 	GLuint vertexShader = LoadShader(GL_VERTEX_SHADER, m_VS);
 	GLuint fragmentShader = LoadShader(GL_FRAGMENT_SHADER, m_FS);
@@ -108,13 +128,8 @@ void COGLProgram::Unbind()
 
 GLuint COGLProgram::LoadShader(GLenum eShaderType, const std::string &strShaderFilename)
 {
-	std::string strFilename = FindFileOrThrow(strShaderFilename);
-	std::ifstream shaderFile(strFilename.c_str());
-	std::stringstream shaderData;
-	shaderData << shaderFile.rdbuf();
-	shaderFile.close();
-
-	return CreateShader(eShaderType, shaderData.str(), strShaderFilename);
+	std::string shaderData = GetFileContent(strShaderFilename);
+	return CreateShader(eShaderType, shaderData, strShaderFilename);
 }
 
 std::string COGLProgram::FindFileOrThrow( const std::string &strBasename )
@@ -132,13 +147,36 @@ std::string COGLProgram::FindFileOrThrow( const std::string &strBasename )
 	throw std::runtime_error("Could not find the file " + strBasename);
 }
 
+std::string COGLProgram::GetFileContent( const std::string &strShaderFile)
+{
+	std::string strFilename = FindFileOrThrow(strShaderFile);
+	std::ifstream shaderFile(strFilename.c_str());
+	std::stringstream shaderData;
+	shaderData << shaderFile.rdbuf();
+	shaderFile.close();
+	
+	return shaderData.str();
+}
+
 GLuint COGLProgram::CreateShader(GLenum eShaderType, const std::string &strShaderFile, const std::string& strFileName)
 {
 	GLuint shader = glCreateShader(eShaderType);
 	const char *strFileData = strShaderFile.c_str();
 	glShaderSource(shader, 1, &strFileData, NULL);
 
-	glCompileShader(shader);
+	GLsizei count = (GLsizei)m_HeaderFileNames.size();
+	const char** names = new const char*[count];
+	for(int i = 0; i < count; ++i)
+	{
+		names[i] = m_HeaderFileNames[i].c_str();
+	}
+
+	if(count == 0)
+		glCompileShader(shader);
+	else
+		glCompileShaderIncludeARB(shader, count, names, 0);
+
+	CheckGLError("COGLProgram", "glCompileShader");
 
 	GLint status;
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &status);

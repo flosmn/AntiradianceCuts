@@ -26,6 +26,11 @@ bool CGUI::Init(uint window_width, uint window_height)
 
 	TwAddSeparator(m_pTwBar, "", "");
 	
+	TwAddVarRW(m_pTwBar, "Draw Reference", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawReference), " min=0 max=1 step=1 ");
+	TwAddVarRW(m_pTwBar, "Use Path-Tracing", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->UsePathTracing), " min=0 max=1 step=1 ");
+	TwAddVarRW(m_pTwBar, "Use MIS", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->UseMIS), " min=0 max=1 step=1 ");
+	TwAddVarRW(m_pTwBar, "Gaussian Blur", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->GaussianBlur), " min=0 max=1 step=1 ");
+
 	TwAddVarRW(m_pTwBar, "Use Antiradiance", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->UseAntiradiance), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Gather With AVPL Atlas", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->GatherWithAVPLAtlas), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Gather With AVPL Clustering", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->GatherWithAVPLClustering), "min=0 max=1 step=1");

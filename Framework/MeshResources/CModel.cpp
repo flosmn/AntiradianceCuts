@@ -13,9 +13,10 @@
 #include "CMesh.h"
 #include "CSubModel.h"
 #include "CMeshGeometry.h"
-#include "CMeshMaterial.h"
 #include "CObjFileLoader.h"
+
 #include "..\CTriangle.h"
+#include "..\CMaterialBuffer.h"
 
 #include "..\CTimer.h"
 
@@ -53,7 +54,7 @@ bool CModel::Init(CMesh* mesh)
 	return true;
 }
 
-bool CModel::Init(std::string name) 
+bool CModel::Init(std::string name, CMaterialBuffer* pMaterialBuffer) 
 {
 	std::cout << "Start loading model " << name << std::endl;
 	CTimer timer(CTimer::CPU);
@@ -100,10 +101,41 @@ bool CModel::Init(std::string name)
     for (unsigned int n = 0; n < scene->mNumMeshes; ++n)
     {
 		CMeshGeometry meshGeometry;
-		CMeshMaterial material;
-
+		
         const struct aiMesh* mesh = scene->mMeshes[n];
  
+		 // create material uniform buffer
+        struct aiMaterial *mtl = scene->mMaterials[mesh->mMaterialIndex];
+        
+		aiColor4D d;
+		aiString matName;
+		float e = 0.f;
+
+		std::string name = "noname";
+		if(AI_SUCCESS == mtl->Get(AI_MATKEY_NAME, matName))
+			name = std::string(matName.C_Str());
+
+        glm::vec4 diffuse = glm::vec4(0.f);
+		if(AI_SUCCESS == mtl->Get(AI_MATKEY_COLOR_DIFFUSE, d))
+            diffuse = glm::vec4(d.r, d.g, d.b, d.a);
+
+		glm::vec4 specular = glm::vec4(0.f);
+		if(AI_SUCCESS == mtl->Get(AI_MATKEY_COLOR_SPECULAR, d))
+			specular = glm::vec4(d.r, d.g, d.b, d.a);
+
+		float exponent = 0.f;
+		if(AI_SUCCESS == mtl->Get(AI_MATKEY_SHININESS, e))
+			exponent = e;
+		
+		glm::vec4 emissive = glm::vec4(0.f);
+		if(AI_SUCCESS == mtl->Get(AI_MATKEY_COLOR_EMISSIVE, d))
+            emissive = glm::vec4(d.r, d.g, d.b, d.a);
+        
+		MATERIAL mat(emissive, diffuse, specular, exponent);
+
+		int materialIndex = pMaterialBuffer->AddMaterial(name, mat);
+		meshGeometry.SetMaterialIndex(materialIndex);
+
         // create array with faces
         // have to convert from Assimp format to array
         uint *faceArray = new uint[mesh->mNumFaces * 3];
@@ -124,7 +156,7 @@ bool CModel::Init(std::string name)
 		glm::vec4* positions = new glm::vec4[mesh->mNumVertices];
         if (mesh->HasPositions()) {			
 			for(uint i = 0; i < mesh->mNumVertices; ++i)
-				positions[i] = glm::vec4(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z, 1.f);
+				positions[i] = glm::vec4(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z, float(materialIndex));
 
 			meshGeometry.SetPositionData(positions);
         }
@@ -138,25 +170,8 @@ bool CModel::Init(std::string name)
 			meshGeometry.SetNormalData(normals);
         }
  		
-        // create material uniform buffer
-        struct aiMaterial *mtl = scene->mMaterials[mesh->mMaterialIndex];
-        
-		aiColor4D d;
-
-        glm::vec4 diffuse = glm::vec4(0.8f, 0.8f, 0.8f, 1.f);        
-        if(AI_SUCCESS == aiGetMaterialColor(mtl, AI_MATKEY_COLOR_DIFFUSE, &d))
-            diffuse = glm::vec4(d.r, d.g, d.b, d.a);
-
-		glm::vec4 emissive = glm::vec4(0.0f, 0.0f, 0.0f, 0.f);
-		if(AI_SUCCESS == aiGetMaterialColor(mtl, AI_MATKEY_COLOR_EMISSIVE, &d))
-            emissive = glm::vec4(d.r, d.g, d.b, d.a);
-        
-		material.SetDiffuse(diffuse);
-		material.SetEmissive(emissive);
-		meshGeometry.SetMeshMaterial(material);
-
 		CSubModel* subModel = new CSubModel();
-		subModel->Init(meshGeometry);
+		subModel->Init(meshGeometry, pMaterialBuffer);
 
         m_SubModels.push_back(subModel);
 
@@ -214,26 +229,6 @@ glm::vec3 CModel::GetPositionWS()
 	glm::vec4 temp = m_WorldTransform * glm::vec4(0.f, 0.f, 0.f, 1.f);
 	temp = temp / temp.w;	
 	return glm::vec3(temp);
-}
-
-void CModel::SetMaterial(const MATERIAL& mat)
-{
-	std::vector<CSubModel*>::iterator it;
-	for(it = m_SubModels.begin(); it < m_SubModels.end(); ++it)
-	{
-		(*it)->SetMaterial(mat);
-	}
-}
-
-MATERIAL CModel::GetMaterial() const
-{
-	for(uint i = 0; i < m_SubModels.size(); ++i)
-	{
-		return m_SubModels[i]->GetMaterial();
-	}
-
-	MATERIAL mat;
-	return mat;
 }
 
 void CModel::SetWorldTransform(const glm::mat4& transform)

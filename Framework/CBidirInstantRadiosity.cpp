@@ -52,7 +52,7 @@ void CBidirInstantRadiosity::CreatePath(std::vector<AVPL>& avpls, bool profile)
 	AVPL pred, succ;
 		
 	// create new primary light on light source
-	m_pScene->CreateAVPL(0, &pred);
+	m_pScene->CreatePrimaryAVPL(&pred);
 	
 	float scaleSS = 1.f/float(m_pConfManager->GetConfVars()->NumEyeRaysSS);
 	float scaleASS = 1.f/float(m_pConfManager->GetConfVars()->NumEyeRaysASS);
@@ -66,7 +66,7 @@ void CBidirInstantRadiosity::CreatePath(std::vector<AVPL>& avpls, bool profile)
 void CBidirInstantRadiosity::ConnectToSceneSamples(AVPL& avpl, std::vector<AVPL>& avpls, float scale)
 {
 	float scaleASS = 1.f/float(m_pConfManager->GetConfVars()->NumEyeRaysASS);
-	for(int i = 0; i < m_SceneSamples.size(); ++i)
+	for(uint i = 0; i < m_SceneSamples.size(); ++i)
 	{
 		if(Visible(avpl, m_SceneSamples[i], SS))
 		{
@@ -74,7 +74,7 @@ void CBidirInstantRadiosity::ConnectToSceneSamples(AVPL& avpl, std::vector<AVPL>
 			if(CreateAVPLAtSceneSample(m_SceneSamples[i], avpl, &newAvpl, SS))
 			{
 				ConnectToAntiSceneSamples(newAvpl, avpls, scaleASS * scale);
-				newAvpl.SetIntensity(scale * newAvpl.GetMaxIntensity());
+				newAvpl.ScaleIncidentRadiance(scale);
 				avpls.push_back(newAvpl);
 			}
 		}
@@ -91,7 +91,7 @@ void CBidirInstantRadiosity::ConnectToAntiSceneSamples(AVPL& avpl, std::vector<A
 			AVPL newAvpl;
 			if(CreateAVPLAtSceneSample(m_AntiSceneSamples[i], avpl, &newAvpl, ASS))
 			{
-				newAvpl.SetAntiintensity(scale * newAvpl.GetMaxAntiintensity());
+				newAvpl.ScaleAntiradiance(scale);
 				avpls.push_back(newAvpl);
 			}
 		}
@@ -170,11 +170,10 @@ bool CBidirInstantRadiosity::CreateAVPLAtSceneSample(const SceneSample& ss, cons
 	// gather information for the new VPL
 	glm::vec3 pos = ss.position;
 	glm::vec3 norm = ss.normal;
-	glm::vec3 rho = glm::vec3(ss.material.diffuse);
 	
-	glm::vec3 intensity = glm::vec3(0.f);
+	glm::vec3 contrib = glm::vec3(0.f);
 	if(ss.pdf > 0.f && ss_type == SS)
-		intensity = rho/PI * G/ss.pdf * pred.GetMaxIntensity();
+		contrib = G/ss.pdf * pred.GetRadiance(direction);
 	
 	//const float cone_min = m_pConfManager->GetConfVars()->ClampCone ? PI / (PI/2.f - acos(glm::dot(norm, -direction))) : 0.f;
 	//const float coneFactor = std::max(cone_min, m_pConfManager->GetConfVars()->ConeFactor);
@@ -184,9 +183,9 @@ bool CBidirInstantRadiosity::CreateAVPLAtSceneSample(const SceneSample& ss, cons
 	
 	glm::vec3 antiintensity = glm::vec3(0.f);
 	if(ss.pdf > 0.f && ss_type == ASS)
-		antiintensity = pred.GetMaxIntensity() * G/ss.pdf * 1.f/area;
+		antiintensity = G/ss.pdf * pred.GetRadiance(direction) * 1.f/area;
 	
-	AVPL avpl(pos, norm, intensity, antiintensity, direction, coneFactor, pred.GetBounce() + 1, m_pConfManager);
+	AVPL avpl(pos, norm, contrib, antiintensity, direction, coneFactor, pred.GetBounce() + 1, ss.materialIndex, m_pScene->GetMaterialBuffer(), m_pConfManager);
 	*newAvpl = avpl;
 	return true;
 }
@@ -289,7 +288,6 @@ void CBidirInstantRadiosity::CreateVisibles(std::vector<SceneSample>& sceneSampl
 			glm::vec3 v = m_pScene->GetCamera()->GetViewDirection();
 			const float cos_theta_x0 = glm::dot(v, e.d);
 			const float cos_theta_x1 = glm::dot(ss.normal, -e.d);
-			const float rho = m_pScene->GetCamera()->GetRho();
 			ss.pdf = cos_theta_x1 / cos_theta_x0;
 			sceneSamples.push_back(ss);
 		}

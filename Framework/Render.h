@@ -38,6 +38,7 @@ class CTimer;
 class CAVPLImportanceSampling;
 class CBidirInstantRadiosity;
 class CRenderTarget;
+class CExperimentData;
 
 class COGLUniformBuffer;
 class COGLSampler;
@@ -247,6 +248,7 @@ private:
 
 	CImagePlane* m_pImagePlane;
 	CPathTracingIntegrator* m_pPathTracingIntegrator;
+	CExperimentData* m_pExperimentData;
 };
 
 #endif

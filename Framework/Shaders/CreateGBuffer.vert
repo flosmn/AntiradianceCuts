@@ -7,6 +7,7 @@ layout(location = 1) in vec3 normal;
 
 smooth out vec4 normalWS;
 smooth out vec4 positionWS;
+flat out float materialIndex;
 
 uniform transform
 {
@@ -18,8 +19,11 @@ uniform transform
 
 void main()
 {
-	gl_Position = uTransform.MVP * position;
-	
-	positionWS = uTransform.M * position;
+	vec4 pos = vec4(position.xyz, 1.f);
+	materialIndex = position.w;
+
+	gl_Position = uTransform.MVP * pos;
+		
+	positionWS = uTransform.M * pos;
 	normalWS = uTransform.itM * vec4(normal, 1.0f);
 }

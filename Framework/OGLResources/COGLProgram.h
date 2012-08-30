@@ -3,13 +3,15 @@
 
 #include "COGLResource.h"
 
+#include <vector>
+
 class COGLUniformBuffer;
 class COGLSampler;
 
 class COGLProgram : public COGLResource
 {
 public:
-	COGLProgram(const std::string debugName, const std::string strVS, const std::string strFS);
+	COGLProgram(const std::string debugName, const std::string strVS, const std::string strFS, std::vector<std::string> headerFiles);
 	~COGLProgram();
 
 	virtual bool Init();
@@ -25,9 +27,13 @@ private:
 	GLuint LoadShader(GLenum eShaderType, const std::string &strShaderFilename);
 	GLuint CreateShader(GLenum eShaderType, const std::string &strShaderFile, const std::string &strFileName);
 	std::string FindFileOrThrow(const std::string &strBasename);
+	std::string GetFileContent(const std::string &strShaderFile);
 
 	std::string m_VS;	// vertex shader string
 	std::string m_FS;	// fragment shader string
+
+	std::vector<std::string> m_HeaderFiles;
+	std::vector<std::string> m_HeaderFileNames;
 };
 
 #endif _C_GL_PROGRAM_H_

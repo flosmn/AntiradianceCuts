@@ -6,6 +6,6 @@ glm::vec3 Intersection::GetNormal() const {
 	return m_pPrimitive->GetNormal(); 
 }
 
-MATERIAL Intersection::GetMaterial() const { 
-	return m_pPrimitive->GetMaterial(); 
+uint Intersection::GetMaterialIndex() const { 
+	return m_pPrimitive->GetMaterialIndex(); 
 }
