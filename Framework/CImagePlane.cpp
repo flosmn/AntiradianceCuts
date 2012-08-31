@@ -7,6 +7,7 @@
 
 #include "OGLResources\COGLTexture2D.h"
 #include "CImage.h"
+#include "Utils\Util.h"
 
 #include <algorithm>
 
@@ -62,6 +63,18 @@ glm::vec2 CImagePlane::GetPixelSample()
 
 void CImagePlane::AddSample(glm::vec2 pixelSample, glm::vec4 sample)
 {
+	if(is_nan(sample.x) || is_nan(sample.y) || is_nan(sample.z))
+	{
+		std::cout << "CImagePlane::AddSample: sample has NAN component" << std::endl;
+		return;
+	}
+
+	if(is_inf(sample.x) || is_inf(sample.y) || is_inf(sample.z))
+	{
+		std::cout << "CImagePlane::AddSample: sample has INF component" << std::endl;
+		return;
+	}
+
 	int index = PixelToIndex(pixelSample);
 	int n = m_pNumSamples[index];
 	m_pData[index] = 1.f/float(n+1) * (float(n) * m_pData[index] + sample);

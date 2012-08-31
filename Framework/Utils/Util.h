@@ -12,6 +12,7 @@ typedef unsigned int uint;
 #include "..\Scene.h"
 
 #include "..\Utils\rand.h"
+#include <limits>
 
 #include <vector>
 #include <string>
@@ -73,5 +74,17 @@ float G_A(glm::vec3 p_avpl, glm::vec3 n_avpl, glm::vec3 p_point, glm::vec3 n_poi
 
 float Luminance(glm::vec3 v);
 float Luminance(glm::vec4 v);
+
+template<typename T>
+inline bool is_nan(T value)
+{
+	return value != value;
+}
+
+template<typename T>
+inline bool is_inf(T value)
+{
+	return std::numeric_limits<T>::has_infinity && value == std::numeric_limits<T>::infinity();
+}
 
 #endif

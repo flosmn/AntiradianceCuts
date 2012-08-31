@@ -440,6 +440,8 @@ bool Renderer::Init()
 
 	scene->GetMaterialBuffer()->InitOGLMaterialBuffer();
 
+	m_pGlobalTimer->Start();
+
 	return true;
 }
 
@@ -1961,8 +1963,18 @@ void Renderer::UpdateTransform()
 
 void Renderer::RenderPathTracingReference()
 {
+	static long num = 1;
+
 	m_pPathTracingIntegrator->Integrate(128 * 128, m_pConfManager->GetConfVars()->UseMIS);
 	m_pTextureViewer->DrawTexture(m_pImagePlane->GetOGLTexture(m_pConfManager->GetConfVars()->GaussianBlur), 0, 0, scene->GetCamera()->GetWidth(), scene->GetCamera()->GetHeight());
+		
+	if(num % 1000 == 0)
+	{
+		double time = m_pGlobalTimer->GetTime();
+		std::stringstream ss;
+		ss << "ref-" << m_CurrentPath << num << "-" <<time << "ms" << ".pfm";
+		m_Export->ExportPFM(m_pImagePlane->GetOGLTexture(false), ss.str());
+	}
 
 	if(m_pConfManager->GetConfVars()->DrawReference)
 	{
@@ -1971,4 +1983,6 @@ void Renderer::RenderPathTracingReference()
 		else
 			std::cout << "No reference image loaded" << std::endl;
 	}
+
+	num++;
 }

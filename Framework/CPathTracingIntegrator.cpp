@@ -76,7 +76,15 @@ void CPathTracingIntegrator::Integrate(uint numPaths, bool MIS)
 				float w = 0.f;
 				if(i > 1)
 				{
-					const float pdfSA = PhongPdf(y[i-2].position, y[i-1].position, y[i].position, y[i-1].normal, m_pScene->GetMaterial(y[i-1]), MIS);
+					const float pdfSA = PhongPdf(y[i-2].position, y[i-1].position, y[i].position, y[i-1].normal, 
+						m_pScene->GetMaterial(y[i-1]), MIS);
+					
+					if(pdfSA <= 0.f)
+					{
+						terminate = true;
+						continue;
+					}
+					
 					const float p = ProbA(y[i-1], y[i], pdfSA);
 					w = p / (p_A[i] + p);
 				}
@@ -93,12 +101,21 @@ void CPathTracingIntegrator::Integrate(uint numPaths, bool MIS)
 			m_pScene->SampleLightSource(ls_sample);
 			if(m_pScene->Visible(y[i], ls_sample))
 			{
-				const float pdfSA = PhongPdf(y[i-1].position, y[i].position, ls_sample.position, y[i].normal, m_pScene->GetMaterial(y[i]), MIS);
+				const float pdfSA = PhongPdf(y[i-1].position, y[i].position, ls_sample.position, y[i].normal, 
+					m_pScene->GetMaterial(y[i]), MIS);
+				
+				if(pdfSA <= 0.f)
+				{
+					terminate = true;
+					continue;
+				}
+				
 				const float p_A = ProbA(y[i], ls_sample, pdfSA);
 				const float w = ls_sample.pdf / (ls_sample.pdf + p_A);
 				const glm::vec4 L_e = m_pScene->GetMaterial(ls_sample)->emissive;
 			
-				const glm::vec4 BRDF = Phong(y[i-1].position, y[i].position, ls_sample.position, y[i].normal, m_pScene->GetMaterial(y[i]));
+				const glm::vec4 BRDF = Phong(y[i-1].position, y[i].position, ls_sample.position, y[i].normal, 
+					m_pScene->GetMaterial(y[i]));
 							
 				color += w * f_x * BRDF * G(ls_sample, y[i]) * L_e/ls_sample.pdf;
 			}
@@ -116,19 +133,13 @@ void CPathTracingIntegrator::Integrate(uint numPaths, bool MIS)
 				
 				#pragma omp critical
 				{
-					direction = SamplePhong(glm::normalize(y[i-1].position - y[i].position), y[i].normal, m_pScene->GetMaterial(y[i]), pdf, MIS);
+					direction = SamplePhong(glm::normalize(y[i-1].position - y[i].position), y[i].normal, 
+						m_pScene->GetMaterial(y[i]), pdf, MIS);
 				}
 				
 				if(glm::dot(direction, y[i].normal) <= 0.f)
 				{
 					std::cout << "cos_theta <= 0.f" << std::endl;
-					terminate = true;
-					continue;
-				}
-
-				if(pdf <= 0.0001f)
-				{
-					std::cout << "pdf small" << std::endl;
 					terminate = true;
 					continue;
 				}
@@ -149,7 +160,8 @@ void CPathTracingIntegrator::Integrate(uint numPaths, bool MIS)
 
 					p_A[i+1] = p_A[i] + temp;
 					
-					const glm::vec4 BRDF = Phong(y[i-1].position, y[i].position, y[i+1].position, y[i].normal, m_pScene->GetMaterial(y[i]));
+					const glm::vec4 BRDF = Phong(y[i-1].position, y[i].position, y[i+1].position, y[i].normal, 
+						m_pScene->GetMaterial(y[i]));
 
 					f_x = 1.f/(ProbPSA(y[i], y[i+1], pdf) * t_prob) * f_x * BRDF;
 				}
