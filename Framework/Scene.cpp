@@ -155,6 +155,20 @@ bool Scene::CreateAVPL(AVPL* pred, AVPL* newAVPL)
 	glm::vec3 direction = SamplePhong(pred->GetDirection(), pred->GetOrientation(), 
 		m_pMaterialBuffer->GetMaterial(pred->GetMaterialIndex()), pdf, mis);
 	
+	if(pdf < 0.f)
+	{
+		std::cout << "pdf < 0.f" << std::endl;
+		newAVPL = 0;
+		return false;
+	}
+
+	if(pdf == 0.f)
+	{
+		std::cout << "pdf == 0.f" << std::endl;
+		newAVPL = 0;
+		return false;
+	}
+
 	AVPL avpl;
 	if(ContinueAVPLPath(pred, &avpl, direction, pdf))
 	{
@@ -403,6 +417,12 @@ void Scene::CreateAVPLs(AVPL* pred, std::vector<AVPL>& path, int nAVPLs)
 		float pdf;
 		glm::vec3 direction = GetRandomSampleDirectionCosCone(pred_norm, Rand01(), Rand01(), pdf, 1);
 		
+		if(pdf <= 0.f)
+		{
+			std::cout << "pdf <= 0.f" << std::endl;
+			continue;
+		}
+
 		AVPL avpl;
 		if(ContinueAVPLPath(pred, &avpl, direction, pdf))		
 		{
