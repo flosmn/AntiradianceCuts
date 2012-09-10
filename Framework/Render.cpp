@@ -402,7 +402,7 @@ bool Renderer::Init()
 
 	scene = new Scene(camera, m_pConfManager, m_pCLContext);
 	scene->Init();
-	scene->LoadCornellBox();
+	scene->LoadBuddha();
 	scene->GetMaterialBuffer()->InitOGLMaterialBuffer();
 	scene->GetMaterialBuffer()->InitOCLMaterialBuffer();
 		
@@ -469,7 +469,7 @@ bool Renderer::Init()
 
 	for(int i = 0; i < 10; ++i)
 	{
-		int numAVPLs = 1000 * (i+1);
+		int numAVPLs = 100 * (i+1);
 		std::stringstream ss;
 		ss << "Build Tree (" << numAVPLs << ")"; 
 
@@ -478,9 +478,10 @@ bool Renderer::Init()
 
 		CTimer timer(CTimer::CPU);
 		timer.Start();
-		m_pClusterTree->BuildTree(randAVPLs);
+		CClusterTree tree;
+		tree.BuildTree(randAVPLs);
 		timer.Stop(ss.str());
-		m_pClusterTree->Release();
+		tree.Release();
 		randAVPLs.clear();
 	}
 
@@ -883,7 +884,23 @@ void Renderer::DrawDebug()
 
 void Renderer::CheckExport()
 {
-	if(m_NumAVPLs >= m_NumAVPLsForNextDataExport)
+	float time = (float)m_pGlobalTimer->GetTime();
+
+#define TIME 1
+
+#if TIME
+	bool exportData = time >= m_TimeForNextDataExport;
+#else
+	bool exportData = m_NumAVPLs >= m_NumAVPLsForNextDataExport;	
+#endif
+
+#if TIME
+	bool exportImage = time >= m_TimeForNextImageExport;
+#else
+	bool exportImage = m_NumAVPLs >= m_NumAVPLsForNextImageExport;
+#endif
+
+	if(exportData)
 	{
 		float error = 0.f;
 		if(scene->GetReferenceImage())
@@ -892,15 +909,24 @@ void Renderer::CheckExport()
 		float timeInSec = float(m_pGlobalTimer->GetTime())/1000.f;
 		float AVPLsPerSecond = (float)m_NumAVPLs / timeInSec;
 		m_pExperimentData->AddData(m_NumAVPLs, timeInSec, error, AVPLsPerSecond);
-		std::cout << "AVPLs: " << m_NumAVPLs << ", AVPL_PER_SECOND: " << AVPLsPerSecond  << ", RMSE: " << error << std::endl;
+		std::cout << "AVPLs: " << m_NumAVPLs << ", time: " << timeInSec << ", AVPL_PER_SECOND: " << AVPLsPerSecond  << ", RMSE: " << error << std::endl;
 
+#if TIME
+		m_TimeForNextDataExport = int(float(m_TimeForNextDataExport) * std::pow(10.f, 0.25f));
+#else
 		m_NumAVPLsForNextDataExport = int(float(m_NumAVPLsForNextDataExport) * std::pow(10.f, 0.25f));
+#endif
 	}
-	if(m_NumAVPLs >= m_NumAVPLsForNextImageExport)
+
+	if(exportImage)
 	{
 		ExportPartialResult();
 
+#if TIME
+		m_TimeForNextImageExport *= 10;
+#else
 		m_NumAVPLsForNextImageExport *= 10;
+#endif
 	}
 }
 
@@ -1558,7 +1584,9 @@ void Renderer::WindowChanged()
 void Renderer::ClearAccumulationBuffer()
 {
 	m_NumAVPLsForNextDataExport = 1000;
-	m_NumAVPLsForNextImageExport = 1000;
+	m_NumAVPLsForNextImageExport = 10000;
+	m_TimeForNextDataExport = 1000;
+	m_TimeForNextImageExport = 1000;
 	m_NumAVPLs = 0;
 
 	glClearColor(0, 0, 0, 0);

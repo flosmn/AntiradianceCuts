@@ -271,6 +271,8 @@ private:
 
 	int m_NumAVPLsForNextDataExport;
 	int m_NumAVPLsForNextImageExport;
+	int m_TimeForNextDataExport;
+	int m_TimeForNextImageExport;
 	int m_NumAVPLs;
 };
 

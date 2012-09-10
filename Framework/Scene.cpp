@@ -580,21 +580,34 @@ void Scene::LoadBuddha()
 {
 	ClearScene();
 
-	float scale = 300.f; 
-
 	CModel* model = new CModel();
-	model->Init("dragon43k", "obj", m_pMaterialBuffer);
-	model->SetWorldTransform(glm::scale(scale * glm::vec3(1.f, 1.f, 1.f)));
+	model->Init("cb-buddha-diffuse", "obj", m_pMaterialBuffer);
+	model->SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
+
+	m_pReferenceImage = new CReferenceImage(m_Camera->GetWidth(), m_Camera->GetHeight());
+	m_pReferenceImage->LoadFromFile("References/cb-buddha-full-noclamp.hdr", true);
 
 	m_Models.push_back(model);
 
-	m_Camera->Init(0, glm::vec3(0.f, 273.f, -800.f), 
-		glm::vec3(0.f, 273.f, -799.f),
+	m_Camera->Init(0, glm::vec3(278.f, 273.f, -800.f), 
+		glm::vec3(278.f, 273.f, -799.f),
 		glm::vec3(0.f, 1.f, 0.f),
 		2.0f);
 
+	m_Camera->Init(1, glm::vec3(128.5f, 42.9f, 8.9f), 
+		glm::vec3(128.2f, 42.6f, 9.8f),
+		glm::vec3(0.f, 1.f, 0.f),
+		2.0f);
+
+	m_Camera->Init(2, glm::vec3(278.f, 273.f, -500.f), 
+		glm::vec3(278.f, 273.f, -499.f),
+		glm::vec3(0.f, 1.f, 0.f),
+		2.0f);
+
+	m_Camera->UseCameraConfig(2);
+	
 	glm::vec3 areaLightFrontDir = glm::vec3(0.0f, -1.0f, 0.0f);
-	glm::vec3 areaLightPosition = glm::vec3(0.f, 800.0f, 0.f);
+	glm::vec3 areaLightPosition = glm::vec3(278.f, 548.78999f, 279.5f);
 	
 	m_pConfManager->GetConfVars()->AreaLightFrontDirection[0] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[0] = areaLightFrontDir.x;
 	m_pConfManager->GetConfVars()->AreaLightFrontDirection[1] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[1] = areaLightFrontDir.y;
@@ -607,19 +620,18 @@ void Scene::LoadBuddha()
 	float AreaLightRadianceScale = 100;
 	m_pConfManager->GetConfVars()->AreaLightRadianceScale = m_pConfManager->GetConfVarsGUI()->AreaLightRadianceScale = AreaLightRadianceScale;
 
-	m_AreaLight = new AreaLight(140.0f, 100.0f, 
+	m_AreaLight = new AreaLight(130.0f, 105.0f, 
 		areaLightPosition, 
 		areaLightFrontDir,
 		Orthogonal(areaLightFrontDir),
 		m_pMaterialBuffer);
 
-	m_AreaLight->SetRadiance(glm::vec3(AreaLightRadianceScale));
-
 	m_AreaLight->Init();
 
-	m_pConfManager->GetConfVars()->UseIBL = m_pConfManager->GetConfVarsGUI()->UseIBL = 1;
-	//m_HasLightSource = false;
+	m_AreaLight->SetRadiance(glm::vec3(100.f, 100.f, 100.f));
 
+	m_pConfManager->GetConfVars()->UseIBL = m_pConfManager->GetConfVarsGUI()->UseIBL = 0;
+		
 	InitKdTree();
 }
 
