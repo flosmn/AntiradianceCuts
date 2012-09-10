@@ -12,6 +12,8 @@ public:
 	~CExport();
 
 	void ExportPFM(COGLTexture2D* pTexture, std::string strFileName);
+	void ExportPNG(COGLTexture2D* pTexture, std::string strFileName);
+	void ExportHDR(COGLTexture2D* pTexture, std::string strFileName);
 private:
 };
 

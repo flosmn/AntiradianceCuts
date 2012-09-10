@@ -5,6 +5,9 @@ class Renderer;
 
 struct CONF_VARS
 {
+	int DrawError;
+	int DrawReference;
+
 	int UseAntiradiance;
 	int UseToneMapping;
 	int UseDebugMode;
@@ -17,21 +20,22 @@ struct CONF_VARS
 	int DrawCutSizes;
 	int FilterAvplAtlasLinear;
 	int FillAvplAltasOnGPU;
-	int UseLightTree;
 	int SeparateDirectIndirectLighting;
-	int DrawDirectLight;
-	int DrawIndirectLight;
+	int LightingMode;
+	int DrawDirectLighting;
+	int DrawIndirectLighting;
 	int NumVPLsDirectLight;
 	int NumVPLsDirectLightPerFrame;
 	int AntiradFilterMode;
 	float AntiradFilterGaussFactor;
 	float AntiradFilterK;
 	int LimitBounces;
-	
-	int DrawReference;
+	int NoAntiradiance;
+
 	int UsePathTracing;
 	int UseMIS;
 	int GaussianBlur;
+	int NumSamples;
 
 	int UseIBL;
 
@@ -43,15 +47,12 @@ struct CONF_VARS
 	float Exposure;
 	int Intersection_BFC;
 	
-	int NumPaths;
-	int NumPathsPerFrame;
+	int NumAVPLsPerFrame;
+	int NumAVPLsDebug;
 	int NumAdditionalAVPLs;
 	int RenderBounce;
-	int DrawLightingOfLight;
 	int NumSqrtAtlasSamples;
 	float ConeFactor;
-	float TexelOffsetX;
-	float TexelOffsetY;
 	float DisplacePCP;
 
 	int LightTreeCutDepth;
@@ -86,6 +87,8 @@ struct CONF_VARS
 	int NumSamplesForPESS;	
 	int NumEyeRaysASS;	
 	int NumSamplesForPEASS;
+
+	int DrawCubeMapFace;
 };
 
 class CConfigManager

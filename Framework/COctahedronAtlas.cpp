@@ -7,6 +7,7 @@
 
 #include "AVPL.h"
 #include "LightTreeTypes.h"
+#include "CMaterialBuffer.h"
 
 #include "OctahedronUtil.h"
 
@@ -69,11 +70,12 @@ COctahedronAtlas::~COctahedronAtlas()
 	SAFE_DELETE(m_pOGLClusterAtlasCPU);
 }
 
-bool COctahedronAtlas::Init(uint atlasDim, uint tileDim, uint maxNumAVPLs)
+bool COctahedronAtlas::Init(uint atlasDim, uint tileDim, uint maxNumAVPLs, CMaterialBuffer* pMaterialBuffer)
 {
 	m_AtlasDim = atlasDim;
 	m_TileDim = tileDim;
-		
+	m_pMaterialBuffer = pMaterialBuffer;
+
 	V_RET_FOF(m_pOCLProgram->Init("Kernels\\FillAVPLAtlas.cl"));
 	V_RET_FOF(m_pOCLCalcAvplAtlasKernel->Init("CalcAvplAtlas"));
 	V_RET_FOF(m_pOCLCalcAvplClusterAtlasKernel->Init("CalcAvplClusterAtlas"));
@@ -101,6 +103,7 @@ bool COctahedronAtlas::Init(uint atlasDim, uint tileDim, uint maxNumAVPLs)
 	m_pOCLCalcAvplAtlasKernel->SetKernelArg(1, sizeof(int), &m_TileDim);
 	m_pOCLCalcAvplAtlasKernel->SetKernelArg(2, sizeof(int), &m_AtlasDim);
 	m_pOCLCalcAvplAtlasKernel->SetKernelArg(7, sizeof(cl_mem), m_pAvplBuffer->GetCLBuffer());
+	m_pOCLCalcAvplAtlasKernel->SetKernelArg(8, sizeof(cl_mem), m_pMaterialBuffer->GetOCLMaterialBuffer()->GetCLBuffer());
 
 	m_pOCLCalcAvplClusterAtlasKernel->SetKernelArg(0, sizeof(cl_mem), m_pClusteringBuffer->GetCLBuffer());
 	m_pOCLCalcAvplClusterAtlasKernel->SetKernelArg(1, sizeof(cl_mem), m_pAtlasBuffer->GetCLBuffer());
@@ -169,8 +172,18 @@ COGLTexture2D* COctahedronAtlas::GetAVPLClusterAtlasCPU()
 	return m_pOGLClusterAtlasCPU;
 }
 
-void COctahedronAtlas::FillAtlasGPU(AVPL_BUFFER* pBufferData, uint numAVPLs, const int sqrt_num_ss_samples, const float& N, bool border)
+void COctahedronAtlas::FillAtlasGPU(const std::vector<AVPL>& avpls, const int sqrt_num_ss_samples, const float& N, bool border)
 {
+	uint numAVPLs = (uint)avpls.size();
+	AVPL_BUFFER* avplBuffer = new AVPL_BUFFER[numAVPLs];
+	memset(avplBuffer, 0, sizeof(AVPL_BUFFER) * numAVPLs);
+	for(uint i = 0; i < numAVPLs; ++i)
+	{
+		AVPL_BUFFER buffer;
+		avpls[i].Fill(buffer);
+		avplBuffer[i] = buffer;
+	}
+	
 	size_t local_work_size[2];
 	local_work_size[0] = m_TileDim < 16 ? m_TileDim : 16;
 	local_work_size[1] = m_TileDim < 16 ? m_TileDim : 16;
@@ -182,7 +195,7 @@ void COctahedronAtlas::FillAtlasGPU(AVPL_BUFFER* pBufferData, uint numAVPLs, con
 	global_work_size[0] = local_work_size[0] * numColumns;
 	global_work_size[1] = local_work_size[1] * numRows;
 	
-	m_pAvplBuffer->SetBufferData(pBufferData, sizeof(AVPL_BUFFER) * numAVPLs, true);
+	m_pAvplBuffer->SetBufferData(avplBuffer, sizeof(AVPL_BUFFER) * numAVPLs, true);
 	
 	int n = int(N);
 	int b = int(border);
@@ -204,6 +217,8 @@ void COctahedronAtlas::FillAtlasGPU(AVPL_BUFFER* pBufferData, uint numAVPLs, con
 	m_pOCLAtlas->Lock();
 	m_pOCLCopyToImageKernel->CallKernel(2, 0, global_work_size, local_work_size);
 	m_pOCLAtlas->Unlock();
+
+	delete [] avplBuffer;
 }
 
 void COctahedronAtlas::FillClusterAtlasGPU(CLUSTER* pClustering, uint clusteringSize, uint numAVPLs)

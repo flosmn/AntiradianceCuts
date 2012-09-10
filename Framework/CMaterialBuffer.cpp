@@ -4,6 +4,9 @@
 
 #include "OGLResources\COGLTextureBuffer.h"
 
+#include "OCLResources\COCLContext.h"
+#include "OCLResources\COCLBuffer.h"
+
 /*
 material index is counted from 1 to numMaterials.
 
@@ -12,11 +15,12 @@ on index 0 in the material buffer a dummy material is inserted.
 material index 0 means that this material does not exist jet
 */
 
-CMaterialBuffer::CMaterialBuffer()
+CMaterialBuffer::CMaterialBuffer(COCLContext* pOCLContext)
 {
 	MATERIAL mat;
 	m_Materials.push_back(mat);
 	m_pOGLMaterialBuffer = new COGLTextureBuffer("CMaterialBuffer.m_pOGLMaterialBuffer");
+	m_pOCLMaterialBuffer = new COCLBuffer(pOCLContext, "CMaterialBuffer.m_pOCLMaterialBuffer");
 }
 
 CMaterialBuffer::~CMaterialBuffer()
@@ -25,6 +29,7 @@ CMaterialBuffer::~CMaterialBuffer()
 	m_Materials.clear();
 
 	SAFE_DELETE(m_pOGLMaterialBuffer);
+	SAFE_DELETE(m_pOCLMaterialBuffer);
 }
 
 // add the material mat to the material buffer and returns the index of the material in the buffer
@@ -71,13 +76,40 @@ bool CMaterialBuffer::InitOGLMaterialBuffer()
 	return true;
 }
 
+bool CMaterialBuffer::InitOCLMaterialBuffer()
+{
+	V_RET_FOF(m_pOCLMaterialBuffer->Init((m_Materials.size()+1) * sizeof(MATERIAL), CL_MEM_READ_ONLY));
+
+	MATERIAL* pData = new MATERIAL[(m_Materials.size()+1)];
+	memset(pData, 0, (m_Materials.size()+1) * sizeof(MATERIAL));
+	for(int i = 0; i < (m_Materials.size()+1); ++i)
+	{
+		pData[i] = m_Materials[i];
+	}
+	m_pOCLMaterialBuffer->SetBufferData(pData, (m_Materials.size()+1) * sizeof(MATERIAL), true);
+	delete [] pData;
+
+	return true;
+}
+
 void CMaterialBuffer::ReleaseOGLMaterialBuffer()
 {
 	m_pOGLMaterialBuffer->Release();
+}
+
+void CMaterialBuffer::ReleaseOCLMaterialBuffer()
+{
+	m_pOCLMaterialBuffer->Release();
 }
 
 COGLTextureBuffer* CMaterialBuffer::GetOGLMaterialBuffer()
 {
 	m_pOGLMaterialBuffer->CheckInitialized("CMaterialBuffer.GetOGLMaterialBuffer()");
 	return m_pOGLMaterialBuffer;
+}
+
+COCLBuffer* CMaterialBuffer::GetOCLMaterialBuffer()
+{
+	m_pOCLMaterialBuffer->CheckInitialized("CMaterialBuffer.GetOCLMaterialBuffer()");
+	return m_pOCLMaterialBuffer;
 }

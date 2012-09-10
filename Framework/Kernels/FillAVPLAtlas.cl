@@ -1,12 +1,28 @@
 #define PI 3.14159265f
+#define ONE_OVER_PI 0.31830988618f
 
 struct AVPL_BUFFER
 {
-	float4 I;		// Intensity;
-	float4 A;		// Antiintensity;
-	float4 pos;		// Position
-	float4 norm;	// Orientation;
-	float4 w_A;		// AntiintensityDirection;
+	float4 L;	// radiance;
+	float4 A;	// antiradiance;
+	float4 pos;	// position
+	float4 norm;	// orientation;
+	float4 w;	// direction of antiradiance, incident light direction;
+	float angleFactor;	// PI/AngleFactor = Half opening angleFactor of AR cone
+	float materialIndex;
+	float padd0;
+	float padd1;
+};
+
+struct MATERIAL
+{
+	float4 emissive;
+	float4 diffuse;
+	float4 specular;
+	float exponent;
+	float padd0;
+	float padd1;
+	float padd2;
 };
 
 struct CLUSTERING
@@ -20,9 +36,11 @@ struct CLUSTERING
 float3 GetDirForTexCoord(float2 texCoord);
 float2 GetTexCoordForDir(float3 dir);
 
-float4 SampleTexel(uint x, uint y, int tile_dim, const int sqrt_num_ss_samples, const float N, struct AVPL_BUFFER avpl, bool border);
-float3 GetIntensity(float3 direction, struct AVPL_BUFFER avpl);
-float3 GetAntiintensity(float3 direction, struct AVPL_BUFFER avpl, float N);
+float4 SampleTexel(uint x, uint y, int tile_dim, const int sqrt_num_ss_samples, const float N, struct AVPL_BUFFER avpl, struct MATERIAL mat, bool border);
+float3 GetRadiance(float3 direction, struct AVPL_BUFFER avpl, struct MATERIAL mat);
+float3 GetAntiradiance(float3 direction, struct AVPL_BUFFER avpl, struct MATERIAL mat, float N);
+float3 Phong(const float3 w_i, const float3 w_o, const float3 n, const struct MATERIAL mat);
+float3 reflect(const float3 v, const float3 norm);
 
 __kernel void CalcAvplAtlas(
 	__global float4* pData,
@@ -32,7 +50,8 @@ __kernel void CalcAvplAtlas(
 	int sqrt_num_ss_samples,
 	int N,
 	int border,
-	__global struct AVPL_BUFFER* pAvplBuffer)
+	__global struct AVPL_BUFFER* pAvplBuffer,
+	__global struct MATERIAL* pMaterialBuffer)
 {
 	const int numColumns = atlas_dim / tile_dim;
 	
@@ -71,7 +90,8 @@ __kernel void CalcAvplAtlas(
 			}
 			else
 			{
-				color = SampleTexel(localCoords.x-b, localCoords.y-b, tile_dim, sqrt_num_ss_samples, N, pAvplBuffer[avplIndex], border);
+				color = SampleTexel(localCoords.x-b, localCoords.y-b, tile_dim, sqrt_num_ss_samples, N, 
+					pAvplBuffer[avplIndex], pMaterialBuffer[(int)(pAvplBuffer[avplIndex].materialIndex)], border);
 			}
 			
 			int2 globalCoords = localCoords + (int2)(group_id.x * tile_dim, group_id.y * tile_dim);
@@ -286,7 +306,7 @@ __kernel void CopyToImage(
 	}	
 }
 
-float4 SampleTexel(uint x, uint y, int tile_dim, const int sqrt_num_ss_samples, const float N, struct AVPL_BUFFER avpl, bool border)
+float4 SampleTexel(uint x, uint y, int tile_dim, const int sqrt_num_ss_samples, const float N, struct AVPL_BUFFER avpl, struct MATERIAL mat, bool border)
 {
 	uint b = border ? 1 : 0;
 	const int num_ss_samples = sqrt_num_ss_samples * sqrt_num_ss_samples;
@@ -295,7 +315,7 @@ float4 SampleTexel(uint x, uint y, int tile_dim, const int sqrt_num_ss_samples, 
 	const float delta = 1.f / (float)(sqrt_num_ss_samples + 1);
 
 	float3 A = (float3)(0.f);
-	float3 I = (float3)(0.f);
+	float3 L = (float3)(0.f);
 
 	for(int i = 0; i < sqrt_num_ss_samples; ++i)
 	{
@@ -304,15 +324,15 @@ float4 SampleTexel(uint x, uint y, int tile_dim, const int sqrt_num_ss_samples, 
 			float2 texCoord = texel_size * (float2)((float)(x + (i+1) * delta), (float)(y + (j+1) * delta));
 			float3 direction = normalize(GetDirForTexCoord(texCoord));
 			
-			A += GetAntiintensity(direction, avpl, N);
-			I += GetIntensity(direction, avpl);
+			A += GetAntiradiance(direction, avpl, mat, N);
+			L += dot(direction, avpl.norm.xyz) * GetRadiance(direction, avpl, mat);
 		}
 	}		
 		
 	A *= 1.f/(float)(num_ss_samples);
-	I *= 1.f/(float)(num_ss_samples);
-			
-	return (float4)(I - A, 1.f);
+	L *= 1.f/(float)(num_ss_samples);
+		
+	return (float4)(L - A, 1.f);
 }
 
 __kernel void Clear(
@@ -322,25 +342,33 @@ __kernel void Clear(
 	global_id.x = get_global_id(0);
 	global_id.y = get_global_id(1);
 		
-	float4 color = (float4)(0.f, 0.f, 1.f, 0.f);
+	float4 color = (float4)(0.f, 0.f, 0.f, 0.f);
 	
 	write_imagef(image, global_id, color);
 }
 
-float3 GetIntensity(float3 w, struct AVPL_BUFFER avpl)
+float3 GetRadiance(float3 w_o, struct AVPL_BUFFER avpl, struct MATERIAL mat)
 {
-	return clamp(dot(w, avpl.norm.xyz), 0.f, 1.f) * avpl.I.xyz;
+	if(dot(w_o, avpl.norm.xyz) <= 0)
+		return (float3)(0.f, 0.f, 0.f);
+
+	if(length(avpl.w.xyz) == 0.f)
+		return avpl.L.xyz;
+
+	float3 BRDF = Phong(-avpl.w.xyz, w_o, avpl.norm.xyz, mat);
+	return BRDF * avpl.L.xyz;
 }
 
-float3 GetAntiintensity(float3 w, struct AVPL_BUFFER avpl, float N)
+float3 GetAntiradiance(float3 w, struct AVPL_BUFFER avpl, struct MATERIAL mat, float N)
 {
 	float3 res = (float3)(0.f, 0.f, 0.f);
 	
-	float cos_theta = dot(w, avpl.w_A.xyz);
-	if(cos_theta < 0.01f)
-	{
+	if(dot(w, avpl.norm.xyz) >= 0)
 		return res;
-	}
+
+	float cos_theta = dot(w, avpl.w.xyz);
+	if(cos_theta <= 0.0f)
+		return res;
 
 	const float theta = acos(clamp(cos_theta, 0.f, 1.f));
 	
@@ -397,4 +425,26 @@ float3 GetDirForTexCoord(float2 texCoord) {
 	dir = normalize(dir);
 
 	return dir;
+}
+
+float3 Phong(const float3 w_i, const float3 w_o, const float3 n, const struct MATERIAL mat)
+{
+	if(dot(w_o, n) <= 0.f)
+		return (float3)(0.f, 0.f, 0.f);
+
+	float3 diffuse = ONE_OVER_PI * mat.diffuse.xyz;
+	/*float3 refl = reflect(w_i, n);
+	const float cos = max(0.f, dot(refl, w_o));
+	float3 specular = 0.5f * ONE_OVER_PI * (mat.exponent+2) * pow(cos, mat.exponent) * mat.specular.xyz;
+	const float3 res = diffuse + specular;*/
+	return diffuse;
+}
+
+float3 reflect(const float3 v, const float3 n)
+{
+	const float cos_theta = dot(v,n);
+	if(cos_theta <= 0.f)
+		return (float3)(0.f, 0.f, 0.f);
+
+	return normalize(2 * cos_theta * n - v);
 }

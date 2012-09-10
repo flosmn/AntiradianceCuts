@@ -19,12 +19,19 @@ CReferenceImage::~CReferenceImage()
 {
 	SAFE_DELETE(m_pImage);
 	SAFE_DELETE(m_pOGLTexture);
+	
 }
 
 void CReferenceImage::LoadFromFile(const char* path, bool flipImage)
 {
 	m_pImage->LoadFromFile(path, flipImage);
 	
+	glm::vec4* pData = m_pImage->GetData();
+	for(int i = 0; i < m_pImage->GetWidth() * m_pImage->GetHeight(); ++i)
+	{
+		pData[i] = glm::min(glm::vec4(100.f), pData[i]);
+	}
+
 	m_pOGLTexture->Init(m_Width, m_Height, GL_RGBA32F, GL_RGBA, GL_FLOAT, 1, false);
 	m_pOGLTexture->SetPixelData(m_pImage->GetData());
 }
@@ -43,18 +50,18 @@ float CReferenceImage::GetError(COGLTexture2D* comp)
 	glm::vec4* pCompData = new glm::vec4[w * h];
 	comp->GetPixelData(pCompData);
 
-	float error = 0.f;
-	for(int i = 0; i < w; i++)
+	glm::vec3 error = glm::vec3(0.f);
+	for(uint i = 0; i < w*h; i++)
 	{
-		for(int j = 0; j < h; j++)
-		{
-			const float diff = Luminance(pRefData[j * w + i]) - Luminance(pCompData[j * w + i]);
-			error += (diff * diff);
-		}
+		glm::vec3 v = glm::vec3(pRefData[i]); 
+		glm::vec3 u = glm::vec3(pCompData[i]);
+		glm::vec3 d = v - u;
+		error += glm::min(glm::vec3(100.f), glm::vec3(d.x * d.x, d.y * d.y, d.z * d.z));
 	}
-	error = sqrtf(error/float(w*h));
+	error = 1.f/float(w*h) * error;
+	error = glm::vec3(sqrt(error.x), sqrt(error.y), sqrt(error.z));
 
 	delete [] pCompData;
 
-	return error;
+	return 1.f/3.f * (error.x * error.y + error.z);
 }

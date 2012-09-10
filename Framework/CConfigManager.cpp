@@ -23,17 +23,19 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->DrawCutSizes = m_pConfVarsGUI->DrawCutSizes = 0;
 	m_pConfVars->FilterAvplAtlasLinear = m_pConfVarsGUI->FilterAvplAtlasLinear = 0;
 	m_pConfVars->FillAvplAltasOnGPU = m_pConfVarsGUI->FillAvplAltasOnGPU = 1;
-	m_pConfVars->UseLightTree = m_pConfVarsGUI->UseLightTree = 0;
 	m_pConfVars->LimitBounces = m_pConfVarsGUI->LimitBounces = -1;
+	m_pConfVars->NoAntiradiance = m_pConfVarsGUI->NoAntiradiance = 0;
 	
+	m_pConfVars->DrawError = m_pConfVarsGUI->DrawError = 0;
 	m_pConfVars->DrawReference = m_pConfVarsGUI->DrawReference = 0;
 	m_pConfVars->UsePathTracing = m_pConfVarsGUI->UsePathTracing = 0;
 	m_pConfVars->UseMIS = m_pConfVarsGUI->UseMIS = 0;
 	m_pConfVars->GaussianBlur = m_pConfVarsGUI->GaussianBlur = 0;
+	m_pConfVars->NumSamples = m_pConfVarsGUI->NumSamples = 128;
 
 	m_pConfVars->UseIBL = m_pConfVarsGUI->UseIBL = 0;
 	
-	m_pConfVars->GeoTermLimitRadiance = m_pConfVarsGUI->GeoTermLimitRadiance = 1.0f;
+	m_pConfVars->GeoTermLimitRadiance = m_pConfVarsGUI->GeoTermLimitRadiance = 0.005f;
 	m_pConfVars->GeoTermLimitAntiradiance = m_pConfVarsGUI->GeoTermLimitAntiradiance = 1.0f;
 	m_pConfVars->ClampGeoTerm = m_pConfVarsGUI->ClampGeoTerm = 1;
 	m_pConfVars->ClampCone = m_pConfVarsGUI->ClampCone = 1;
@@ -44,17 +46,14 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->NumVPLsDirectLight = m_pConfVarsGUI->NumVPLsDirectLight = 50;
 	m_pConfVars->NumVPLsDirectLightPerFrame = m_pConfVarsGUI->NumVPLsDirectLightPerFrame = 1;
 
-	m_pConfVars->NumPaths = m_pConfVarsGUI->NumPaths = 1000;
-	m_pConfVars->NumPathsPerFrame = m_pConfVarsGUI->NumPathsPerFrame = 100;
+	m_pConfVars->NumAVPLsPerFrame = m_pConfVarsGUI->NumAVPLsPerFrame = 10;
+	m_pConfVars->NumAVPLsDebug = m_pConfVarsGUI->NumAVPLsDebug = 10;
 	m_pConfVars->NumAdditionalAVPLs = m_pConfVarsGUI->NumAdditionalAVPLs = 0;
 	m_pConfVars->ConeFactor = m_pConfVarsGUI->ConeFactor = 30.f;
 	m_pConfVars->AntiradFilterMode = m_pConfVarsGUI->AntiradFilterMode = 0;
 	m_pConfVars->AntiradFilterGaussFactor = m_pConfVarsGUI->AntiradFilterGaussFactor = 2.5f;
 	m_pConfVars->RenderBounce = m_pConfVarsGUI->RenderBounce = -1;
-	m_pConfVars->DrawLightingOfLight = m_pConfVarsGUI->DrawLightingOfLight = -1;
 	m_pConfVars->NumSqrtAtlasSamples = m_pConfVarsGUI->NumSqrtAtlasSamples = 4;
-	m_pConfVars->TexelOffsetX = m_pConfVarsGUI->TexelOffsetX = 0.f;
-	m_pConfVars->TexelOffsetY = m_pConfVarsGUI->TexelOffsetY = 0.f;
 	m_pConfVars->DisplacePCP = m_pConfVarsGUI->DisplacePCP = 1.f;
 
 	m_pConfVars->LightTreeCutDepth = m_pConfVarsGUI->LightTreeCutDepth = -1;
@@ -64,9 +63,10 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->ClusterRefinementThreshold = m_pConfVarsGUI->ClusterRefinementThreshold = 0.01f;
 
 	m_pConfVars->SeparateDirectIndirectLighting = m_pConfVarsGUI->SeparateDirectIndirectLighting = 0;
-	m_pConfVars->DrawDirectLight = m_pConfVarsGUI->DrawDirectLight = 0;
-	m_pConfVars->DrawIndirectLight = m_pConfVarsGUI->DrawIndirectLight = 0;
-
+	m_pConfVars->LightingMode = m_pConfVarsGUI->LightingMode = 0;
+	m_pConfVars->DrawDirectLighting = m_pConfVarsGUI->DrawDirectLighting = 0;
+	m_pConfVars->DrawIndirectLighting = m_pConfVarsGUI->DrawIndirectLighting = 0;
+	
 	m_pConfVars->AreaLightFrontDirection[0] = m_pConfVarsGUI->AreaLightFrontDirection[0] = 0.f;
 	m_pConfVars->AreaLightFrontDirection[1] = m_pConfVarsGUI->AreaLightFrontDirection[1] = 0.f;
 	m_pConfVars->AreaLightFrontDirection[2] = m_pConfVarsGUI->AreaLightFrontDirection[2] = 0.f;
@@ -97,6 +97,8 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->NumSamplesForPESS = m_pConfVarsGUI->NumSamplesForPESS = 49;
 	m_pConfVars->NumEyeRaysASS = m_pConfVarsGUI->NumEyeRaysASS = 500;
 	m_pConfVars->NumSamplesForPEASS = m_pConfVarsGUI->NumSamplesForPEASS = 49;
+
+	m_pConfVars->DrawCubeMapFace = m_pConfVarsGUI->DrawCubeMapFace = -1;
 }
 
 CConfigManager::~CConfigManager()
@@ -150,9 +152,24 @@ void CConfigManager::Update()
 		configureLighting = true;
 	}
 
+	if(m_pConfVarsGUI->NoAntiradiance != m_pConfVars->NoAntiradiance)
+	{
+		m_pConfVars->NoAntiradiance = m_pConfVarsGUI->NoAntiradiance;
+	}
+
+	if(m_pConfVarsGUI->DrawError != m_pConfVars->DrawError)
+	{
+		m_pConfVars->DrawError = m_pConfVarsGUI->DrawError;
+	}
+
 	if(m_pConfVarsGUI->DrawReference != m_pConfVars->DrawReference)
 	{
 		m_pConfVars->DrawReference = m_pConfVarsGUI->DrawReference;
+	}
+
+	if(m_pConfVarsGUI->NumSamples != m_pConfVars->NumSamples)
+	{
+		m_pConfVars->NumSamples = m_pConfVarsGUI->NumSamples;
 	}
 
 	if(m_pConfVarsGUI->GaussianBlur != m_pConfVars->GaussianBlur)
@@ -187,13 +204,7 @@ void CConfigManager::Update()
 		clearAccumBuffer = true;
 		clearLighting = true;
 	}
-
-	if(m_pConfVarsGUI->UseLightTree != m_pConfVars->UseLightTree)
-	{
-		m_pConfVars->UseLightTree = m_pConfVarsGUI->UseLightTree;
-		clearAccumBuffer = true;
-	}
-
+	
 	if(m_pConfVarsGUI->LimitBounces != m_pConfVars->LimitBounces)
 	{
 		m_pConfVars->LimitBounces = m_pConfVarsGUI->LimitBounces;
@@ -208,18 +219,26 @@ void CConfigManager::Update()
 		clearLighting = true;
 	}
 
-	if(m_pConfVarsGUI->DrawDirectLight != m_pConfVars->DrawDirectLight)
+	if(m_pConfVarsGUI->LightingMode != m_pConfVars->LightingMode)
 	{
-		m_pConfVars->DrawDirectLight = m_pConfVarsGUI->DrawDirectLight;
+		m_pConfVars->LightingMode = m_pConfVarsGUI->LightingMode;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->DrawDirectLighting != m_pConfVars->DrawDirectLighting)
+	{
+		m_pConfVars->DrawDirectLighting = m_pConfVarsGUI->DrawDirectLighting;
 		configureLighting = true;
 	}
 
-	if(m_pConfVarsGUI->DrawIndirectLight != m_pConfVars->DrawIndirectLight)
+	if(m_pConfVarsGUI->DrawIndirectLighting != m_pConfVars->DrawIndirectLighting)
 	{
-		m_pConfVars->DrawIndirectLight = m_pConfVarsGUI->DrawIndirectLight;
+		m_pConfVars->DrawIndirectLighting = m_pConfVarsGUI->DrawIndirectLighting;
 		configureLighting = true;
 	}
-
+	
 	if(m_pConfVarsGUI->DrawAVPLAtlas != m_pConfVars->DrawAVPLAtlas)
 	{
 		m_pConfVars->DrawAVPLAtlas = m_pConfVarsGUI->DrawAVPLAtlas;
@@ -335,22 +354,23 @@ void CConfigManager::Update()
 		clearAccumBuffer = true;
 		clearLighting = true;
 	}
-
-	if(m_pConfVarsGUI->NumPaths != m_pConfVars->NumPaths)
+	
+	if(m_pConfVarsGUI->NumAVPLsPerFrame != m_pConfVars->NumAVPLsPerFrame)
 	{
-		m_pConfVars->NumPaths = m_pConfVarsGUI->NumPaths;
+		m_pConfVars->NumAVPLsPerFrame = m_pConfVarsGUI->NumAVPLsPerFrame;
 		configureLighting = true;
 		clearAccumBuffer = true;
 		clearLighting = true;
 	}
 
-	if(m_pConfVarsGUI->NumPathsPerFrame != m_pConfVars->NumPathsPerFrame)
+	if(m_pConfVarsGUI->NumAVPLsDebug != m_pConfVars->NumAVPLsDebug)
 	{
-		m_pConfVars->NumPathsPerFrame = m_pConfVarsGUI->NumPathsPerFrame;
+		m_pConfVars->NumAVPLsDebug = m_pConfVarsGUI->NumAVPLsDebug;
 		configureLighting = true;
 		clearAccumBuffer = true;
 		clearLighting = true;
 	}
+
 
 	if(m_pConfVarsGUI->NumAdditionalAVPLs != m_pConfVars->NumAdditionalAVPLs)
 	{
@@ -368,33 +388,9 @@ void CConfigManager::Update()
 		clearLighting = true;
 	}
 
-	if(m_pConfVarsGUI->DrawLightingOfLight != m_pConfVars->DrawLightingOfLight)
-	{
-		m_pConfVars->DrawLightingOfLight = m_pConfVarsGUI->DrawLightingOfLight;
-		configureLighting = true;
-		clearAccumBuffer = true;
-		clearLighting = true;
-	}
-
 	if(m_pConfVarsGUI->NumSqrtAtlasSamples != m_pConfVars->NumSqrtAtlasSamples)
 	{
 		m_pConfVars->NumSqrtAtlasSamples = m_pConfVarsGUI->NumSqrtAtlasSamples;
-		configureLighting = true;
-		clearAccumBuffer = true;
-		clearLighting = true;
-	}
-
-	if(m_pConfVarsGUI->TexelOffsetX != m_pConfVars->TexelOffsetX)
-	{
-		m_pConfVars->TexelOffsetX = m_pConfVarsGUI->TexelOffsetX;
-		configureLighting = true;
-		clearAccumBuffer = true;
-		clearLighting = true;
-	}
-
-	if(m_pConfVarsGUI->TexelOffsetY != m_pConfVars->TexelOffsetY)
-	{
-		m_pConfVars->TexelOffsetY = m_pConfVarsGUI->TexelOffsetY;
 		configureLighting = true;
 		clearAccumBuffer = true;
 		clearLighting = true;
@@ -625,9 +621,14 @@ void CConfigManager::Update()
 	{
 		m_pConfVars->DrawBIDIRSamplesMode = m_pConfVarsGUI->DrawBIDIRSamplesMode;
 	}
+
+	if(m_pConfVarsGUI->DrawCubeMapFace != m_pConfVars->DrawCubeMapFace)
+	{
+		m_pConfVars->DrawCubeMapFace = m_pConfVarsGUI->DrawCubeMapFace;
+	}
 		
 	if(updateAreaLight) m_pRenderer->UpdateAreaLights();
 	if(clearLighting) m_pRenderer->ClearLighting();
 	if(clearAccumBuffer) m_pRenderer->ClearAccumulationBuffer();
-	if(configureLighting) m_pRenderer->ConfigureLighting();
+	if(configureLighting) m_pRenderer->UpdateUniformBuffers();
 }

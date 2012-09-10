@@ -32,7 +32,6 @@ class CRenderTarget;
 class COctahedronMap;
 class COctahedronAtlas;
 class CModel;
-class CLightTree;
 class CClusterTree;
 class CTimer;
 class CAVPLImportanceSampling;
@@ -60,7 +59,6 @@ public:
 	void Release();
 
 	void Render();
-	void RenderDirectIndirectLight();
 	void RenderPathTracingReference();
 
 	void CancelRender();
@@ -76,7 +74,7 @@ public:
 
 	void UpdateAreaLights();
 			
-	void ConfigureLighting();
+	void UpdateUniformBuffers();
 
 	void SetConfigManager(CConfigManager* pConfManager);
 
@@ -108,15 +106,37 @@ private:
 	void Shade(CRenderTarget* target, CRenderTarget* source);	
 	void Add(CRenderTarget* target, CRenderTarget* source1, CRenderTarget* source2);
 
+	void SetTranformToCamera();
+
+	void GetAVPLs(std::vector<AVPL>& avpls_shadowmap, std::vector<AVPL>& avpls_antiradiance);
+	void SeparateAVPLs(const std::vector<AVPL> avpls, std::vector<AVPL>& avpls_shadowmap, std::vector<AVPL>& avpls_antiradiance, int numPaths);
+	
+	void Gather(std::vector<AVPL>& avpls_shadowmap, std::vector<AVPL>& avpls_antiradiance);
+	void Normalize();
+	void Shade();
+	void Finalize();
+	void CalculateError();
+	void DrawDebug();
+	void CheckExport();
+
+	void FillLightBuffer(const std::vector<AVPL>& avpls);
+	void FillAVPLAtlas(const std::vector<AVPL>& avpls);
+	void FillClusterAtlas(const std::vector<AVPL>& avpls);
+	void CreateClustering(const std::vector<AVPL>& avpls);
+	
+	bool UseAVPL(AVPL& avpl);
+
 	void DirectEnvMapLighting();
 
 	void InitDebugLights();
+
+	void CreateRandomAVPLs(std::vector<AVPL>& avpls, int numAVPLs);
 	
 	void DetermineUsedAvpls(const std::vector<AVPL>& avpls, std::vector<AVPL>& used);
 	
 	void GatherRadianceWithShadowMap(const std::vector<AVPL>& path, CRenderTarget* pRenderTarget);	
-	void DebugRender();
-	void DrawAreaLight();
+	void DrawAreaLight(CRenderTarget* pTarget);
+	void DrawAreaLight(CRenderTarget* pTarget, glm::vec3 color);
 	
 	void CreatePlaneHammersleySamples(int i);
 		
@@ -132,26 +152,22 @@ private:
 
 	float GetAntiradFilterNormFactor();
 	float IntegrateGauss();
-
-	void UpdateTransform();
-
+	
 	CCamera *camera;
 	CCamera *m_pClusterRenderCamera;
 	Scene* scene;
 	CShadowMap* m_pShadowMap;
 	CGBuffer* m_pGBuffer;
 	CConfigManager* m_pConfManager;
-	
-	CRenderTarget* m_pAVPLRenderTarget;
-	CRenderTarget* m_pGatherRenderTarget;
-	CRenderTarget* m_pNormalizeRenderTarget;
-	CRenderTarget* m_pShadeRenderTarget;
-	CRenderTarget* m_pGatherDirectLightRenderTarget;
-	CRenderTarget* m_pGatherIndirectLightRenderTarget;
-	CRenderTarget* m_pNormalizeDirectLightRenderTarget;
-	CRenderTarget* m_pNormalizeIndirectLightRenderTarget;
-	CRenderTarget* m_pShadeDirectLightRenderTarget;
-	CRenderTarget* m_pShadeIndirectLightRenderTarget;
+		
+	CRenderTarget* m_pResultRenderTarget;
+	CRenderTarget* m_pErrorRenderTarget;
+	CRenderTarget* m_pGatherShadowmapRenderTarget;
+	CRenderTarget* m_pGatherAntiradianceRenderTarget;
+	CRenderTarget* m_pNormalizeShadowmapRenderTarget;
+	CRenderTarget* m_pNormalizeAntiradianceRenderTarget;
+	CRenderTarget* m_pShadeShadowmapRenderTarget;
+	CRenderTarget* m_pShadeAntiradianceRenderTarget;
 	
 	CProgram* m_pGatherProgram;
 	CProgram* m_pGatherWithAtlas;
@@ -187,6 +203,7 @@ private:
 	COGLUniformBuffer* m_pUBAreaLight;
 	COGLUniformBuffer* m_pUBModel;
 	COGLUniformBuffer* m_pUBAtlasInfo;
+	COGLUniformBuffer* m_pUBNormalize;
 	
 	COGLTexture2D* m_pDepthBuffer;
 	COGLTexture2D* m_pTestTexture;
@@ -201,6 +218,7 @@ private:
 	CProgram* m_pPointCloudProgram;
 	CProgram* m_pAreaLightProgram;
 	CProgram* m_pDrawOctahedronProgram;
+	CProgram* m_pErrorProgram;
 	CProgram* m_pSkyboxProgram;
 
 	COGLSampler* m_pGLLinearSampler;
@@ -217,17 +235,19 @@ private:
 	CModel* m_pOctahedron;
 
 	int m_Frame;
-	int m_CurrentPath;
-	int m_CurrentVPLDirect;
+	int m_CurrentPathShadowmap;
+	int m_CurrentPathAntiradiance;
 	
 	bool m_Finished;
 	bool m_FinishedDirectLighting;
 	bool m_FinishedIndirectLighting;
 	bool m_ProfileFrame;
+	bool m_FinishedDebug;
 
 	time_t m_StartTime;
 
 	int m_MaxNumAVPLs;
+	int m_NumPathsDebug;
 		
 	std::vector<AVPL> m_DebugAVPLs;
 	std::vector<AVPL> m_ClusterTestAVPLs;
@@ -235,7 +255,6 @@ private:
 	std::vector<AVPL> m_CollectedAVPLs;
 	std::vector<AVPL> m_CollectedImportanceSampledAVPLs;
 	
-	CLightTree* m_pLightTree;
 	CClusterTree* m_pClusterTree;
 
 	CTimer* m_pOCLTimer;
@@ -249,6 +268,10 @@ private:
 	CImagePlane* m_pImagePlane;
 	CPathTracingIntegrator* m_pPathTracingIntegrator;
 	CExperimentData* m_pExperimentData;
+
+	int m_NumAVPLsForNextDataExport;
+	int m_NumAVPLsForNextImageExport;
+	int m_NumAVPLs;
 };
 
 #endif

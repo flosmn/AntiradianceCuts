@@ -22,6 +22,7 @@ glm::mat4 IdentityMatrix();
 float map(float x, float x0, float x1, float y0, float y1);
 
 float Rad2Deg (float AngleFactor);
+glm::vec3 hue_colormap(const float v, const float range_min, const float range_max);
 
 glm::vec2 GetUniformRandomSample2D(glm::vec2 range_u, glm::vec2 range_v);
 void GetRandomSampleDirectionProbability(glm::vec3 orientation, glm::vec3 direction, float& pdf, uint order);

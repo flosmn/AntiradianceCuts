@@ -28,6 +28,7 @@
 #include "..\OGLResources\COGLUniformBuffer.h"
 
 #include <fstream>
+#include <sstream>
 
 
 CModel::CModel()
@@ -54,7 +55,7 @@ bool CModel::Init(CMesh* mesh)
 	return true;
 }
 
-bool CModel::Init(std::string name, CMaterialBuffer* pMaterialBuffer) 
+bool CModel::Init(std::string name, std::string ext, CMaterialBuffer* pMaterialBuffer) 
 {
 	std::cout << "Start loading model " << name << std::endl;
 	CTimer timer(CTimer::CPU);
@@ -70,21 +71,21 @@ bool CModel::Init(std::string name, CMaterialBuffer* pMaterialBuffer)
 	const aiScene* scene = NULL;
 	
 	//check if file exists
-	std::string path("Resources\\");
-	path = path.append(name);
-	path = path.append(".obj");
-	std::ifstream fin(path.c_str());
+	std::stringstream ss;
+	ss << "Resources\\" << name <<"." << ext;
+
+	std::ifstream fin(ss.str().c_str());
     if(!fin.fail()) {
         fin.close();
     }
     else{
-        printf("Couldn't open file: %s\n", path);
+		printf("Couldn't open file: %s\n", ss.str().c_str());
         printf("%s\n", importer.GetErrorString());
         return false;
     }
  
-	std::string pFile(path);
-	scene = importer.ReadFile( pFile, aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_FlipWindingOrder);
+	std::string pFile(ss.str());
+	scene = importer.ReadFile( pFile, aiProcess_Triangulate | aiProcess_GenNormals  | aiProcess_FlipWindingOrder);
  
     // If the import failed, report it
     if( !scene)

@@ -34,11 +34,10 @@ uniform info_block
 {
 	int numLights;
 	int numClusters;
-	int drawLightingOfLight;
+	int UseIBL;
 	int filterAVPLAtlas;
-	
 	int lightTreeCutDepth;
-	int padd0;
+	float clusterRefinementThreshold;
 	int padd1;
 	int padd2;
 } uInfo;
@@ -51,8 +50,8 @@ uniform config
 	float AntiradFilterGaussFactor;
 	int ClampGeoTerm;
 	int AntiradFilterMode;	
-	int nPaths;
 	int padd;
+	int padd1;
 } uConfig;
 
 uniform camera
@@ -69,9 +68,28 @@ layout(location = 2) out vec4 outputAntiradiance;
 layout(binding=0) uniform sampler2D samplerPositionWS;
 layout(binding=1) uniform sampler2D samplerNormalWS;
 layout(binding=2) uniform samplerBuffer samplerLightBuffer;
-layout(binding=3) uniform sampler2D samplerLightAtlas;
+layout(binding=3) uniform samplerBuffer samplerMaterialBuffer;
+layout(binding=4) uniform sampler2D samplerLightAtlas;
 
-void ProcessLight(in int i, in vec3 vPositionWS, in vec3 vNormalWS, out vec4 radiance, out vec4 antiradiance);
+void ProcessLight(in int i, in vec3 vPositionWS, in vec3 vNormalWS, out vec4 radiance, out vec4 antiradiance, in vec4 diffuse, in vec4 specular, in float exponent);
+
+vec4 f_r(in vec3 w_i, in vec3 w_o, in vec3 n, in vec4 diffuse, in vec4 specular, in float exponent);
+vec4 f_r(in vec3 from, in vec3 over, in vec3 to, in vec3 n, in vec4 diffuse, in vec4 specular, in float exponent);
+
+vec4 f_r(in vec3 from, in vec3 over, in vec3 to, in vec3 n, in vec4 diffuse, in vec4 specular, in float exponent)
+{
+	const vec3 w_i = normalize(from - over);
+	const vec3 w_o = normalize(to - over);
+	return f_r(w_i, w_o, n, diffuse, specular, exponent);
+}
+
+vec4 f_r(in vec3 w_i, in vec3 w_o, in vec3 n, in vec4 diffuse, in vec4 specular, in float exponent)
+{
+	const vec4 d = ONE_OVER_PI * diffuse;
+	const float cos_theta = max(0.f, dot(reflect(-w_i, n), w_o));
+	const vec4 s = clamp(0.5f * ONE_OVER_PI * (exponent+2.f) * pow(cos_theta, exponent) * specular, 0.f, 1.f);
+	return vec4(d.x + s.x, d.y + s.y, d.z + s.z, 1.f);
+}
 
 float G(vec3 p1, vec3 n1, vec3 p2, vec3 n3);
 float G_CLAMP(vec3 p1, vec3 n1, vec3 p2, vec3 n3);
@@ -85,17 +103,24 @@ void main()
 	vec3 vPositionWS = texture2D(samplerPositionWS, coord).xyz;
 	vec3 vNormalWS = normalize(texture2D(samplerNormalWS, coord).xyz);
 
+	int sizeMaterial = 4;
+	int materialIndex = int(texture2D(samplerNormalWS, coord).w);
+	const vec4 cDiffuse =	texelFetch(samplerMaterialBuffer, materialIndex * sizeMaterial + 1);
+	const vec4 cSpecular =	texelFetch(samplerMaterialBuffer, materialIndex * sizeMaterial + 2);
+	const float exponent =	texelFetch(samplerMaterialBuffer, materialIndex * sizeMaterial + 3).r;
+
 	outputDiff = vec4(0.f);
 	outputRadiance = vec4(0.f);
 	outputAntiradiance = vec4(0.f);
-			
+	
 	for(int i = 0; i < uInfo.numLights; ++i)
 	{		
 		vec4 radiance = vec4(0.f);
 		vec4 antiradiance = vec4(0.f);
 		vec4 diff = vec4(0.f);
 		
-		ProcessLight(i, vPositionWS, vNormalWS, radiance, antiradiance);		
+		ProcessLight(i, vPositionWS, vNormalWS, radiance, antiradiance,
+			cDiffuse, cSpecular, exponent);
 		
 		outputDiff += radiance - antiradiance;
 		outputRadiance += radiance;
@@ -107,13 +132,14 @@ void main()
 	outputAntiradiance.w = 1.f;
 }
 
-void ProcessLight(in int i, in vec3 vPositionWS, in vec3 vNormalWS, out vec4 radiance, out vec4 antiradiance)
+void ProcessLight(in int i, in vec3 vPositionWS, in vec3 vNormalWS, out vec4 radiance, out vec4 antiradiance,
+	in vec4 diffuse, in vec4 specular, in float exponent)
 {
 	vec4 rad = vec4(0.f);
 	vec4 antirad = vec4(0.f);
 
-	int size = 5; // sizeof(AVPL_BUFFER)
-	const vec3 p = vec3(texelFetch(samplerLightBuffer, i * size + 2));
+	int sizeLight = 6; // sizeof(AVPL_BUFFER)
+	const vec3 p =	vec3(texelFetch(samplerLightBuffer, i * sizeLight + 2));
 
 	const vec3 direction = normalize(vPositionWS - p);
 	
@@ -145,8 +171,10 @@ void ProcessLight(in int i, in vec3 vPositionWS, in vec3 vNormalWS, out vec4 rad
 	const float G_rad = uConfig.ClampGeoTerm == 1 ? clamp(G, 0, uConfig.GeoTermLimitRadiance) : G;
 	const float G_antirad = uConfig.ClampGeoTerm == 1 ? clamp(G, 0, uConfig.GeoTermLimitAntiradiance) : G;
 	
-	antiradiance = G_antirad * antirad;
-	radiance = G_rad * rad;
+	vec4 BRDF = f_r(p, vPositionWS, uCamera.vPositionWS, vNormalWS, diffuse, specular, exponent);
+	
+	antiradiance = BRDF * G_antirad * antirad;
+	radiance = BRDF * G_rad * rad;
 }
 
 float G_CLAMP(in vec3 p1, in vec3 n1, in vec3 p2, in vec3 n2)

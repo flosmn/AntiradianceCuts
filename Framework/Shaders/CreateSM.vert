@@ -18,11 +18,11 @@ uniform transform
 
 void main()
 {
-	float zNear = 0.1f;
+	float zNear = 0.01f;
 	float zFar =  2000.0f;
 	float zBias = 0.0f;
 
-	vec4 positionTemp = uTransform.V * uTransform.M * position;
+	vec4 positionTemp = uTransform.V * uTransform.M * vec4(position.xyz, 1.f);
 	positionTemp = positionTemp / positionTemp.w;
 	
 	float len = length(positionTemp.xyz);

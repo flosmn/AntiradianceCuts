@@ -1,15 +1,15 @@
 newmtl green
 Kd 0.0 0.5 0.0
 Ks 0.0 0.2 0.0
-Ns 15.f
+Ns 7.f
 
 newmtl red
 Kd 0.5 0.0 0.0
 Ks 0.2 0.0 0.0
-Ns 15.f
+Ns 7.f
 
 newmtl white
 Kd 0.5 0.5 0.5
 Ks 0.2 0.2 0.2
-Ns 15.f
+Ns 7.f
 

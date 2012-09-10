@@ -32,16 +32,12 @@ void CBidirInstantRadiosity::CreatePaths(std::vector<AVPL>& avpls, int& numPaths
 	CreateSceneSamples(profile, SS);
 	CreateSceneSamples(profile, ASS);
 
-	for(int i = 0; i < m_pConfManager->GetConfVars()->NumPathsPerFrame; ++i)
+	while(avpls.size() < m_pConfManager->GetConfVars()->NumAVPLsPerFrame)
 	{
 		int before = (int)avpls.size();
 		CreatePath(avpls, profile);
 		if(avpls.size() != before)
 			numPaths++;
-		else
-		{
-			--i;
-		}
 	}
 }
 

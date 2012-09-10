@@ -18,6 +18,8 @@ typedef unsigned int uint;
 
 #include "OGLResources\COGLUniformBuffer.h"
 
+#include "OCLResources\COCLContext.h"
+
 #include "MeshResources\CMesh.h"
 #include "MeshResources\CModel.h"
 #include "MeshResources\CSubModel.h"
@@ -29,7 +31,7 @@ typedef unsigned int uint;
 
 const float EPSILON = 0.005f;
 
-Scene::Scene(CCamera* _camera, CConfigManager* pConfManager)
+Scene::Scene(CCamera* _camera, CConfigManager* pConfManager, COCLContext* pOCLContext)
 {
 	m_Camera = _camera;
 	m_pConfManager = pConfManager;
@@ -41,7 +43,7 @@ Scene::Scene(CCamera* _camera, CConfigManager* pConfManager)
 	m_NumCreatedAVPLs = 0;
 	m_NumAVPLsAfterIS = 0;
 	m_HasLightSource = true;
-	m_pMaterialBuffer = new CMaterialBuffer();
+	m_pMaterialBuffer = new CMaterialBuffer(pOCLContext);
 	m_pReferenceImage = 0;
 }
 
@@ -133,6 +135,12 @@ void Scene::DrawAreaLight(COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pU
 		m_AreaLight->Draw(m_Camera, pUBTransform, pUBAreaLight);
 }
 
+void Scene::DrawAreaLight(COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBAreaLight, glm::vec3 color)
+{
+	if(m_AreaLight)
+		m_AreaLight->Draw(m_Camera, pUBTransform, pUBAreaLight, color);
+}
+
 bool Scene::CreateAVPL(AVPL* pred, AVPL* newAVPL)
 {
 	if(!m_AreaLight)
@@ -140,10 +148,12 @@ bool Scene::CreateAVPL(AVPL* pred, AVPL* newAVPL)
 		newAVPL = 0;
 		return false;
 	}
-		
+	
+	bool mis = m_pConfManager->GetConfVars()->UseMIS == 1 ? true : false;
+
 	float pdf = 0.f;
 	glm::vec3 direction = SamplePhong(pred->GetDirection(), pred->GetOrientation(), 
-		m_pMaterialBuffer->GetMaterial(pred->GetMaterialIndex()), pdf, m_pConfManager->GetConfVars()->UseMIS);
+		m_pMaterialBuffer->GetMaterial(pred->GetMaterialIndex()), pdf, mis);
 	
 	AVPL avpl;
 	if(ContinueAVPLPath(pred, &avpl, direction, pdf))
@@ -151,7 +161,7 @@ bool Scene::CreateAVPL(AVPL* pred, AVPL* newAVPL)
 		*newAVPL = avpl;
 		return true;
 	}
-	
+
 	newAVPL = 0;
 	return false;
 }
@@ -167,6 +177,7 @@ bool Scene::CreatePrimaryAVPL(AVPL* newAVPL)
 	// create VPL on light source
 	float pdf;
 	glm::vec3 pos = m_AreaLight->SamplePos(pdf);
+
 	glm::vec3 ori = m_AreaLight->GetFrontDirection();
 	glm::vec3 I = m_AreaLight->GetRadiance();
 
@@ -176,7 +187,7 @@ bool Scene::CreatePrimaryAVPL(AVPL* newAVPL)
 	AVPL avpl(pos, ori, I / pdf, glm::vec3(0), glm::vec3(0), m_pConfManager->GetConfVars()->ConeFactor, 
 		0, m_AreaLight->GetMaterialIndex(), m_pMaterialBuffer, m_pConfManager);
 	*newAVPL = avpl;
-	
+
 	return true;
 }
 
@@ -214,18 +225,19 @@ bool Scene::ContinueAVPLPath(AVPL* pred, AVPL* newAVPL, glm::vec3 direction, flo
 			std::cout << "material index uob" << std::endl;
 		
 		MATERIAL* mat = m_pMaterialBuffer->GetMaterial(index);
+		
 		const float cos_theta = glm::dot(pred_norm, direction);
-			
+
 		glm::vec3 contrib = pred->GetRadiance(direction) * cos_theta / pdf;	
 		
+		const float coneFactor = m_pConfManager->GetConfVars()->ConeFactor;
 		//const float cone_min = m_pConfManager->GetConfVars()->ClampCone ? PI / (PI/2.f - acos(glm::dot(norm, -direction))) : 0.f;
 		//const float coneFactor = std::max(cone_min, m_pConfManager->GetConfVars()->ConeFactor);
-		const float coneFactor = m_pConfManager->GetConfVars()->ConeFactor;
-
-		const float area = 2 * PI * ( 1 - cos(PI/coneFactor) );
 		
+		const float area = 2 * PI * ( 1 - cos(PI/coneFactor) );
+
 		glm::vec3 antiradiance = 1.f / float(m_pConfManager->GetConfVars()->NumAdditionalAVPLs + 1) * contrib / area;
-			
+
 		AVPL avpl(pos, norm, contrib, antiradiance, direction, coneFactor, pred->GetBounce() + 1,
 			intersection.GetMaterialIndex(), m_pMaterialBuffer, m_pConfManager);
 		*newAVPL = avpl;
@@ -320,15 +332,16 @@ bool Scene::ImportanceSampling(AVPL& avpl, float* scale)
 {
 	m_NumLightPaths++;
 
-	m_CurrentBounce = 0;
+	int currentBounce = 0;
 	
 	AVPL pred, succ;
 		
 	// create new primary light on light source
 	CreatePrimaryAVPL(&pred);
+	
 	path.push_back(pred);
 	
-	m_CurrentBounce++;
+	currentBounce++;
 
 	// follow light path until it is terminated
 	// by RR with termination probability 1-rrProb
@@ -339,7 +352,8 @@ bool Scene::ImportanceSampling(AVPL& avpl, float* scale)
 	{
 		// decide whether to terminate path
 		float rand_01 = glm::linearRand(0.f, 1.f);
-		if(bl == -1 ? rand_01 > rrProb : m_CurrentBounce > bl)
+
+		if(bl == -1 ? rand_01 > rrProb : currentBounce > bl)
 		{
 			// create path-finishing Anti-VPLs
 			CreateAVPLs(&pred, path, m_pConfManager->GetConfVars()->NumAdditionalAVPLs);
@@ -364,6 +378,7 @@ bool Scene::ImportanceSampling(AVPL& avpl, float* scale)
 			{
 				succ.ScaleIncidentRadiance(1.f / rrProb);
 				path.push_back(succ);
+
 				pred = succ;
 			}
 			else
@@ -374,7 +389,7 @@ bool Scene::ImportanceSampling(AVPL& avpl, float* scale)
 			}
 		}
 
-		m_CurrentBounce++;
+		currentBounce++;
 	}
 }
 
@@ -384,6 +399,7 @@ void Scene::CreateAVPLs(AVPL* pred, std::vector<AVPL>& path, int nAVPLs)
 
 	for(int i = 0; i < nAVPLs; ++i)
 	{
+		
 		float pdf;
 		glm::vec3 direction = GetRandomSampleDirectionCosCone(pred_norm, Rand01(), Rand01(), pdf, 1);
 		
@@ -429,12 +445,28 @@ bool Scene::IntersectRaySceneSimple(const Ray& ray, float* t, Intersection *pInt
 	*pIntersection = isect_best;
 	*t = t_best;
 		
+	// no intersections on light sources
+	if(hasIntersection) {
+		if(glm::length(GetMaterialBuffer()->GetMaterial(pIntersection->GetMaterialIndex())->emissive) > 0.f) {
+			hasIntersection =  false;
+		}
+	}
+
 	return hasIntersection;
 }
 
 bool Scene::IntersectRayScene(const Ray& ray, float* t, Intersection *pIntersection, CPrimitive::IsectMode isectMode)
 {	
-	return m_pKdTreeAccelerator->Intersect(ray, t, pIntersection, isectMode);
+	bool intersect = m_pKdTreeAccelerator->Intersect(ray, t, pIntersection, isectMode);
+
+	// no intersections on light sources
+	if(intersect) {
+		if(glm::length(GetMaterialBuffer()->GetMaterial(pIntersection->GetMaterialIndex())->emissive) > 0.f) {
+			intersect =  false;
+		}
+	}
+
+	return intersect;
 }
 
 void Scene::LoadSimpleScene()
@@ -442,7 +474,7 @@ void Scene::LoadSimpleScene()
 	ClearScene();
 
 	CModel* model = new CModel();
-	model->Init("twoplanes", m_pMaterialBuffer);
+	model->Init("twoplanes", "obj", m_pMaterialBuffer);
 	model->SetWorldTransform(glm::scale(glm::vec3(2.f, 2.f, 2.f)));
 		
 	m_Models.push_back(model);
@@ -470,11 +502,11 @@ void Scene::LoadCornellBox()
 	ClearScene();
 
 	CModel* model = new CModel();
-	model->Init("cb-specular", m_pMaterialBuffer);
+	model->Init("cb-diffuse-hightessellation", "obj", m_pMaterialBuffer);
 	model->SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
 
 	m_pReferenceImage = new CReferenceImage(m_Camera->GetWidth(), m_Camera->GetHeight());
-	m_pReferenceImage->LoadFromFile("References/cb-specular.exr", true);
+	m_pReferenceImage->LoadFromFile("References/cb-diffuse-clamped.hdr", true);
 
 	m_Models.push_back(model);
 
@@ -488,15 +520,15 @@ void Scene::LoadCornellBox()
 		glm::vec3(0.f, 1.f, 0.f),
 		2.0f);
 
-	m_Camera->Init(2, glm::vec3(278.f, 273.f, -600.f), 
-		glm::vec3(278.f, 273.f, -599.f),
+	m_Camera->Init(2, glm::vec3(278.f, 273.f, -500.f), 
+		glm::vec3(278.f, 273.f, -499.f),
 		glm::vec3(0.f, 1.f, 0.f),
 		2.0f);
 
 	m_Camera->UseCameraConfig(0);
 	
 	glm::vec3 areaLightFrontDir = glm::vec3(0.0f, -1.0f, 0.0f);
-	glm::vec3 areaLightPosition = glm::vec3(278.f, 548.7f, 279.5f);
+	glm::vec3 areaLightPosition = glm::vec3(278.f, 548.78999f, 279.5f);
 	
 	m_pConfManager->GetConfVars()->AreaLightFrontDirection[0] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[0] = areaLightFrontDir.x;
 	m_pConfManager->GetConfVars()->AreaLightFrontDirection[1] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[1] = areaLightFrontDir.y;
@@ -531,7 +563,7 @@ void Scene::LoadBuddha()
 	float scale = 300.f; 
 
 	CModel* model = new CModel();
-	model->Init("dragon43k", m_pMaterialBuffer);
+	model->Init("dragon43k", "obj", m_pMaterialBuffer);
 	model->SetWorldTransform(glm::scale(scale * glm::vec3(1.f, 1.f, 1.f)));
 
 	m_Models.push_back(model);
@@ -578,7 +610,7 @@ void Scene::LoadSibernik()
 	float scale = 100.f;
 
 	CModel* model = new CModel();
-	model->Init("sibmaxexp", m_pMaterialBuffer);
+	model->Init("sibenik", "obj", m_pMaterialBuffer);
 	model->SetWorldTransform(glm::scale(glm::vec3(100.f, 100.f, 100.f)));
 
 	m_Models.push_back(model);
@@ -630,7 +662,7 @@ void Scene::LoadCornellBoxDragon()
 	ClearScene();
 
 	CModel* model = new CModel();
-	model->Init("cornell-box-dragon43k", m_pMaterialBuffer);
+	model->Init("cornell-box-dragon43k", "obj", m_pMaterialBuffer);
 	model->SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
 
 	m_Models.push_back(model);

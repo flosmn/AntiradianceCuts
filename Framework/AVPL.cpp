@@ -38,7 +38,7 @@ glm::mat4 AVPL::GetViewMatrix() const
 }
 
 glm::mat4 AVPL::GetProjectionMatrix() const {
-	return glm::perspective(90.0f, 1.0f, 0.1f, 100.0f);
+	return glm::perspective(90.0f, 1.0f, 0.1f, 2000.0f);
 }
  
 AVPL::~AVPL()

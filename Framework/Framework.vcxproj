@@ -152,6 +152,7 @@ xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
     <ClCompile Include="CCamera.cpp" />
     <ClCompile Include="CClusterTree.cpp" />
     <ClCompile Include="CConfigManager.cpp" />
+    <ClCompile Include="CCubeShadowMap.cpp" />
     <ClCompile Include="CExperimentData.cpp" />
     <ClCompile Include="CGBuffer.cpp" />
     <ClCompile Include="CGUI.cpp" />
@@ -223,6 +224,7 @@ xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
     <ClInclude Include="CCamera.h" />
     <ClInclude Include="CClusterTree.h" />
     <ClInclude Include="CConfigManager.h" />
+    <ClInclude Include="CCubeShadowMap.h" />
     <ClInclude Include="CExperimentData.h" />
     <ClInclude Include="CGBuffer.h" />
     <ClInclude Include="CGUI.h" />
@@ -309,6 +311,9 @@ xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
     <None Include="Kernels\OctahedronUtil.cl" />
     <None Include="Kernels\vec.cl" />
     <None Include="Shaders\Constants.glsl" />
+    <None Include="Shaders\CreateCubeShadowMap.frag" />
+    <None Include="Shaders\CreateCubeShadowMap.geom" />
+    <None Include="Shaders\CreateCubeShadowMap.vert" />
     <None Include="Shaders\CreateGBuffer.frag" />
     <None Include="Shaders\CreateGBuffer.vert" />
     <None Include="Shaders\CreateSM.frag" />
@@ -320,6 +325,7 @@ xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
     <None Include="Shaders\DrawOctahedron.vert" />
     <None Include="Shaders\DrawTexture.frag" />
     <None Include="Shaders\DrawTexture.vert" />
+    <None Include="Shaders\Error.frag" />
     <None Include="Shaders\Gather.frag" />
     <None Include="Shaders\Gather.vert" />
     <None Include="Shaders\GatherRadianceWithSM.frag" />

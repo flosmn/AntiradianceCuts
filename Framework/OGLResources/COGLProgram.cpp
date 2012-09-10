@@ -13,8 +13,9 @@
 #include <sstream>
 #include <assert.h>
 
-COGLProgram::COGLProgram(const std::string debugName, const std::string VS, const std::string FS, std::vector<std::string> headerFiles)
-	: COGLResource(COGL_PROGRAM, debugName), m_VS(VS), m_FS(FS), m_HeaderFiles(headerFiles)
+COGLProgram::COGLProgram(const std::string debugName, const std::string VS, const std::string GS, 
+	const std::string FS, std::vector<std::string> headerFiles)
+	: COGLResource(COGL_PROGRAM, debugName), m_VS(VS), m_GS(GS), m_FS(FS), m_HeaderFiles(headerFiles)
 {
 	
 }
@@ -27,32 +28,17 @@ COGLProgram::~COGLProgram()
 bool COGLProgram::Init()
 {
 	V_RET_FOF(COGLResource::Init());
-	/*
-	for(int i = 0; i < m_HeaderFiles.size(); ++i)
-	{
-		std::stringstream ss;
-		ss << "/" << m_HeaderFiles[i]; 
-		std::string name(ss.str());
-		
-		m_HeaderFileNames.push_back(name);
-		std::string content = GetFileContent(m_HeaderFiles[i]);
-
-		std::cout << "header file name: " << name.c_str() << std::endl;
-		std::cout << "header file content: " << content << std::endl;
-
-		glNamedStringARB(GL_SHADER_INCLUDE_ARB, 
-			-1, name.c_str(),
-			-1, content.c_str());
-
-		CheckGLError("CGLProgram", "glNamedStringARB");
-	}
-	*/
-
+	
 	GLuint vertexShader = LoadShader(GL_VERTEX_SHADER, m_VS);
+	GLuint geometryShader;
+	if(m_GS != "")
+		geometryShader = LoadShader(GL_GEOMETRY_SHADER, m_GS);
 	GLuint fragmentShader = LoadShader(GL_FRAGMENT_SHADER, m_FS);
 	m_Resource = glCreateProgram();
 
 	glAttachShader(m_Resource, vertexShader);
+	if(m_GS != "")
+		glAttachShader(m_Resource, geometryShader);
 	glAttachShader(m_Resource, fragmentShader);
 
 	glLinkProgram(m_Resource);
@@ -71,6 +57,8 @@ bool COGLProgram::Init()
 	}
 
 	glDeleteShader(vertexShader);
+	if(m_GS != "")
+		glDeleteShader(geometryShader);
 	glDeleteShader(fragmentShader);
 
 	return true;

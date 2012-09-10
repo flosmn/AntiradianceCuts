@@ -86,6 +86,15 @@ void AreaLight::Draw(CCamera* camera, COGLUniformBuffer* pUBTransform, COGLUnifo
 	m_pAreaLightModel->Draw(camera->GetViewMatrix(), camera->GetProjectionMatrix(), pUBTransform);
 }
 
+void AreaLight::Draw(CCamera* camera, COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBAreaLight, glm::vec3 color)
+{
+	AREA_LIGHT arealight;
+	arealight.radiance = glm::vec4(color, 1.f);
+	pUBAreaLight->UpdateData(&arealight);
+
+	m_pAreaLightModel->Draw(camera->GetViewMatrix(), camera->GetProjectionMatrix(), pUBTransform);
+}
+
 glm::vec3 AreaLight::SamplePos(float& pdf)
 {
 	glm::mat4 transform = GetWorldTransform();

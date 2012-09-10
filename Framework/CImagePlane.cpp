@@ -81,20 +81,9 @@ void CImagePlane::AddSample(glm::vec2 pixelSample, glm::vec4 sample)
 	m_pNumSamples[index]++;
 }
 
-COGLTexture2D* CImagePlane::GetOGLTexture(bool blur)
+COGLTexture2D* CImagePlane::GetOGLTexture()
 {
-	if(blur)
-	{
-		CImage image(m_Width, m_Height);
-		image.SetData(m_pData);
-		image.GaussianBlur(1);
-		m_pOGLTexture->SetPixelData(image.GetData());
-	}
-	else
-	{
-		m_pOGLTexture->SetPixelData(m_pData);
-	}
-	
+	m_pOGLTexture->SetPixelData(m_pData);
 	return m_pOGLTexture;
 }
 

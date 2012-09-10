@@ -55,5 +55,4 @@ void CTextureViewer::DrawTexture(COGLTexture2D* pTexture, GLuint x, GLuint y,
 	COGLBindLock lockTexture(pTexture, COGL_TEXTURE0_SLOT);
 	
 	m_pFullScreenQuad->Draw();
-
 }

@@ -2,7 +2,7 @@
 
 layout(std140) uniform;
 
-#define ONE_OVER_PI 0.3183
+#define ONE_OVER_PI 0.31831
 #define PI 3.14159
 
 uniform camera
@@ -65,7 +65,7 @@ vec4 f_r(in vec3 w_i, in vec3 w_o, in vec3 n, in vec4 diffuse, in vec4 specular,
 {
 	const vec4 d = ONE_OVER_PI * diffuse;
 	const float cos_theta = max(0.f, dot(reflect(-w_i, n), w_o));
-	const vec4 s = clamp(0.5f * ONE_OVER_PI * (exponent+2.f) * pow(cos_theta, exponent) * specular, 0.f, 1.f);
+	const vec4 s = max(0.5f * ONE_OVER_PI * (exponent+2.f) * pow(cos_theta, exponent) * specular, 0.f);
 	return vec4(d.x + s.x, d.y + s.y, d.z + s.z, 1.f);
 }
 
@@ -103,7 +103,7 @@ void main()
 
 	// calc radiance
 	vec4 L = uLight.L;
-	float G = G(vPositionWS, vNormalWS, uLight.pos.xyz, uLight.norm.xyz);
+	float G = G_CLAMP(vPositionWS, vNormalWS, uLight.pos.xyz, uLight.norm.xyz);
 	vec4 Irradiance = V * L * BRDF_light * G * BRDF;	
 	
 	outputColor = Irradiance;
@@ -134,8 +134,8 @@ float IsLit(in vec3 position)
 {
 	float lit = 0.0f;
 	
-	float zNear = 0.1f;
-	float zFar = 2000.0f;
+	float zNear = 0.01f;
+	float zFar =  2000.0f;
 	float zBias = 0.0f;
 	
 	vec4 positionLS = uLight.ViewMatrix * vec4(position, 1.f);

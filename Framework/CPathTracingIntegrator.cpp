@@ -30,7 +30,7 @@ void CPathTracingIntegrator::Integrate(uint numPaths, bool MIS)
 	//omp_set_num_threads(8);
 
 	#pragma omp parallel for
-	for(int k = 0; k < numPaths; ++k)
+	for(int k = 0; k < (int)numPaths; ++k)
 	{		
 		glm::vec2 pixel;
 		Ray r(glm::vec3(0.f), glm::vec3(0.f));
@@ -63,11 +63,12 @@ void CPathTracingIntegrator::Integrate(uint numPaths, bool MIS)
 		{
 			continue;
 		}
-		
+
 		bool terminate = false;
 		int i = 0;
 		while(!terminate)
 		{
+			terminate = true;
 			i++;
 
 			// check implicit path

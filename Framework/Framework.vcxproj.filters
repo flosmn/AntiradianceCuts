@@ -191,6 +191,7 @@
     <ClCompile Include="CMaterialBuffer.cpp" />
     <ClCompile Include="CReferenceImage.cpp" />
     <ClCompile Include="CExperimentData.cpp" />
+    <ClCompile Include="CCubeShadowMap.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Render.h" />
@@ -384,6 +385,7 @@
     <ClInclude Include="Material.h" />
     <ClInclude Include="CReferenceImage.h" />
     <ClInclude Include="CExperimentData.h" />
+    <ClInclude Include="CCubeShadowMap.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">
@@ -469,6 +471,18 @@
     </None>
     <None Include="Shaders\Constants.glsl">
       <Filter>Shaders\ShaderHeaders</Filter>
+    </None>
+    <None Include="Shaders\Error.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\CreateCubeShadowMap.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\CreateCubeShadowMap.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\CreateCubeShadowMap.geom">
+      <Filter>Shaders</Filter>
     </None>
   </ItemGroup>
 </Project>

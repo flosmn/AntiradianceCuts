@@ -9,6 +9,9 @@
 #include <sstream>
 #include <iostream>
 
+#include <algorithm>
+#include <math.h>
+
 glm::mat4 IdentityMatrix() 
 {
 	return glm::mat4(
@@ -21,6 +24,21 @@ glm::mat4 IdentityMatrix()
 float Rad2Deg (float AngleFactor) {
 	static float ratio = 180.0f / PI;
 	return AngleFactor * ratio;
+}
+
+glm::vec3 hue_colormap(const float v, const float range_min, const float range_max)
+{
+	const float H = clamp((range_max - v)/(range_max - range_min), 0.f, 1.f) * 4.f;
+	const float X = clamp(1.f - abs(std::fmod(H, 2.f) - 1.f), 0.f, 1.f); 
+
+	if(H < 1.f)
+		return glm::vec3(1.f, X, 0.f);
+	else if(H < 2.f)
+		return glm::vec3(X, 1.f, 0.f);
+	else if(H < 3.f)
+		return glm::vec3(0.f, 1.f, X);
+	else
+		return glm::vec3(0.f, X, 1.f);
 }
 
 glm::vec3 GetArbitraryUpVector(glm::vec3 v)
@@ -349,7 +367,7 @@ float G_A(glm::vec3 p_avpl, glm::vec3 n_avpl, glm::vec3 p_point, glm::vec3 n_poi
 
 float Luminance(glm::vec3 v)
 {
-	return 0.2126f * v.r + 0.7152f * v.g + 0.0722f * v.b;
+	return 0.2126f * std::max(v.r, 0.f) + 0.7152f * std::max(v.g, 0.f) + 0.0722f * std::max(v.b, 0.f);
 }
 
 float Luminance(glm::vec4 v)

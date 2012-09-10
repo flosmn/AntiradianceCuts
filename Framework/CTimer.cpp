@@ -18,7 +18,7 @@ void CTimer::Start()
 			clFinish(*m_pContext->GetCLCommandQueue());
 	}
 
-	m_ClockStartCPU = clock();	
+	m_ClockStartCPU = clock();
 }
 
 void CTimer::Stop()

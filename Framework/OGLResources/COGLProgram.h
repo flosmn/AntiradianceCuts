@@ -11,7 +11,7 @@ class COGLSampler;
 class COGLProgram : public COGLResource
 {
 public:
-	COGLProgram(const std::string debugName, const std::string strVS, const std::string strFS, std::vector<std::string> headerFiles);
+	COGLProgram(const std::string debugName, const std::string strVS, const std::string strGS, const std::string strFS, std::vector<std::string> headerFiles);
 	~COGLProgram();
 
 	virtual bool Init();
@@ -30,6 +30,7 @@ private:
 	std::string GetFileContent(const std::string &strShaderFile);
 
 	std::string m_VS;	// vertex shader string
+	std::string m_GS;	// geometry shader string
 	std::string m_FS;	// fragment shader string
 
 	std::vector<std::string> m_HeaderFiles;

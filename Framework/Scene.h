@@ -24,13 +24,14 @@ class CMaterialBuffer;
 class CReferenceImage;
 
 class COGLUniformBuffer;
+class COCLContext;
 
 class CModel;
 
 class Scene
 {
 public:
-	Scene(CCamera* pCamera, CConfigManager* pConfManager);
+	Scene(CCamera* pCamera, CConfigManager* pConfManager, COCLContext* pOCLContext);
 	~Scene();
 	
 	bool Init();
@@ -44,6 +45,7 @@ public:
 	void DrawScene(const glm::mat4& mView, const glm::mat4& mProj, COGLUniformBuffer* pUBTransform);
 
 	void DrawAreaLight(COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBAreaLight);
+	void DrawAreaLight(COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBAreaLight, glm::vec3 color);
 
 	void UpdateAreaLights();
 

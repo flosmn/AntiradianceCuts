@@ -2,17 +2,10 @@
 
 layout(std140) uniform;
 
-uniform config
+uniform norm
 {
-	float GeoTermLimit;
-	float AntiradFilterK;
-	float AntiradFilterGaussFactor;
-	float Bias;
-	int ClampGeoTerm;
-	int AntiradFilterMode;	
-	int nPaths;
-	int N;
-} uConfig;
+	float factor;
+} uNormalize;
 
 uniform camera
 {
@@ -41,14 +34,12 @@ void main()
 	vec4 aRad = texture2D(accumRadiance, coord);
 	vec4 aAntirad = texture2D(accumAntiradiance, coord);
 	
-	float p = 1.f / float(uConfig.nPaths);
-	
-	normDiff = aDiff * p;
+	normDiff = aDiff * uNormalize.factor;
 	normDiff.w = 1.0f;
 
-	normRadiance = aRad * p;
+	normRadiance = aRad * uNormalize.factor;
 	normRadiance.w = 1.0f;
 
-	normAntiradiance = aAntirad * p;
+	normAntiradiance = aAntirad * uNormalize.factor;
 	normAntiradiance.w = 1.0f;
 }

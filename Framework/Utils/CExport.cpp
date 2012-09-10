@@ -4,9 +4,12 @@ typedef unsigned int uint;
 
 #include "..\OGLResources\COGLTexture2D.h"
 
+#include "..\CImage.h"
+
 #include <iostream>
 #include <fstream>
 #include <assert.h>
+#include <sstream>
 
 CExport::CExport()
 {
@@ -59,4 +62,46 @@ void CExport::ExportPFM(COGLTexture2D* pTexture, std::string strFileName)
 	delete [] pTextureData;
 	delete [] pFloatMap;
 	delete [] pPixelData;
+}
+
+void CExport::ExportPNG(COGLTexture2D* pTexture, std::string strFileName)
+{
+	uint width = pTexture->GetWidth();
+	uint height = pTexture->GetHeight();
+
+	// get the pixel data of the texture. assertion is that the format of the texture is 32F, RGBA format
+	assert(pTexture->GetInternalFormat() == GL_RGBA32F);
+
+	glm::vec4* pTextureData = new glm::vec4[width * height];
+	pTexture->GetPixelData(pTextureData);
+
+	CImage image(width, height);
+	image.SetData(pTextureData);
+	
+	std::stringstream ss;
+	ss << "Export/" << strFileName;
+	image.SaveAsPNG(ss.str().c_str(), false);
+
+	delete [] pTextureData;
+}
+
+void CExport::ExportHDR(COGLTexture2D* pTexture, std::string strFileName)
+{
+	uint width = pTexture->GetWidth();
+	uint height = pTexture->GetHeight();
+
+	// get the pixel data of the texture. assertion is that the format of the texture is 32F, RGBA format
+	assert(pTexture->GetInternalFormat() == GL_RGBA32F);
+
+	glm::vec4* pTextureData = new glm::vec4[width * height];
+	pTexture->GetPixelData(pTextureData);
+
+	CImage image(width, height);
+	image.SetData(pTextureData);
+	
+	std::stringstream ss;
+	ss << "Export/" << strFileName;
+	image.SaveAsHDR(ss.str().c_str(), false);
+
+	delete [] pTextureData;
 }

@@ -6,9 +6,10 @@
 
 struct STAMP
 {
-	int nPaths;
+	int nAVPLs;
 	float time; // in sec.
 	float error;
+	float AVPLsPerSecond;
 };
 
 class CExperimentData 
@@ -21,19 +22,19 @@ public:
 
 	void ClearData();
 
-	void AddData(int nPaths, float time, float error);
+	void AddData(int nAVPLs, float time, float error, float AVPLsPerSecond);
 
 	void MaxTime(float t) { m_MaxTime = t; }
-	void MaxPaths(int n) { m_MaxPaths = n; }
+	void MaxAVPLs(int n) { m_MaxAVPLs = n; }
 	
-private:
 	void WriteToFile();
-	
+
+private:	
 	std::string m_Name;
 	std::string m_FileName;
 
 	float m_MaxTime;
-	int m_MaxPaths;
+	int m_MaxAVPLs;
 	bool m_Written;
 
 	std::vector<STAMP> m_Data;

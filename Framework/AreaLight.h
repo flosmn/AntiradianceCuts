@@ -28,6 +28,7 @@ public:
 	void Release();
 
 	void Draw(CCamera* camera, COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBAreaLight);
+	void Draw(CCamera* camera, COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBAreaLight, glm::vec3 color);
 
 	glm::vec3 GetCenterPosition() { return centerPosition; }
 	glm::vec3 GetFrontDirection() { return frontDirection; }

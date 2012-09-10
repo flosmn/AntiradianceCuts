@@ -65,8 +65,6 @@ void CAVPLImportanceSampling::UpdateCurrentAntiirradiance(COGLTexture2D* pTextur
 	m_AvgAntiirradiance = Luminance(antiirradiance) / float(width * height);
 }
 
-
-
 bool CAVPLImportanceSampling::EvaluateAVPLImportance0(AVPL& avpl, float* scale)
 {
 	if(m_AvgAntiirradiance == 0 || m_AvgIrradiance == 0)

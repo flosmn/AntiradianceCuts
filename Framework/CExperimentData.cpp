@@ -6,7 +6,7 @@
 
 CExperimentData::CExperimentData()
 {
-	m_MaxPaths = 0;
+	m_MaxAVPLs = 0;
 	m_MaxTime = 0.f;
 	m_Written = false;
 }
@@ -27,15 +27,16 @@ void CExperimentData::ClearData()
 	m_Data.clear();
 }
 
-void CExperimentData::AddData(int nPaths, float time, float error)
+void CExperimentData::AddData(int nAVPLs, float time, float error, float AVPLsPerSecond)
 {
 	STAMP s;
-	s.nPaths = nPaths;
+	s.nAVPLs = nAVPLs;
 	s.time = time;
 	s.error = error;
+	s.AVPLsPerSecond = AVPLsPerSecond;
 	m_Data.push_back(s);
 
-	if(m_MaxPaths > 0 && nPaths >= m_MaxPaths && !m_Written)
+	if(m_MaxAVPLs > 0 && nAVPLs >= m_MaxAVPLs && !m_Written)
 		WriteToFile();
 	else if(m_MaxTime > 0.f && time >= m_MaxTime && !m_Written)
 		WriteToFile();
@@ -47,11 +48,11 @@ void CExperimentData::WriteToFile()
 	path << "Experiments/" << m_FileName;
 
 	std::stringstream content;
-	content << "nPaths time " << m_Name << "\n";
+	content << "AVPLs time error avpls_per_second\n";
 	for(int i = 0; i < m_Data.size(); ++i)
 	{
 		STAMP s = m_Data[i];
-		content << s.nPaths << " " << s.time << " " << s.error << "\n";
+		content << s.nAVPLs << " " << s.time << " " << s.error << " " << s.AVPLsPerSecond << "\n";
 	}
 
 	std::ofstream dataFile;
@@ -61,4 +62,6 @@ void CExperimentData::WriteToFile()
 	dataFile.close();
 
 	m_Written = true;
+
+	std::cout << "Data exported" << std::endl;
 }

@@ -57,7 +57,7 @@ void CClusterTree::BuildTree(const std::vector<AVPL>& avpls)
 	
 	// start to build tree recursively
 	m_Head = BuildTree(data_points_sorted_x, data_points_sorted_y, data_points_sorted_z, 0);
-		
+
 	SetDepths(m_Head, 0);
 }
 

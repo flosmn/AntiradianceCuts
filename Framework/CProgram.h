@@ -14,6 +14,7 @@ class CProgram
 {
 public:
 	CProgram(const std::string debugName, const std::string VS, const std::string FS);
+	CProgram(const std::string debugName, const std::string VS, const std::string GS, const std::string FS);
 	CProgram(const std::string debugName, const std::string VS, const std::string FS, std::vector<std::string> headerFiles);
 	~CProgram();
 

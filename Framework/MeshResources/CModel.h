@@ -26,7 +26,7 @@ public:
 	~CModel();
 
 	bool Init(CMesh* m);
-	bool Init(std::string name, CMaterialBuffer* pMaterialBuffer);
+	bool Init(std::string name, std::string ext, CMaterialBuffer* pMaterialBuffer);
 	void Release();
 	
 	void Draw(const glm::mat4& mView, const glm::mat4& mProj, COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBMaterial);

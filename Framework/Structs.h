@@ -13,6 +13,13 @@ struct TRANSFORM
 	glm::mat4 MVP;
 };
 
+struct CUBE_MAP
+{
+	glm::mat4 T[6];
+	glm::mat4 LS;
+	float face;
+};
+
 struct MODEL
 {
 	glm::vec3 positionWS;
@@ -49,24 +56,24 @@ struct AVPL_BUFFER
 
 struct CLUSTER_BUFFER
 {
-	float id;					// 0
 	glm::vec3 mean;
+	float depth;
 		
-	float avplIndex;			// 4
+	float avplIndex;
 	glm::vec3 intensity;
 	
-	float depth;				// 8
+	float id;
 	glm::vec3 normal;
 	
-	float size;				// 12
-	float left_id;			// 13
-	float right_id;			// 14
-	float padd;				// 15
+	float left_id;
+	float right_id;
+	float size;
+	float padd;
 
-	glm::vec3 pMin;			// 16
+	glm::vec3 pMin;
 	float padd0;
 
-	glm::vec3 pMax;			// 20
+	glm::vec3 pMax;
 	float padd1;
 };
 
@@ -78,8 +85,13 @@ struct CONFIG
 	float AntiradFilterGaussFactor;
 	int ClampGeoTerm;
 	int AntiradFilterMode;	
-	int nPaths;
 	int padd;
+	int padd1;
+};
+
+struct NORMALIZE
+{
+	float factor;
 };
 
 struct CAMERA

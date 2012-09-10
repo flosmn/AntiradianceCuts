@@ -13,6 +13,8 @@ class COCLProgram;
 class COCLKernel;
 class COCLBuffer;
 
+class CMaterialBuffer;
+
 struct CLUSTER;
 
 class AVPL;
@@ -27,14 +29,14 @@ public:
 	COctahedronAtlas(COCLContext* pOCLContext);
 	~COctahedronAtlas();
 
-	bool Init(uint atlasDim, uint tileDim, uint maxNumAVPLs);
+	bool Init(uint atlasDim, uint tileDim, uint maxNumAVPLs, CMaterialBuffer* pMaterialBuffer);
 	void Release();
 	
 	void FillClusterAtlas(const std::vector<AVPL>& avpls, CLUSTER* pClustering, int clusteringSize);
 	void FillClusterAtlasGPU(CLUSTER* pClustering, uint clusteringSize, uint numAVPLs);
 
 	void FillAtlas(const std::vector<AVPL>& avpls, const int sqrt_num_ss_samples, const float& N, bool border);
-	void FillAtlasGPU(AVPL_BUFFER* pBufferData, uint numAVPLs, const int sqrt_num_ss_samples, const float& N, bool border);
+	void FillAtlasGPU(const std::vector<AVPL>& avpls, const int sqrt_num_ss_samples, const float& N, bool border);
 
 	COGLTexture2D* GetAVPLAtlas();
 	COGLTexture2D* GetAVPLAtlasDebug() { return m_pOGLAtlasDebug; };
@@ -75,6 +77,8 @@ private:
 
 	glm::vec4* m_pData;
 	glm::vec4* m_pClusterData;
+
+	CMaterialBuffer* m_pMaterialBuffer;
 };
 
 #endif _C_OCTAHEDRON_ATLAS_H_

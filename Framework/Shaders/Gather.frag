@@ -13,9 +13,8 @@ uniform info_block
 	int numClusters;
 	int UseIBL;
 	int filterAVPLAtlas;
-	
 	int lightTreeCutDepth;
-	int padd0;
+	float clusterRefinementThreshold;
 	int padd1;
 	int padd2;
 } uInfo;
@@ -28,8 +27,8 @@ uniform config
 	float AntiradFilterGaussFactor;
 	int ClampGeoTerm;
 	int AntiradFilterMode;	
-	int nPaths;
 	int padd;
+	int padd1;
 } uConfig;
 
 uniform camera

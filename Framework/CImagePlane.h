@@ -21,7 +21,7 @@ public:
 	glm::vec2 GetPixelSample();
 	void AddSample(glm::vec2 pixelSample, glm::vec4 sample);
 
-	COGLTexture2D* GetOGLTexture(bool blur);
+	COGLTexture2D* GetOGLTexture();
 
 private:
 	uint PixelToIndex(glm::vec2 pixel);
