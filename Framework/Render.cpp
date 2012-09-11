@@ -402,7 +402,7 @@ bool Renderer::Init()
 
 	scene = new Scene(camera, m_pConfManager, m_pCLContext);
 	scene->Init();
-	scene->LoadBuddha();
+	scene->LoadCornellBox();
 	scene->GetMaterialBuffer()->InitOGLMaterialBuffer();
 	scene->GetMaterialBuffer()->InitOCLMaterialBuffer();
 		
@@ -466,10 +466,17 @@ bool Renderer::Init()
 
 	image.SetData(pData);
 	image.SaveAsPNG("huemap.png", false);
+	
+	return true;
+}
+
+void Renderer::TestClusteringSpeed()
+{
+	CClusterTree tree;
 
 	for(int i = 0; i < 10; ++i)
 	{
-		int numAVPLs = 100 * (i+1);
+		int numAVPLs = 50000; //100 * (i+1);
 		std::stringstream ss;
 		ss << "Build Tree (" << numAVPLs << ")"; 
 
@@ -478,14 +485,17 @@ bool Renderer::Init()
 
 		CTimer timer(CTimer::CPU);
 		timer.Start();
-		CClusterTree tree;
+		
 		tree.BuildTree(randAVPLs);
+		
 		timer.Stop(ss.str());
 		tree.Release();
 		randAVPLs.clear();
-	}
 
-	return true;
+		std::cout << std::endl;
+	}
+	std::cout << std::endl;
+	std::cout << std::endl;
 }
 
 void Renderer::Release()
@@ -598,7 +608,7 @@ void Renderer::Render()
 
 	if(m_CurrentPathAntiradiance == 0 && m_CurrentPathShadowmap == 0)
 	{
-		m_pExperimentData->Init("test", "conesize-30.data");
+		m_pExperimentData->Init("test", "cb-conesize-5.data");
 		m_pExperimentData->MaxAVPLs(9900000);
 
 		m_pGlobalTimer->Start();

@@ -22,26 +22,25 @@ public:
 	
 	CLUSTER* GetHead();
 	CLUSTER* GetClustering() const { return m_pClustering; }
-	int GetClusteringSize() const { return m_numClusters; }
+	int GetClusteringSize() const { return m_NumClusters; }
 	
 private:
-	CLUSTER* BuildTreeRecurse(int* clusterIds, int numClusters, int depth);
+	CLUSTER BuildTreeRecurse(int* clusterIds, int numClusters, int depth);
 	
-	CLUSTER* BuildTree(
-		const std::vector<CLUSTER*>& dp_split_axis,
-		const std::vector<CLUSTER*>& dp_other_axis_1,
-		const std::vector<CLUSTER*>& dp_other_axis_2,
+	CLUSTER BuildTree(
+		const std::vector<CLUSTER>& dp_split_axis,
+		const std::vector<CLUSTER>& dp_other_axis_1,
+		const std::vector<CLUSTER>& dp_other_axis_2,
 		int depth);
 	
-	void CreateLeafClusters(const std::vector<AVPL>& avpls, std::vector<CLUSTER*>& data_points);
+	void CreateLeafClusters(const std::vector<AVPL>& avpls, std::vector<CLUSTER>& data_points);
 	BBox GetBoundingBox(int* clusterIds, int numClusters);
-	CLUSTER* MergeClusters(CLUSTER* leftChild, CLUSTER* rightChild, int depth);
+	CLUSTER MergeClusters(const CLUSTER& leftChild, const CLUSTER& rightChild, int depth);
 	void CreateInnerClusters();
 	
 	void Traverse(CLUSTER* cluster);
-	void Release(CLUSTER* cluster);
 	void Color(std::vector<AVPL>& avpls, const int cutDepth, CLUSTER* cluster, const int currentDepth, const int colorIndex);
-	void GetAllLeafs(CLUSTER* cluster, std::vector<CLUSTER*>& leafs);
+	void GetAllLeafs(CLUSTER* cluster, std::vector<CLUSTER>& leafs);
 	void SetDepths(CLUSTER* n, int depth);
 
 	CLUSTER* m_Head;
@@ -52,7 +51,7 @@ private:
 	glm::vec3* m_pColors;
 	int m_NumColors;
 	int m_ClusterId;
-	int m_numClusters;
+	int m_NumClusters;
 
 	CLUSTER* m_pClustering;
 

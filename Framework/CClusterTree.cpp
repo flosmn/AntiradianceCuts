@@ -7,42 +7,54 @@
 
 #include "AVPL.h"
 #include "Utils\Rand.h"
+#include "CTimer.h"
+
+const int MAX_NUM_AVPLS = 100000;
 
 CClusterTree::CClusterTree()
 {
 	m_NumColors = 40;
 	m_Head = 0;
-	m_ClusterId = 0;
+	m_ClusterId = 0;	
+	m_LeftIndicesLevel = 0;
+
 	m_pClustering = 0;
 	m_pLeftIndices = 0;
+
+	m_pClustering = new CLUSTER[2 * MAX_NUM_AVPLS];
+	m_pLeftIndices = new int[2 * MAX_NUM_AVPLS];
 
 	InitColors();
 }
 
 CClusterTree::~CClusterTree()
 {
-	delete [] m_pColors;
+	if(m_pClustering)
+		delete [] m_pClustering;
+	if(m_pLeftIndices)
+		delete [] m_pLeftIndices;
+	if(m_pColors)
+		delete [] m_pColors;
 }
 	
 void CClusterTree::BuildTree(const std::vector<AVPL>& avpls)
 {
-	m_ClusterId = 0;
-
-	const int size = (int)avpls.size();
-	m_numClusters = 2 * size - 1;
-
-	m_pClustering = new CLUSTER[m_numClusters];		
-	m_pLeftIndices = new int[m_numClusters];
+	m_ClusterId = 0;		
 	m_LeftIndicesLevel = 0;
+
+	m_NumClusters = 2 * avpls.size() - 1;
 	
-	std::vector<CLUSTER*> data_points;
+	CTimer timer(CTimer::CPU);
+	timer.Start();
+
+	std::vector<CLUSTER> data_points;
 	CreateLeafClusters(avpls, data_points);
-
+	
 	// create sorted vectors
-	std::vector<CLUSTER*> data_points_sorted_x;
-	std::vector<CLUSTER*> data_points_sorted_y;
-	std::vector<CLUSTER*> data_points_sorted_z;
-
+	std::vector<CLUSTER> data_points_sorted_x;
+	std::vector<CLUSTER> data_points_sorted_y;
+	std::vector<CLUSTER> data_points_sorted_z;
+	
 	data_points_sorted_x.reserve(data_points.size());
 	data_points_sorted_y.reserve(data_points.size());
 	data_points_sorted_z.reserve(data_points.size());
@@ -54,22 +66,24 @@ void CClusterTree::BuildTree(const std::vector<AVPL>& avpls)
 	std::sort(data_points_sorted_x.begin(), data_points_sorted_x.end(), SORT_X);
 	std::sort(data_points_sorted_y.begin(), data_points_sorted_y.end(), SORT_Y);
 	std::sort(data_points_sorted_z.begin(), data_points_sorted_z.end(), SORT_Z);
-	
+			
 	// start to build tree recursively
-	m_Head = BuildTree(data_points_sorted_x, data_points_sorted_y, data_points_sorted_z, 0);
+	BuildTree(data_points_sorted_x, data_points_sorted_y, data_points_sorted_z, 0);
+	
+	m_Head = &(m_pClustering[m_ClusterId-1]);
 
 	SetDepths(m_Head, 0);
 }
 
-CLUSTER* CClusterTree::BuildTree(
-		const std::vector<CLUSTER*>& dp_split_axis,
-		const std::vector<CLUSTER*>& dp_other_axis_1,
-		const std::vector<CLUSTER*>& dp_other_axis_2,
+CLUSTER CClusterTree::BuildTree(
+		const std::vector<CLUSTER>& dp_split_axis,
+		const std::vector<CLUSTER>& dp_other_axis_1,
+		const std::vector<CLUSTER>& dp_other_axis_2,
 		int depth)
 {
 	static int node_Id = 0;
 
-	CLUSTER* c;
+	CLUSTER c;
 
 	if(dp_split_axis.size() == 1)
 	{
@@ -78,69 +92,70 @@ CLUSTER* CClusterTree::BuildTree(
 	}
 	else if(dp_split_axis.size() == 0)
 	{
-		return 0;
+		std::cout << "subspace already empty" << std::endl;
+		return c;
 	}
 	else
 	{
 		// create inner node
 		int numDataPoints = (int)dp_split_axis.size();
 		int medianIndex = numDataPoints / 2;
-		CLUSTER* median = dp_split_axis[medianIndex];
+		CLUSTER median = dp_split_axis[medianIndex];
 		
 		m_LeftIndicesLevel++;
 
 		// create disjoint sets of points
-		std::vector<CLUSTER*> dp_split_axis_left;
-		std::vector<CLUSTER*> dp_other_axis_1_left;
-		std::vector<CLUSTER*> dp_other_axis_2_left;
-		std::vector<CLUSTER*> dp_split_axis_right;
-		std::vector<CLUSTER*> dp_other_axis_1_right;
-		std::vector<CLUSTER*> dp_other_axis_2_right;
-
+		std::vector<CLUSTER> dp_split_axis_left;
+		std::vector<CLUSTER> dp_other_axis_1_left;
+		std::vector<CLUSTER> dp_other_axis_2_left;
+		std::vector<CLUSTER> dp_split_axis_right;
+		std::vector<CLUSTER> dp_other_axis_1_right;
+		std::vector<CLUSTER> dp_other_axis_2_right;
+		
 		dp_split_axis_left.reserve(numDataPoints/2 + 1);
 		dp_other_axis_1_left.reserve(numDataPoints/2 + 1);
 		dp_other_axis_2_left.reserve(numDataPoints/2 + 1);
 		dp_split_axis_right.reserve(numDataPoints/2 + 1);
 		dp_other_axis_1_right.reserve(numDataPoints/2 + 1);
 		dp_other_axis_2_right.reserve(numDataPoints/2 + 1);
-				
+		
 		for(int i = 0; i < medianIndex; ++i)
 		{
-			CLUSTER* dp = dp_split_axis[i];
+			CLUSTER dp = dp_split_axis[i];
 			dp_split_axis_left.push_back(dp);
-			m_pLeftIndices[dp->id] = m_LeftIndicesLevel;
+			m_pLeftIndices[dp.id] = m_LeftIndicesLevel;
 		}
 
 		for(int i = medianIndex; i < numDataPoints; ++i)
 		{
-			CLUSTER* dp = dp_split_axis[i];
+			CLUSTER dp = dp_split_axis[i];
 			dp_split_axis_right.push_back(dp);
 		}
 
 		for(int i = 0; i < numDataPoints; ++i)
 		{
-			CLUSTER* dp;
+			CLUSTER dp;
 
 			dp = dp_other_axis_1[i];
-			if(m_pLeftIndices[dp->id] == m_LeftIndicesLevel)
+			if(m_pLeftIndices[dp.id] == m_LeftIndicesLevel)
 				dp_other_axis_1_left.push_back(dp);
 			else
 				dp_other_axis_1_right.push_back(dp);
 			
 			dp = dp_other_axis_2[i];
-			if(m_pLeftIndices[dp->id] == m_LeftIndicesLevel)
+			if(m_pLeftIndices[dp.id] == m_LeftIndicesLevel)
 				dp_other_axis_2_left.push_back(dp);
 			else
 				dp_other_axis_2_right.push_back(dp);
 		}
 
 		// call build recursively
-		CLUSTER* left = BuildTree(
+		CLUSTER left = BuildTree(
 			dp_other_axis_1_left,
 			dp_other_axis_2_left,
 			dp_split_axis_left,
 			depth + 1);
-		CLUSTER* right = BuildTree(
+		CLUSTER right = BuildTree(
 			dp_other_axis_1_right,
 			dp_other_axis_2_right,
 			dp_split_axis_right,
@@ -153,48 +168,50 @@ CLUSTER* CClusterTree::BuildTree(
 	return c;
 }
 
-CLUSTER* CClusterTree::MergeClusters(CLUSTER* l, CLUSTER* r, int depth)
+CLUSTER CClusterTree::MergeClusters(const CLUSTER& l, const CLUSTER& r, int depth)
 {
-	const float sl = float(l->size);
-	const float sr = float(r->size);
+	const float sl = float(l.size);
+	const float sr = float(r.size);
 	const float norm = 1.f / (sl + sr);
 	
-	CLUSTER* c = &(m_pClustering[m_ClusterId]);
+	const int id = m_ClusterId;
+	m_pClustering[id].bbox = BBox::Union(l.bbox, r.bbox);
+	m_pClustering[id].avplIndex = -1;
+	m_pClustering[id].depth = depth;
+	m_pClustering[id].left = &(m_pClustering[l.id]);
+	m_pClustering[id].right = &(m_pClustering[r.id]);
+	m_pClustering[id].intensity = l.intensity + r.intensity;
+	m_pClustering[id].mean = norm * (sl * l.mean + sr * r.mean);
+	m_pClustering[id].normal = norm * (sl * l.normal + sr * r.normal);
+	m_pClustering[id].size = l.size + r.size;
+	m_pClustering[id].id = id;
 
-	c->bbox = BBox::Union(l->bbox, r->bbox);
-	c->avplIndex = -1;
-	c->depth = depth;
-	c->left = l;
-	c->right = r;
-	c->intensity = l->intensity + r->intensity;
-	c->mean = norm * (sl * l->mean + sr * r->mean);
-	c->normal = norm * (sl * l->normal + sr * r->normal);
-	c->size = l->size + r->size;
-	c->id = m_ClusterId++;
-
-	return c;
+	m_ClusterId++;
+	return m_pClustering[id];
 }
 
 void CClusterTree::CreateLeafClusters(const std::vector<AVPL>& avpls,
-	std::vector<CLUSTER*>& data_points)
+	std::vector<CLUSTER>& data_points)
 {
 	for(int i = 0; i < avpls.size(); ++i)
 	{
 		AVPL avpl = avpls[i];
-		int id = m_ClusterId++;
-		CLUSTER* leaf = &(m_pClustering[id]);
 		glm::vec3 pos = avpls[i].GetPosition();
-		leaf->avplIndex = i;
-		leaf->id = id;
-		leaf->bbox = BBox(pos, pos);
-		leaf->depth = -1;
-		leaf->intensity = avpls[i].GetIncidentRadiance() + avpls[i].GetAntiradiance(avpls[i].GetDirection());
-		leaf->mean = pos;
-		leaf->normal = avpls[i].GetOrientation();
-		leaf->size = 1;
-		leaf->left = 0;
-		leaf->right = 0;
-		data_points.push_back(&(m_pClustering[id]));
+		
+		const int id = m_ClusterId;
+		m_pClustering[id].avplIndex = i;
+		m_pClustering[id].id = id;
+		m_pClustering[id].bbox = BBox(pos, pos);
+		m_pClustering[id].depth = -1;
+		m_pClustering[id].intensity = avpls[i].GetIncidentRadiance() + avpls[i].GetAntiradiance(avpls[i].GetDirection());
+		m_pClustering[id].mean = pos;
+		m_pClustering[id].normal = avpls[i].GetOrientation();
+		m_pClustering[id].size = 1;
+		m_pClustering[id].left = 0;
+		m_pClustering[id].right = 0;
+		data_points.push_back(m_pClustering[id]);
+
+		m_ClusterId++;
 	}
 }
 
@@ -205,10 +222,12 @@ void CClusterTree::Color(std::vector<AVPL>& avpls, const int cutDepth)
 
 void CClusterTree::Release()
 {
-	if(m_pClustering)
-		delete [] m_pClustering;
-	if(m_pLeftIndices)
-		delete [] m_pLeftIndices;
+	m_Head = 0;
+	m_ClusterId = 0;	
+	m_LeftIndicesLevel = 0;
+
+	memset(m_pClustering, 0, 2 * MAX_NUM_AVPLS * sizeof(CLUSTER));
+	memset(m_pLeftIndices, 0, 2 * MAX_NUM_AVPLS * sizeof(int));
 }
 
 void CClusterTree::Traverse(CLUSTER* cluster)
@@ -231,11 +250,11 @@ void CClusterTree::Color(std::vector<AVPL>& avpls, const int cutDepth,
 {
 	if (currentDepth == cutDepth)
 	{
-		std::vector<CLUSTER*> leafs;
+		std::vector<CLUSTER> leafs;
 		GetAllLeafs(cluster, leafs);
 		for (size_t i = 0; i < leafs.size(); ++i)
 		{
-			avpls[leafs[i]->avplIndex].SetColor(m_pColors[colorIndex]);
+			avpls[leafs[i].avplIndex].SetColor(m_pColors[colorIndex]);
 		}
 		leafs.clear();
 	}
@@ -248,29 +267,13 @@ void CClusterTree::Color(std::vector<AVPL>& avpls, const int cutDepth,
 	}
 }		
 
-void CClusterTree::Release(CLUSTER* cluster)
+void CClusterTree::GetAllLeafs(CLUSTER* cluster, std::vector<CLUSTER>& leafs)
 {
 	if(!cluster) return;
 
 	if(cluster->IsLeaf())
 	{
-		delete cluster;
-		cluster = 0;
-	}
-	else
-	{
-		Release(cluster->left);
-		Release(cluster->right);
-	}
-}
-
-void CClusterTree::GetAllLeafs(CLUSTER* cluster, std::vector<CLUSTER*>& leafs)
-{
-	if(!cluster) return;
-
-	if(cluster->IsLeaf())
-	{
-		leafs.push_back(cluster);
+		leafs.push_back(*cluster);
 	}
 	else
 	{

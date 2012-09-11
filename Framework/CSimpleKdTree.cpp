@@ -50,11 +50,11 @@ void CSimpleKdTree::BuildTree(const std::vector<CLUSTER*>& data_points)
 	std::copy(data_points.begin(), data_points.end(), std::back_inserter(data_points_sorted_x));
 	std::copy(data_points.begin(), data_points.end(), std::back_inserter(data_points_sorted_y));
 	std::copy(data_points.begin(), data_points.end(), std::back_inserter(data_points_sorted_z));
-
+	/*
 	std::sort(data_points_sorted_x.begin(), data_points_sorted_x.end(), SORT_X);
 	std::sort(data_points_sorted_y.begin(), data_points_sorted_y.end(), SORT_Y);
 	std::sort(data_points_sorted_z.begin(), data_points_sorted_z.end(), SORT_Z);
-	
+	*/
 	// start to build tree recursively
 	m_Head = BuildTree(data_points_sorted_x, data_points_sorted_y, data_points_sorted_z, 0);
 }

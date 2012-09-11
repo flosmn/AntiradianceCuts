@@ -53,6 +53,7 @@ float CalcFPS();
 
 void Render()
 {
+	
 	if(g_pConfigManager->GetConfVars()->UsePathTracing)
 		g_pRenderer->RenderPathTracingReference();
 	else
@@ -61,6 +62,9 @@ void Render()
 	}
 	
 	g_pGUI->Render(CalcFPS());
+	
+	
+	//g_pRenderer->TestClusteringSpeed();
 
 	SwapBuffers(g_HDC);
 }

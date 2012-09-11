@@ -526,7 +526,7 @@ void Scene::LoadCornellBox()
 	model->SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
 
 	m_pReferenceImage = new CReferenceImage(m_Camera->GetWidth(), m_Camera->GetHeight());
-	m_pReferenceImage->LoadFromFile("References/cb-diffuse-clamped.hdr", true);
+	m_pReferenceImage->LoadFromFile("References/cb-diffuse-clamped-indirect.hdr", true);
 
 	m_Models.push_back(model);
 

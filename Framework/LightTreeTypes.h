@@ -55,7 +55,7 @@ struct CLUSTER
 			buffer->right_id = -1.f;
 	}
 
-	bool operator<(const CLUSTER c) const {
+	bool operator<(const CLUSTER& c) const {
 		return (id < c.id);
 	}
 
@@ -63,7 +63,7 @@ struct CLUSTER
 		return (id < c->id);
 	}
 
-	bool operator==(const CLUSTER c) const {
+	bool operator==(const CLUSTER& c) const {
 		return (id == c.id);
 	}
 
@@ -71,7 +71,7 @@ struct CLUSTER
 		return (id == c->id);
 	}
 
-	bool operator!=(const CLUSTER c) const {
+	bool operator!=(const CLUSTER& c) const {
 		return (id != c.id);
 	}
 
@@ -176,9 +176,13 @@ struct EQ_CLUSTER
         return c1->id==c2->id;
     }
 };
-
+/*
 bool SORT_X(CLUSTER* p1, CLUSTER* p2);
 bool SORT_Y(CLUSTER* p1, CLUSTER* p2);
 bool SORT_Z(CLUSTER* p1, CLUSTER* p2);
+*/
+bool SORT_X(const CLUSTER& p1, const CLUSTER& p2);
+bool SORT_Y(const CLUSTER& p1, const CLUSTER& p2);
+bool SORT_Z(const CLUSTER& p1, const CLUSTER& p2);
 
 #endif

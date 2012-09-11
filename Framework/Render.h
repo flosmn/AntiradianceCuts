@@ -94,6 +94,8 @@ public:
 	void EndCollectingISAVPLs();
 	void ClearCollectedAVPLs() { m_CollectedAVPLs.clear(); m_CollectedImportanceSampledAVPLs.clear(); }
 
+	void TestClusteringSpeed();
+
 private:
 	// functions of the render phase
 	void SetUpRender();

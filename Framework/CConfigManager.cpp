@@ -12,8 +12,8 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVarsGUI = new CONF_VARS[1];
 
 	m_pConfVars->UseAntiradiance = m_pConfVarsGUI->UseAntiradiance = 1;
-	m_pConfVars->SeparateDirectIndirectLighting = m_pConfVarsGUI->SeparateDirectIndirectLighting = 1;
-	m_pConfVars->LightingMode = m_pConfVarsGUI->LightingMode = 0;
+	m_pConfVars->SeparateDirectIndirectLighting = m_pConfVarsGUI->SeparateDirectIndirectLighting = 0;
+	m_pConfVars->LightingMode = m_pConfVarsGUI->LightingMode = 2;
 	m_pConfVars->GatherWithAVPLAtlas = m_pConfVarsGUI->GatherWithAVPLAtlas = 0;
 	m_pConfVars->GatherWithAVPLClustering = m_pConfVarsGUI->GatherWithAVPLClustering = 0;
 	m_pConfVars->NoAntiradiance = m_pConfVarsGUI->NoAntiradiance = 0;
@@ -23,7 +23,8 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->NumAVPLsPerFrame = m_pConfVarsGUI->NumAVPLsPerFrame = 1000;
 	m_pConfVars->NumVPLsDirectLight = m_pConfVarsGUI->NumVPLsDirectLight = 10000;
 	m_pConfVars->NumVPLsDirectLightPerFrame = m_pConfVarsGUI->NumVPLsDirectLightPerFrame = 3;
-		
+	m_pConfVars->ConeFactor = m_pConfVarsGUI->ConeFactor = 5.f;
+
 	m_pConfVars->DrawError = m_pConfVarsGUI->DrawError = 0;
 	m_pConfVars->DrawReference = m_pConfVarsGUI->DrawReference = 0;
 	m_pConfVars->UsePathTracing = m_pConfVarsGUI->UsePathTracing = 0;
@@ -52,7 +53,6 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 			
 	m_pConfVars->NumAVPLsDebug = m_pConfVarsGUI->NumAVPLsDebug = 10;
 	m_pConfVars->NumAdditionalAVPLs = m_pConfVarsGUI->NumAdditionalAVPLs = 0;
-	m_pConfVars->ConeFactor = m_pConfVarsGUI->ConeFactor = 10.f;
 	m_pConfVars->AntiradFilterMode = m_pConfVarsGUI->AntiradFilterMode = 0;
 	m_pConfVars->AntiradFilterGaussFactor = m_pConfVarsGUI->AntiradFilterGaussFactor = 2.5f;
 	m_pConfVars->RenderBounce = m_pConfVarsGUI->RenderBounce = -1;
