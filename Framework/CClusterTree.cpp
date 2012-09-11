@@ -1,15 +1,25 @@
 #include "CClusterTree.h"
 
 #include <iostream>
-#include <map>
 #include <algorithm>
 #include <iterator>
 
 #include "AVPL.h"
 #include "Utils\Rand.h"
 #include "CTimer.h"
+#include "Defines.h"
 
 const int MAX_NUM_AVPLS = 100000;
+
+struct POINT
+{
+	glm::vec3 position;
+	int index;
+};
+
+bool SORT_X(const POINT& a1, const POINT& a2);
+bool SORT_Y(const POINT& a1, const POINT& a2);
+bool SORT_Z(const POINT& a1, const POINT& a2);
 
 CClusterTree::CClusterTree()
 {
@@ -24,17 +34,30 @@ CClusterTree::CClusterTree()
 	m_pClustering = new CLUSTER[2 * MAX_NUM_AVPLS];
 	m_pLeftIndices = new int[2 * MAX_NUM_AVPLS];
 
+	memset(m_pClustering, 0, 2 * MAX_NUM_AVPLS * sizeof(CLUSTER));
+	memset(m_pLeftIndices, 0, 2 * MAX_NUM_AVPLS * sizeof(int));
+
+	m_indices_sorted_x_0 = new int[MAX_NUM_AVPLS];
+	m_indices_sorted_y_0 = new int[MAX_NUM_AVPLS];
+	m_indices_sorted_z_0 = new int[MAX_NUM_AVPLS];
+	m_indices_sorted_x_1 = new int[MAX_NUM_AVPLS];
+	m_indices_sorted_y_1 = new int[MAX_NUM_AVPLS];
+	m_indices_sorted_z_1 = new int[MAX_NUM_AVPLS];
+
 	InitColors();
 }
 
 CClusterTree::~CClusterTree()
 {
-	if(m_pClustering)
-		delete [] m_pClustering;
-	if(m_pLeftIndices)
-		delete [] m_pLeftIndices;
-	if(m_pColors)
-		delete [] m_pColors;
+	SAFE_DELETE(m_pClustering);
+	SAFE_DELETE(m_pLeftIndices);
+	SAFE_DELETE(m_pColors);
+	SAFE_DELETE(m_indices_sorted_x_0);
+	SAFE_DELETE(m_indices_sorted_y_0);
+	SAFE_DELETE(m_indices_sorted_z_0);
+	SAFE_DELETE(m_indices_sorted_x_1);
+	SAFE_DELETE(m_indices_sorted_y_1);
+	SAFE_DELETE(m_indices_sorted_z_1);
 }
 	
 void CClusterTree::BuildTree(const std::vector<AVPL>& avpls)
@@ -42,124 +65,89 @@ void CClusterTree::BuildTree(const std::vector<AVPL>& avpls)
 	m_ClusterId = 0;		
 	m_LeftIndicesLevel = 0;
 
-	m_NumClusters = 2 * avpls.size() - 1;
+	m_NumClusters = 2 * (int)avpls.size() - 1;
 	
 	CTimer timer(CTimer::CPU);
-	timer.Start();
+	
+	CreateLeafClusters(avpls);
+	
+	CreateSortedIndices(m_indices_sorted_x_0, m_indices_sorted_y_0, m_indices_sorted_z_0, avpls);
+	
+	BuildTree(
+		m_indices_sorted_x_0, m_indices_sorted_y_0, m_indices_sorted_z_0,
+		m_indices_sorted_x_1, m_indices_sorted_y_1, m_indices_sorted_z_1,
+		0, (int)avpls.size(), (int)avpls.size(), 0);
 
-	std::vector<CLUSTER> data_points;
-	CreateLeafClusters(avpls, data_points);
-	
-	// create sorted vectors
-	std::vector<CLUSTER> data_points_sorted_x;
-	std::vector<CLUSTER> data_points_sorted_y;
-	std::vector<CLUSTER> data_points_sorted_z;
-	
-	data_points_sorted_x.reserve(data_points.size());
-	data_points_sorted_y.reserve(data_points.size());
-	data_points_sorted_z.reserve(data_points.size());
-	
-	std::copy(data_points.begin(), data_points.end(), std::back_inserter(data_points_sorted_x));
-	std::copy(data_points.begin(), data_points.end(), std::back_inserter(data_points_sorted_y));
-	std::copy(data_points.begin(), data_points.end(), std::back_inserter(data_points_sorted_z));
-
-	std::sort(data_points_sorted_x.begin(), data_points_sorted_x.end(), SORT_X);
-	std::sort(data_points_sorted_y.begin(), data_points_sorted_y.end(), SORT_Y);
-	std::sort(data_points_sorted_z.begin(), data_points_sorted_z.end(), SORT_Z);
-			
-	// start to build tree recursively
-	BuildTree(data_points_sorted_x, data_points_sorted_y, data_points_sorted_z, 0);
-	
 	m_Head = &(m_pClustering[m_ClusterId-1]);
-
+	
 	SetDepths(m_Head, 0);
 }
 
-CLUSTER CClusterTree::BuildTree(
-		const std::vector<CLUSTER>& dp_split_axis,
-		const std::vector<CLUSTER>& dp_other_axis_1,
-		const std::vector<CLUSTER>& dp_other_axis_2,
-		int depth)
+CLUSTER CClusterTree::BuildTree(int* indices_split_axis_from, int* indices_other_axis_1_from, int* indices_other_axis_2_from, 
+		int* indices_split_axis_to, int* indices_other_axis_1_to, int* indices_other_axis_2_to,
+		int leftIndex, int rightIndex, int numIndices, int depth)
 {
 	static int node_Id = 0;
 
 	CLUSTER c;
 
-	if(dp_split_axis.size() == 1)
+	if(numIndices == 1)
 	{
 		// create leaf node
-		return dp_split_axis[0];
+		return m_pClustering[indices_split_axis_from[leftIndex]];
 	}
-	else if(dp_split_axis.size() == 0)
+	else if(numIndices == 0)
 	{
 		std::cout << "subspace already empty" << std::endl;
 		return c;
 	}
 	else
 	{
-		// create inner node
-		int numDataPoints = (int)dp_split_axis.size();
-		int medianIndex = numDataPoints / 2;
-		CLUSTER median = dp_split_axis[medianIndex];
-		
+		const int medianIndex = numIndices / 2;
+		const int size_left = numIndices / 2;
+		const int size_right = numIndices - size_left;
 		m_LeftIndicesLevel++;
 
-		// create disjoint sets of points
-		std::vector<CLUSTER> dp_split_axis_left;
-		std::vector<CLUSTER> dp_other_axis_1_left;
-		std::vector<CLUSTER> dp_other_axis_2_left;
-		std::vector<CLUSTER> dp_split_axis_right;
-		std::vector<CLUSTER> dp_other_axis_1_right;
-		std::vector<CLUSTER> dp_other_axis_2_right;
-		
-		dp_split_axis_left.reserve(numDataPoints/2 + 1);
-		dp_other_axis_1_left.reserve(numDataPoints/2 + 1);
-		dp_other_axis_2_left.reserve(numDataPoints/2 + 1);
-		dp_split_axis_right.reserve(numDataPoints/2 + 1);
-		dp_other_axis_1_right.reserve(numDataPoints/2 + 1);
-		dp_other_axis_2_right.reserve(numDataPoints/2 + 1);
-		
-		for(int i = 0; i < medianIndex; ++i)
+		for(int i = leftIndex; i < leftIndex + size_left; ++i)
 		{
-			CLUSTER dp = dp_split_axis[i];
-			dp_split_axis_left.push_back(dp);
-			m_pLeftIndices[dp.id] = m_LeftIndicesLevel;
+			const int index = indices_split_axis_from[i];
+			indices_split_axis_to[i] = index;
+			m_pLeftIndices[index] = m_LeftIndicesLevel;
 		}
 
-		for(int i = medianIndex; i < numDataPoints; ++i)
+		for(int i = leftIndex + size_left; i < rightIndex; ++i)
 		{
-			CLUSTER dp = dp_split_axis[i];
-			dp_split_axis_right.push_back(dp);
+			indices_split_axis_to[i] = indices_split_axis_from[i];
 		}
 
-		for(int i = 0; i < numDataPoints; ++i)
+		int other_axis_1_left = leftIndex;
+		int other_axis_1_right = leftIndex + size_left;
+		int other_axis_2_left = leftIndex;
+		int other_axis_2_right = leftIndex + size_left;
+		for(int i = leftIndex; i < rightIndex; ++i)
 		{
-			CLUSTER dp;
-
-			dp = dp_other_axis_1[i];
-			if(m_pLeftIndices[dp.id] == m_LeftIndicesLevel)
-				dp_other_axis_1_left.push_back(dp);
+			const int index_1 = indices_other_axis_1_from[i];
+			if(m_pLeftIndices[index_1] == m_LeftIndicesLevel)
+				indices_other_axis_1_to[other_axis_1_left++] = index_1;
 			else
-				dp_other_axis_1_right.push_back(dp);
-			
-			dp = dp_other_axis_2[i];
-			if(m_pLeftIndices[dp.id] == m_LeftIndicesLevel)
-				dp_other_axis_2_left.push_back(dp);
+				indices_other_axis_1_to[other_axis_1_right++] = index_1;
+						
+			const int index_2 = indices_other_axis_2_from[i];
+			if(m_pLeftIndices[index_2] == m_LeftIndicesLevel)
+				indices_other_axis_2_to[other_axis_2_left++] = index_2;
 			else
-				dp_other_axis_2_right.push_back(dp);
+				indices_other_axis_2_to[other_axis_2_right++] = index_2;
 		}
-
+		
 		// call build recursively
 		CLUSTER left = BuildTree(
-			dp_other_axis_1_left,
-			dp_other_axis_2_left,
-			dp_split_axis_left,
-			depth + 1);
+			indices_other_axis_1_to, indices_other_axis_2_to, indices_split_axis_to,
+			indices_other_axis_1_from, indices_other_axis_2_from, indices_split_axis_from, 
+			leftIndex, leftIndex + size_left, size_left, depth + 1);
 		CLUSTER right = BuildTree(
-			dp_other_axis_1_right,
-			dp_other_axis_2_right,
-			dp_split_axis_right,
-			depth + 1);
+			indices_other_axis_1_to, indices_other_axis_2_to, indices_split_axis_to,
+			indices_other_axis_1_from, indices_other_axis_2_from, indices_split_axis_from,
+			leftIndex + size_left, rightIndex, size_right, depth + 1);
 
 		// create inner node
 		c = MergeClusters(left, right, depth);
@@ -190,13 +178,12 @@ CLUSTER CClusterTree::MergeClusters(const CLUSTER& l, const CLUSTER& r, int dept
 	return m_pClustering[id];
 }
 
-void CClusterTree::CreateLeafClusters(const std::vector<AVPL>& avpls,
-	std::vector<CLUSTER>& data_points)
+void CClusterTree::CreateLeafClusters(const std::vector<AVPL>& avpls)
 {
 	for(int i = 0; i < avpls.size(); ++i)
 	{
-		AVPL avpl = avpls[i];
-		glm::vec3 pos = avpls[i].GetPosition();
+		const AVPL avpl = avpls[i];
+		const glm::vec3 pos = avpls[i].GetPosition();
 		
 		const int id = m_ClusterId;
 		m_pClustering[id].avplIndex = i;
@@ -209,10 +196,50 @@ void CClusterTree::CreateLeafClusters(const std::vector<AVPL>& avpls,
 		m_pClustering[id].size = 1;
 		m_pClustering[id].left = 0;
 		m_pClustering[id].right = 0;
-		data_points.push_back(m_pClustering[id]);
 
 		m_ClusterId++;
 	}
+}
+
+void CClusterTree::CreateSortedIndices(int* indices_sorted_x, int* indices_sorted_y, int* indices_sorted_z, const std::vector<AVPL>& avpls)
+{
+	// create sorted vectors
+	std::vector<POINT> points;
+	for(int i = 0; i < avpls.size(); ++i)
+	{
+		POINT p;
+		p.position = avpls[i].GetPosition();
+		p.index = i;
+		points.push_back(p);
+	}
+
+	std::vector<POINT> points_sorted_x;
+	std::vector<POINT> points_sorted_y;
+	std::vector<POINT> points_sorted_z;
+	
+	points_sorted_x.reserve(points.size());
+	points_sorted_y.reserve(points.size());
+	points_sorted_z.reserve(points.size());
+	
+	std::copy(points.begin(), points.end(), std::back_inserter(points_sorted_x));
+	std::copy(points.begin(), points.end(), std::back_inserter(points_sorted_y));
+	std::copy(points.begin(), points.end(), std::back_inserter(points_sorted_z));
+
+	std::sort(points_sorted_x.begin(), points_sorted_x.end(), SORT_X);
+	std::sort(points_sorted_y.begin(), points_sorted_y.end(), SORT_Y);
+	std::sort(points_sorted_z.begin(), points_sorted_z.end(), SORT_Z);
+
+	for(int i = 0; i < avpls.size(); ++i)
+	{
+		indices_sorted_x[i] = points_sorted_x[i].index;
+		indices_sorted_y[i] = points_sorted_y[i].index;
+		indices_sorted_z[i] = points_sorted_z[i].index;
+	}
+
+	points.clear();
+	points_sorted_x.clear();
+	points_sorted_y.clear();
+	points_sorted_z.clear();
 }
 
 void CClusterTree::Color(std::vector<AVPL>& avpls, const int cutDepth)
@@ -314,4 +341,19 @@ void CClusterTree::InitColors()
 	{
 		m_pColors[i] = GetRandomColor();
 	}
+}
+
+bool SORT_X(const POINT& p1, const POINT& p2)
+{
+	return (p1.position.x < p2.position.x);
+}
+
+bool SORT_Y(const POINT& p1, const POINT& p2)
+{
+	return (p1.position.y < p2.position.y);
+}
+
+bool SORT_Z(const POINT& p1, const POINT& p2)
+{
+	return (p1.position.z < p2.position.z);
 }

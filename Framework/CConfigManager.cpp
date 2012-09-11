@@ -51,7 +51,7 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->Exposure = m_pConfVarsGUI->Exposure = 1.f;
 	m_pConfVars->Intersection_BFC = m_pConfVarsGUI->Intersection_BFC = 1;
 			
-	m_pConfVars->NumAVPLsDebug = m_pConfVarsGUI->NumAVPLsDebug = 10;
+	m_pConfVars->NumAVPLsDebug = m_pConfVarsGUI->NumAVPLsDebug = 2;
 	m_pConfVars->NumAdditionalAVPLs = m_pConfVarsGUI->NumAdditionalAVPLs = 0;
 	m_pConfVars->AntiradFilterMode = m_pConfVarsGUI->AntiradFilterMode = 0;
 	m_pConfVars->AntiradFilterGaussFactor = m_pConfVarsGUI->AntiradFilterGaussFactor = 2.5f;

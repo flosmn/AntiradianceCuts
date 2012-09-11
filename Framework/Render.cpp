@@ -476,7 +476,7 @@ void Renderer::TestClusteringSpeed()
 
 	for(int i = 0; i < 10; ++i)
 	{
-		int numAVPLs = 50000; //100 * (i+1);
+		int numAVPLs = 10000 * (i+1);
 		std::stringstream ss;
 		ss << "Build Tree (" << numAVPLs << ")"; 
 
@@ -496,6 +496,21 @@ void Renderer::TestClusteringSpeed()
 	}
 	std::cout << std::endl;
 	std::cout << std::endl;
+}
+
+void Renderer::ClusteringTestRender()
+{	
+	SetUpRender();
+	UpdateUniformBuffers();
+	
+	{
+		CRenderTargetLock lock(m_pResultRenderTarget);
+		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+	}
+	
+	DrawLights(m_ClusterTestAVPLs, m_pResultRenderTarget);
+
+	m_pTextureViewer->DrawTexture(m_pResultRenderTarget->GetBuffer(0), 0, 0, camera->GetWidth(), camera->GetHeight());
 }
 
 void Renderer::Release()
@@ -1385,7 +1400,7 @@ void Renderer::DrawLights(const std::vector<AVPL>& avpls, CRenderTarget* target)
 		{
 			POINT_CLOUD_POINT p;
 			p.position = glm::vec4(avpls[i].GetPosition() + m_pConfManager->GetConfVars()->DisplacePCP * avpls[i].GetOrientation(), 1.0f);
-			p.color = glm::vec4(1.f, 0.f, 0.f, 1.f);
+			p.color = glm::vec4(avpls[i].GetColor(), 1.f);
 			pcp.push_back(p);
 		}
 	}
@@ -1407,7 +1422,7 @@ void Renderer::DrawLights(const std::vector<AVPL>& avpls, CRenderTarget* target)
 			
 			SetTranformToCamera();
 
-			glEnable(GL_DEPTH_TEST);
+			glDisable(GL_DEPTH_TEST);
 			glDepthMask(GL_FALSE);
 			m_pPointCloud->Draw(positionData, colorData, (int)pcp.size());
 			glDepthMask(GL_TRUE);
@@ -1761,6 +1776,13 @@ void Renderer::InitDebugLights()
 	
 	std::cout << "Number of AVPLs: " << m_DebugAVPLs.size() << std::endl;
 	m_pCPUTimer->Stop("CreatePaths");
+
+	/*
+	m_ClusterTestAVPLs.clear();
+	CreateRandomAVPLs(m_ClusterTestAVPLs, m_pConfManager->GetConfVars()->NumAVPLsDebug);
+	m_pClusterTree->BuildTree(m_ClusterTestAVPLs);
+	m_pClusterTree->Color(m_ClusterTestAVPLs, m_pConfManager->GetConfVars()->ClusterDepth);
+	*/
 }
 
 void Renderer::SetConfigManager(CConfigManager* pConfManager)
@@ -1869,7 +1891,7 @@ void Renderer::CreateRandomAVPLs(std::vector<AVPL>& avpls, int numAVPLs)
 {
 	for(int i = 0; i < numAVPLs; ++i)
 	{
-		const glm::vec3 position = glm::vec3(Rand01(), Rand01(), Rand01());
+		const glm::vec3 position = glm::vec3(500 * Rand01(), 500 * Rand01(), 100 * Rand01());
 		const glm::vec3 normal = glm::vec3(Rand01(), Rand01(), Rand01());
 		const glm::vec3 L = glm::vec3(Rand01(), Rand01(), Rand01());
 		const glm::vec3 A = glm::vec3(Rand01(), Rand01(), Rand01());

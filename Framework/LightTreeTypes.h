@@ -181,8 +181,9 @@ bool SORT_X(CLUSTER* p1, CLUSTER* p2);
 bool SORT_Y(CLUSTER* p1, CLUSTER* p2);
 bool SORT_Z(CLUSTER* p1, CLUSTER* p2);
 */
+/*
 bool SORT_X(const CLUSTER& p1, const CLUSTER& p2);
 bool SORT_Y(const CLUSTER& p1, const CLUSTER& p2);
 bool SORT_Z(const CLUSTER& p1, const CLUSTER& p2);
-
+*/
 #endif
