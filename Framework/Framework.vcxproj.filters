@@ -321,9 +321,6 @@
     <ClInclude Include="CTriangle.h">
       <Filter>RayTracingStuff</Filter>
     </ClInclude>
-    <ClInclude Include="CConfigManager.h">
-      <Filter>GUI&amp;Config</Filter>
-    </ClInclude>
     <ClInclude Include="CGUI.h">
       <Filter>GUI&amp;Config</Filter>
     </ClInclude>
@@ -386,6 +383,9 @@
     <ClInclude Include="CReferenceImage.h" />
     <ClInclude Include="CExperimentData.h" />
     <ClInclude Include="CCubeShadowMap.h" />
+    <ClInclude Include="CConfigManager.h">
+      <Filter>GUI&amp;Config</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">
@@ -448,13 +448,7 @@
     <None Include="Shaders\GatherWithAtlas.frag">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Kernels\vec.cl">
-      <Filter>Kernels</Filter>
-    </None>
     <None Include="Kernels\FillAVPLAtlas.cl">
-      <Filter>Kernels</Filter>
-    </None>
-    <None Include="Kernels\OctahedronUtil.cl">
       <Filter>Kernels</Filter>
     </None>
     <None Include="Shaders\GatherWithClustering.frag">

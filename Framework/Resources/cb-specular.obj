@@ -106,7 +106,7 @@ usemtl red
 f 17 18 19
 f 17 19 20
 
-usemtl white
+usemtl box
 
 # shortbox
 f 21 22 23

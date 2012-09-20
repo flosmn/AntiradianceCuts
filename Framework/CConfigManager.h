@@ -42,7 +42,8 @@ struct CONF_VARS
 	float GeoTermLimitRadiance;
 	float GeoTermLimitAntiradiance;
 	int ClampGeoTerm;
-	int ClampCone;
+	int ClampConeMode;
+	
 	float Gamma;
 	float Exposure;
 	int Intersection_BFC;
@@ -58,7 +59,8 @@ struct CONF_VARS
 	int LightTreeCutDepth;
 	int ClusterDepth;
 	int ClusterMethod;
-	float ClusterWeightNormals;
+	float ClusterRefinementMaxRadiance;
+	float ClusterRefinementWeight;
 	float ClusterRefinementThreshold;
 
 	float AreaLightFrontDirection[3];

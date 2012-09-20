@@ -5,6 +5,9 @@ layout(std140) uniform;
 #define ONE_OVER_PI 0.31831
 #define PI 3.14159
 
+#define MAX_RAD 1e5f
+#define MAX_RADIANCE vec4(MAX_RAD, MAX_RAD, MAX_RAD, 1.f)
+
 uniform camera
 {
 	vec3 vPositionWS;
@@ -104,7 +107,7 @@ void main()
 	// calc radiance
 	vec4 L = uLight.L;
 	float G = G_CLAMP(vPositionWS, vNormalWS, uLight.pos.xyz, uLight.norm.xyz);
-	vec4 Irradiance = V * L * BRDF_light * G * BRDF;	
+	vec4 Irradiance = min(MAX_RADIANCE, V * L * BRDF_light * G * BRDF);
 	
 	outputColor = Irradiance;
 	outputColor.w = 1.0f;
@@ -135,7 +138,7 @@ float IsLit(in vec3 position)
 	float lit = 0.0f;
 	
 	float zNear = 0.01f;
-	float zFar =  2000.0f;
+	float zFar =  10000.0f;
 	float zBias = 0.0f;
 	
 	vec4 positionLS = uLight.ViewMatrix * vec4(position, 1.f);

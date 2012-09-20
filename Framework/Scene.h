@@ -55,7 +55,8 @@ public:
 	void LoadSimpleScene();
 	void LoadCornellBoxDragon();
 	void LoadBuddha();
-		
+	void LoadCornellEmpty();
+
 	bool HasLightSource() { return m_HasLightSource; }
 
 	bool IntersectRayScene(const Ray& ray, float* t, Intersection *pIntersection, CPrimitive::IsectMode isectMode);

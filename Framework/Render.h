@@ -67,9 +67,9 @@ public:
 
 	void WindowChanged();
 
-	void ClearAccumulationBuffer();
-	void ClearLighting();
-
+	void IssueClearLighting();
+	void IssueClearAccumulationBuffer();
+	
 	void PrintCameraConfig();
 
 	void UpdateAreaLights();
@@ -124,13 +124,16 @@ private:
 	void FillLightBuffer(const std::vector<AVPL>& avpls);
 	void FillAVPLAtlas(const std::vector<AVPL>& avpls);
 	void FillClusterAtlas(const std::vector<AVPL>& avpls);
-	void CreateClustering(const std::vector<AVPL>& avpls);
+	void CreateClustering(std::vector<AVPL>& avpls);
 	
 	bool UseAVPL(AVPL& avpl);
 
 	void DirectEnvMapLighting();
 
 	void InitDebugLights();
+
+	void ClearAccumulationBuffer();
+	void ClearLighting();
 
 	void CreateRandomAVPLs(std::vector<AVPL>& avpls, int numAVPLs);
 	
@@ -276,6 +279,9 @@ private:
 	int m_TimeForNextDataExport;
 	int m_TimeForNextImageExport;
 	int m_NumAVPLs;
+
+	bool m_ClearLighting;
+	bool m_ClearAccumulationBuffer;
 };
 
 #endif

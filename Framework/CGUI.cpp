@@ -37,14 +37,17 @@ bool CGUI::Init(uint window_width, uint window_height)
 	TwAddVarRW(m_pTwBar, "Lighting Mode", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->LightingMode), " min=0 max=2 step=1 ");
 	TwAddVarRW(m_pTwBar, "Draw Direct Lighting", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawDirectLighting), " min=0 max=1 step=1 ");
 	TwAddVarRW(m_pTwBar, "Draw Indirect Lighting", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawIndirectLighting), " min=0 max=1 step=1 ");
+	TwAddVarRW(m_pTwBar, "#AVPLs per frame", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumAVPLsPerFrame), " min=1 max=100000 step=1 ");
 	TwAddVarRW(m_pTwBar, "#VPLs DL", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumVPLsDirectLight), " min=0 max=10000 step=1 ");
 	TwAddVarRW(m_pTwBar, "#VPLs DL Per Frame", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumVPLsDirectLightPerFrame), " min=0 max=10000 step=1 ");
 	TwAddVarRW(m_pTwBar, "#NoAntiradiance", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NoAntiradiance), " min=0 max=1 step=1 ");
-	TwAddVarRW(m_pTwBar, "Cluster Refinement Threshold", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->ClusterRefinementThreshold), "min=0.0 max=1.0 step=0.00000001");
+	TwAddVarRW(m_pTwBar, "Cluster Refinement Threshold", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->ClusterRefinementThreshold), "min=0.0 max=10.0 step=0.05");
+	TwAddVarRW(m_pTwBar, "Cluster Refinement Max Radiance", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->ClusterRefinementMaxRadiance), "min=0.0 max=10000.0 step=1.f");
+	TwAddVarRW(m_pTwBar, "Cluster Refinement Weight", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->ClusterRefinementWeight), "min=0.0 max=1.f step=0.05f");
 
 	TwAddSeparator(m_pTwBar, "", "");
 	
-	TwAddVarRW(m_pTwBar, "#AVPLs per frame", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumAVPLsPerFrame), " min=1 max=16000 step=1 ");
+	
 	TwAddVarRW(m_pTwBar, "#AVPLs debug", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumAVPLsDebug), " min=1 max=10000 step=1 ");
 	TwAddVarRW(m_pTwBar, "Cone Factor", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->ConeFactor), " min=0.1 max=1000.0 step=0.1 ");
 	TwAddVarRW(m_pTwBar, "Antirad Filter Mode", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->AntiradFilterMode), " min=0 max=2 step=1 ");
@@ -63,7 +66,7 @@ bool CGUI::Init(uint window_width, uint window_height)
 	TwAddVarRW(m_pTwBar, "Clamp Radiance", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->GeoTermLimitRadiance), "min=0 max=100000 step=0.00001");
 	TwAddVarRW(m_pTwBar, "Clamp Antiradiance", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->GeoTermLimitAntiradiance), "min=0 max=100000 step=0.00001");
 	TwAddVarRW(m_pTwBar, "Clamp Geo-Term", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->ClampGeoTerm), "min=0 max=1 step=1");
-	TwAddVarRW(m_pTwBar, "Clamp Cone", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->ClampCone), "min=0 max=1 step=1");
+	TwAddVarRW(m_pTwBar, "Clamp Cone Mode", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->ClampConeMode), "min=0 max=2 step=1");
 	TwAddVarRW(m_pTwBar, "Sqrt # Atlas Samles", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumSqrtAtlasSamples), " min=1 max=100 step=1 ");
 
 	TwAddSeparator(m_pTwBar, "", "");
@@ -79,8 +82,7 @@ bool CGUI::Init(uint window_width, uint window_height)
 	TwAddVarRW(m_pTwBar, "Light Tree Cut Depth", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->LightTreeCutDepth), " min=-1 max=64 step=1 ");
 	TwAddVarRW(m_pTwBar, "Vis. Cluster Depth", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->ClusterDepth), " min=0 max=1000 step=1 ");
 	TwAddVarRW(m_pTwBar, "Cluster Method", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->ClusterMethod), " min=0 max=10 step=1 ");
-	TwAddVarRW(m_pTwBar, "Cluster Weight Normals", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->ClusterWeightNormals), "min=0 max=1000 step=1");
-		
+	
 	TwAddSeparator(m_pTwBar, "", "");
 	TwAddVarRW(m_pTwBar, "AreaLight Front", TW_TYPE_DIR3F, &(m_pConfigManager->GetConfVarsGUI()->AreaLightFrontDirection), " ");
 	TwAddVarRW(m_pTwBar, "AreaLight Pos X", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->AreaLightPosX), " ");

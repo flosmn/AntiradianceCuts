@@ -13,17 +13,22 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 
 	m_pConfVars->UseAntiradiance = m_pConfVarsGUI->UseAntiradiance = 1;
 	m_pConfVars->SeparateDirectIndirectLighting = m_pConfVarsGUI->SeparateDirectIndirectLighting = 0;
-	m_pConfVars->LightingMode = m_pConfVarsGUI->LightingMode = 2;
+	m_pConfVars->LightingMode = m_pConfVarsGUI->LightingMode = 0;
 	m_pConfVars->GatherWithAVPLAtlas = m_pConfVarsGUI->GatherWithAVPLAtlas = 0;
 	m_pConfVars->GatherWithAVPLClustering = m_pConfVarsGUI->GatherWithAVPLClustering = 0;
 	m_pConfVars->NoAntiradiance = m_pConfVarsGUI->NoAntiradiance = 0;
-	m_pConfVars->GeoTermLimitRadiance = m_pConfVarsGUI->GeoTermLimitRadiance = 0.005f;
-	m_pConfVars->GeoTermLimitAntiradiance = m_pConfVarsGUI->GeoTermLimitAntiradiance = 0.005f;
+	m_pConfVars->GeoTermLimitRadiance = m_pConfVarsGUI->GeoTermLimitRadiance = 0.00001f;
+	m_pConfVars->GeoTermLimitAntiradiance = m_pConfVarsGUI->GeoTermLimitAntiradiance = 0.00001f;
 	m_pConfVars->ClampGeoTerm = m_pConfVarsGUI->ClampGeoTerm = 1;
-	m_pConfVars->NumAVPLsPerFrame = m_pConfVarsGUI->NumAVPLsPerFrame = 1000;
+	m_pConfVars->ClampConeMode = m_pConfVarsGUI->ClampConeMode = 1;
+	m_pConfVars->NumAVPLsPerFrame = m_pConfVarsGUI->NumAVPLsPerFrame = 10;
+	m_pConfVars->NumAdditionalAVPLs = m_pConfVarsGUI->NumAdditionalAVPLs = 0;
 	m_pConfVars->NumVPLsDirectLight = m_pConfVarsGUI->NumVPLsDirectLight = 10000;
-	m_pConfVars->NumVPLsDirectLightPerFrame = m_pConfVarsGUI->NumVPLsDirectLightPerFrame = 3;
-	m_pConfVars->ConeFactor = m_pConfVarsGUI->ConeFactor = 5.f;
+	m_pConfVars->NumVPLsDirectLightPerFrame = m_pConfVarsGUI->NumVPLsDirectLightPerFrame = 50;
+	m_pConfVars->ConeFactor = m_pConfVarsGUI->ConeFactor = 10.f;
+	m_pConfVars->ClusterRefinementThreshold = m_pConfVarsGUI->ClusterRefinementThreshold = 0.1f;
+	m_pConfVars->ClusterRefinementWeight = m_pConfVarsGUI->ClusterRefinementWeight = 0.8f;
+	m_pConfVars->ClusterRefinementMaxRadiance = m_pConfVarsGUI->ClusterRefinementMaxRadiance = 20.f;
 
 	m_pConfVars->DrawError = m_pConfVarsGUI->DrawError = 0;
 	m_pConfVars->DrawReference = m_pConfVarsGUI->DrawReference = 0;
@@ -42,28 +47,25 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->DrawDebugTextures = m_pConfVarsGUI->DrawDebugTextures = 0;
 	m_pConfVars->DrawLights = m_pConfVarsGUI->DrawLights = 0;
 	m_pConfVars->DrawCutSizes = m_pConfVarsGUI->DrawCutSizes = 0;
-	m_pConfVars->FilterAvplAtlasLinear = m_pConfVarsGUI->FilterAvplAtlasLinear = 0;
+	m_pConfVars->FilterAvplAtlasLinear = m_pConfVarsGUI->FilterAvplAtlasLinear = 1;
 	m_pConfVars->FillAvplAltasOnGPU = m_pConfVarsGUI->FillAvplAltasOnGPU = 1;
 	m_pConfVars->LimitBounces = m_pConfVarsGUI->LimitBounces = -1;
-	
-	m_pConfVars->ClampCone = m_pConfVarsGUI->ClampCone = 1;
+		
 	m_pConfVars->Gamma = m_pConfVarsGUI->Gamma = 2.2f;
 	m_pConfVars->Exposure = m_pConfVarsGUI->Exposure = 1.f;
 	m_pConfVars->Intersection_BFC = m_pConfVarsGUI->Intersection_BFC = 1;
 			
 	m_pConfVars->NumAVPLsDebug = m_pConfVarsGUI->NumAVPLsDebug = 2;
-	m_pConfVars->NumAdditionalAVPLs = m_pConfVarsGUI->NumAdditionalAVPLs = 0;
 	m_pConfVars->AntiradFilterMode = m_pConfVarsGUI->AntiradFilterMode = 0;
 	m_pConfVars->AntiradFilterGaussFactor = m_pConfVarsGUI->AntiradFilterGaussFactor = 2.5f;
 	m_pConfVars->RenderBounce = m_pConfVarsGUI->RenderBounce = -1;
-	m_pConfVars->NumSqrtAtlasSamples = m_pConfVarsGUI->NumSqrtAtlasSamples = 4;
+	m_pConfVars->NumSqrtAtlasSamples = m_pConfVarsGUI->NumSqrtAtlasSamples = 2;
 	m_pConfVars->DisplacePCP = m_pConfVarsGUI->DisplacePCP = 1.f;
 
 	m_pConfVars->LightTreeCutDepth = m_pConfVarsGUI->LightTreeCutDepth = -1;
 	m_pConfVars->ClusterDepth = m_pConfVarsGUI->ClusterDepth = 0;
 	m_pConfVars->ClusterMethod = m_pConfVarsGUI->ClusterMethod = 0;
-	m_pConfVars->ClusterWeightNormals = m_pConfVarsGUI->ClusterWeightNormals = 0.5f;
-	m_pConfVars->ClusterRefinementThreshold = m_pConfVarsGUI->ClusterRefinementThreshold = 0.01f;
+	
 		
 	m_pConfVars->DrawDirectLighting = m_pConfVarsGUI->DrawDirectLighting = 0;
 	m_pConfVars->DrawIndirectLighting = m_pConfVarsGUI->DrawIndirectLighting = 0;
@@ -139,9 +141,9 @@ void CConfigManager::Update()
 		clearLighting = true;
 	}
 
-	if(m_pConfVarsGUI->ClampCone != m_pConfVars->ClampCone)
+	if(m_pConfVarsGUI->ClampConeMode != m_pConfVars->ClampConeMode)
 	{
-		m_pConfVars->ClampCone = m_pConfVarsGUI->ClampCone;
+		m_pConfVars->ClampConeMode = m_pConfVarsGUI->ClampConeMode;
 		configureLighting = true;
 		clearAccumBuffer = true;
 		clearLighting = true;
@@ -421,16 +423,24 @@ void CConfigManager::Update()
 		m_pConfVars->ClusterMethod = m_pConfVarsGUI->ClusterMethod;
 		clearLighting = true;
 	}
-
-	if(m_pConfVarsGUI->ClusterWeightNormals != m_pConfVars->ClusterWeightNormals)
-	{
-		m_pConfVars->ClusterWeightNormals = m_pConfVarsGUI->ClusterWeightNormals;
-		clearLighting = true;
-	}
-
+	
 	if(m_pConfVarsGUI->ClusterRefinementThreshold != m_pConfVars->ClusterRefinementThreshold)
 	{
 		m_pConfVars->ClusterRefinementThreshold = m_pConfVarsGUI->ClusterRefinementThreshold;
+		configureLighting = true;
+		clearAccumBuffer = true;
+	}
+
+	if(m_pConfVarsGUI->ClusterRefinementMaxRadiance != m_pConfVars->ClusterRefinementMaxRadiance)
+	{
+		m_pConfVars->ClusterRefinementMaxRadiance = m_pConfVarsGUI->ClusterRefinementMaxRadiance;
+		configureLighting = true;
+		clearAccumBuffer = true;
+	}
+
+	if(m_pConfVarsGUI->ClusterRefinementWeight != m_pConfVars->ClusterRefinementWeight)
+	{
+		m_pConfVars->ClusterRefinementWeight = m_pConfVarsGUI->ClusterRefinementWeight;
 		configureLighting = true;
 		clearAccumBuffer = true;
 	}
@@ -629,7 +639,7 @@ void CConfigManager::Update()
 	}
 		
 	if(updateAreaLight) m_pRenderer->UpdateAreaLights();
-	if(clearLighting) m_pRenderer->ClearLighting();
-	if(clearAccumBuffer) m_pRenderer->ClearAccumulationBuffer();
+	if(clearLighting) m_pRenderer->IssueClearLighting();
+	if(clearAccumBuffer) m_pRenderer->IssueClearAccumulationBuffer();
 	if(configureLighting) m_pRenderer->UpdateUniformBuffers();
 }

@@ -31,8 +31,8 @@
 typedef unsigned int uint;
 
 HDC g_HDC;
-int window_width = 512;
-int window_height = 512;
+int window_width = 1024;
+int window_height = 1024;
 bool fullScreen = false;
 
 CCamera* g_pCamera;
@@ -409,12 +409,12 @@ bool HandleMouseMoveEvent(WPARAM wParam, LPARAM lParam)
 	if(leftButtonDown) {
 		g_pCamera->RotLeft((float)deltaX/window_width);
 		g_pCamera->RotUp((float)deltaY/window_height);
-		g_pRenderer->ClearAccumulationBuffer();
+		g_pRenderer->IssueClearAccumulationBuffer();
 		return true;
 	}
 	else if(rightButtonDown) {
 		g_pCamera->ZoomIn((float)deltaY/window_height);
-		g_pRenderer->ClearAccumulationBuffer();
+		g_pRenderer->IssueClearAccumulationBuffer();
 		return true;
 	}
 
@@ -442,7 +442,7 @@ bool HandleKeyEvent(WPARAM wParam)
 
 		case 'C':
 
-			g_pRenderer->ClearLighting();
+			g_pRenderer->IssueClearLighting();
 			return true; break;
 
 		case 'V':
@@ -453,13 +453,13 @@ bool HandleKeyEvent(WPARAM wParam)
 		case 'M':
 
 			g_pCamera->ZoomIn(0.5f);
-			g_pRenderer->ClearLighting();
+			g_pRenderer->IssueClearLighting();
 			return true; break;
 
 		case 'N':
 
 			g_pCamera->ZoomOut(0.5f);
-			g_pRenderer->ClearLighting();
+			g_pRenderer->IssueClearLighting();
 			return true; break;
 
 		case 'K':
@@ -480,25 +480,25 @@ bool HandleKeyEvent(WPARAM wParam)
 		case 'W':
 
 			g_pCamera->MoveForward(0.5f);
-			g_pRenderer->ClearLighting();
+			g_pRenderer->IssueClearLighting();
 			return true; break;
 
 		case 'A':
 
 			g_pCamera->MoveLeft(0.5f);
-			g_pRenderer->ClearLighting();
+			g_pRenderer->IssueClearLighting();
 			return true; break;
 
 		case 'S':
 
 			g_pCamera->MoveBackward(0.5f);
-			g_pRenderer->ClearLighting();
+			g_pRenderer->IssueClearLighting();
 			return true; break;
 
 		case 'D':
 
 			g_pCamera->MoveRight(0.5f);
-			g_pRenderer->ClearLighting();
+			g_pRenderer->IssueClearLighting();
 			return true; break;
 
 		case 'Z':
@@ -535,21 +535,21 @@ bool HandleKeyEvent(WPARAM wParam)
 
 			std::cout << "Use Camera Config 0" << std::endl;
 			g_pCamera->UseCameraConfig(0);
-			g_pRenderer->ClearLighting();
+			g_pRenderer->IssueClearLighting();
 			return true; break;
 
 		case '2':
 
 			std::cout << "Use Camera Config 1" << std::endl;
 			g_pCamera->UseCameraConfig(1);
-			g_pRenderer->ClearLighting();
+			g_pRenderer->IssueClearLighting();
 			return true; break;
 
 		case '3':
 
 			std::cout << "Use Camera Config 2" << std::endl;
 			g_pCamera->UseCameraConfig(2);
-			g_pRenderer->ClearLighting();
+			g_pRenderer->IssueClearLighting();
 			return true; break;
 
 		default: break;

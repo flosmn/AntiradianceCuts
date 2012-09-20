@@ -308,8 +308,6 @@ xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
   </ItemGroup>
   <ItemGroup>
     <None Include="Kernels\FillAVPLAtlas.cl" />
-    <None Include="Kernels\OctahedronUtil.cl" />
-    <None Include="Kernels\vec.cl" />
     <None Include="Shaders\Constants.glsl" />
     <None Include="Shaders\CreateCubeShadowMap.frag" />
     <None Include="Shaders\CreateCubeShadowMap.geom" />

@@ -19,7 +19,7 @@ uniform transform
 void main()
 {
 	float zNear = 0.01f;
-	float zFar =  2000.0f;
+	float zFar =  10000.0f;
 	float zBias = 0.0f;
 
 	vec4 positionTemp = uTransform.V * uTransform.M * vec4(position.xyz, 1.f);

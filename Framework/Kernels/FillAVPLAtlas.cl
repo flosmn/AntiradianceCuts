@@ -1,6 +1,8 @@
 #define PI 3.14159265f
 #define ONE_OVER_PI 0.31830988618f
 
+#define EPSILON 0.001f
+
 struct AVPL_BUFFER
 {
 	float4 L;	// radiance;
@@ -363,11 +365,11 @@ float3 GetAntiradiance(float3 w, struct AVPL_BUFFER avpl, struct MATERIAL mat, f
 {
 	float3 res = (float3)(0.f, 0.f, 0.f);
 	
-	if(dot(w, avpl.norm.xyz) >= 0)
+	if(dot(w, avpl.norm.xyz) >= 0.f - EPSILON)
 		return res;
 
 	float cos_theta = dot(w, avpl.w.xyz);
-	if(cos_theta <= 0.0f)
+	if(cos_theta <= 0.0f + EPSILON)
 		return res;
 
 	const float theta = acos(clamp(cos_theta, 0.f, 1.f));
@@ -433,11 +435,11 @@ float3 Phong(const float3 w_i, const float3 w_o, const float3 n, const struct MA
 		return (float3)(0.f, 0.f, 0.f);
 
 	float3 diffuse = ONE_OVER_PI * mat.diffuse.xyz;
-	/*float3 refl = reflect(w_i, n);
+	float3 refl = reflect(w_i, n);
 	const float cos = max(0.f, dot(refl, w_o));
-	float3 specular = 0.5f * ONE_OVER_PI * (mat.exponent+2) * pow(cos, mat.exponent) * mat.specular.xyz;
-	const float3 res = diffuse + specular;*/
-	return diffuse;
+	float3 specular = max(0.5f * ONE_OVER_PI * (mat.exponent+2) * pow(cos, mat.exponent) * mat.specular.xyz, (float3)(0.f, 0.f, 0.f));
+	const float3 res = diffuse + specular;
+	return res;
 }
 
 float3 reflect(const float3 v, const float3 n)

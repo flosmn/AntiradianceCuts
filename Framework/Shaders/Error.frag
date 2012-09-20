@@ -57,5 +57,9 @@ void main()
 	if(length(cReference.xyz) == 0.f && length(cResult.xyz) == 0.f)
 		outputColor = vec4(0.f, 0.f, 0.f, 1.f);
 	else
-		outputColor = vec4(hue_colormap(Error(cResult, cReference), 0.f, 0.1f), 1.f);
+	{
+		/*const*/ vec3 c = hue_colormap(Error(cResult, cReference), 0.f, 0.1f);
+		const float gamma = 1.f; //1.f/2.f;
+		outputColor = vec4(pow(c.x, gamma), pow(c.y, gamma), pow(c.z, gamma), 1.f);
+	}
 }

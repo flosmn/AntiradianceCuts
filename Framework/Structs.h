@@ -58,12 +58,12 @@ struct CLUSTER_BUFFER
 {
 	glm::vec3 mean;
 	float depth;
-		
-	float avplIndex;
-	glm::vec3 intensity;
 	
-	float id;
+	glm::vec3 intensity;
+	float avplIndex;	
+	
 	glm::vec3 normal;
+	float id;	
 	
 	float left_id;
 	float right_id;
@@ -115,9 +115,9 @@ struct INFO
 	int filterAVPLAtlas;
 	
 	int lightTreeCutDepth;
+	float clusterRefinementMaxRadiance;
+	float clusterRefinementWeight;
 	float clusterRefinementThreshold;
-	int padd1;
-	int padd2;
 };
 
 struct AREA_LIGHT

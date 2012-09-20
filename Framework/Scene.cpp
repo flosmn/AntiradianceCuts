@@ -29,6 +29,8 @@ typedef unsigned int uint;
 #include <algorithm>
 #include <iterator>
 
+#include <omp.h>
+
 const float EPSILON = 0.005f;
 
 Scene::Scene(CCamera* _camera, CConfigManager* pConfManager, COCLContext* pOCLContext)
@@ -244,9 +246,13 @@ bool Scene::ContinueAVPLPath(AVPL* pred, AVPL* newAVPL, glm::vec3 direction, flo
 
 		glm::vec3 contrib = pred->GetRadiance(direction) * cos_theta / pdf;	
 		
-		const float coneFactor = m_pConfManager->GetConfVars()->ConeFactor;
-		//const float cone_min = m_pConfManager->GetConfVars()->ClampCone ? PI / (PI/2.f - acos(glm::dot(norm, -direction))) : 0.f;
-		//const float coneFactor = std::max(cone_min, m_pConfManager->GetConfVars()->ConeFactor);
+		float coneFactor = m_pConfManager->GetConfVars()->ConeFactor;
+		const int clamp_cone_mode = m_pConfManager->GetConfVars()->ClampConeMode;
+		if(m_pConfManager->GetConfVars()->ClampConeMode == 1)
+		{
+			const float cone_min = PI / (PI/2.f - acos(glm::dot(norm, -direction)));
+			coneFactor = std::max(cone_min, m_pConfManager->GetConfVars()->ConeFactor);
+		}
 		
 		const float area = 2 * PI * ( 1 - cos(PI/coneFactor) );
 
@@ -413,7 +419,6 @@ void Scene::CreateAVPLs(AVPL* pred, std::vector<AVPL>& path, int nAVPLs)
 
 	for(int i = 0; i < nAVPLs; ++i)
 	{
-		
 		float pdf;
 		glm::vec3 direction = GetRandomSampleDirectionCosCone(pred_norm, Rand01(), Rand01(), pdf, 1);
 		
@@ -545,7 +550,12 @@ void Scene::LoadCornellBox()
 		glm::vec3(0.f, 1.f, 0.f),
 		2.0f);
 
-	m_Camera->UseCameraConfig(0);
+	m_Camera->Init(3, glm::vec3(278.f, 273.f, -700.f), 
+		glm::vec3(278.f, 273.f, -699.f),
+		glm::vec3(0.f, 1.f, 0.f),
+		2.0f);
+
+	m_Camera->UseCameraConfig(1);
 	
 	glm::vec3 areaLightFrontDir = glm::vec3(0.0f, -1.0f, 0.0f);
 	glm::vec3 areaLightPosition = glm::vec3(278.f, 548.78999f, 279.5f);
@@ -558,7 +568,7 @@ void Scene::LoadCornellBox()
 	m_pConfManager->GetConfVars()->AreaLightPosY = m_pConfManager->GetConfVarsGUI()->AreaLightPosY = areaLightPosition.y;
 	m_pConfManager->GetConfVars()->AreaLightPosZ = m_pConfManager->GetConfVarsGUI()->AreaLightPosZ = areaLightPosition.z;
 
-	float AreaLightRadianceScale = 100;
+	float AreaLightRadianceScale = 150;
 	m_pConfManager->GetConfVars()->AreaLightRadianceScale = m_pConfManager->GetConfVarsGUI()->AreaLightRadianceScale = AreaLightRadianceScale;
 
 	m_AreaLight = new AreaLight(130.0f, 105.0f, 
@@ -576,16 +586,65 @@ void Scene::LoadCornellBox()
 	InitKdTree();
 }
 
+void Scene::LoadCornellEmpty()
+{
+	ClearScene();
+
+	CModel* model = new CModel();
+	model->Init("cb-empty", "obj", m_pMaterialBuffer);
+	model->SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
+
+	m_pReferenceImage = new CReferenceImage(m_Camera->GetWidth(), m_Camera->GetHeight());
+	m_pReferenceImage->LoadFromFile("References/cb-diffuse-clamped-indirect.hdr", true);
+
+	m_Models.push_back(model);
+
+	m_Camera->Init(0, glm::vec3(386.7f, 165.9f, -4.6f), 
+		glm::vec3(387.0f, 165.4f, -3.7f),
+		glm::vec3(0.f, 1.f, 0.f),
+		2.0f);
+
+	m_Camera->UseCameraConfig(0);
+		
+	glm::vec3 areaLightFrontDir = glm::vec3(1.0f, 0.0f, 1.0f);
+	glm::vec3 areaLightPosition = glm::vec3(450.f, 5.00f, 279.5f);
+	
+	m_pConfManager->GetConfVars()->AreaLightFrontDirection[0] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[0] = areaLightFrontDir.x;
+	m_pConfManager->GetConfVars()->AreaLightFrontDirection[1] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[1] = areaLightFrontDir.y;
+	m_pConfManager->GetConfVars()->AreaLightFrontDirection[2] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[2] = areaLightFrontDir.z;
+
+	m_pConfManager->GetConfVars()->AreaLightPosX = m_pConfManager->GetConfVarsGUI()->AreaLightPosX = areaLightPosition.x;
+	m_pConfManager->GetConfVars()->AreaLightPosY = m_pConfManager->GetConfVarsGUI()->AreaLightPosY = areaLightPosition.y;
+	m_pConfManager->GetConfVars()->AreaLightPosZ = m_pConfManager->GetConfVarsGUI()->AreaLightPosZ = areaLightPosition.z;
+
+	float AreaLightRadianceScale = 10.f;
+	m_pConfManager->GetConfVars()->AreaLightRadianceScale = m_pConfManager->GetConfVarsGUI()->AreaLightRadianceScale = AreaLightRadianceScale;
+
+	m_AreaLight = new AreaLight(50.0f, 5.0f, 
+		areaLightPosition, 
+		areaLightFrontDir,
+		Orthogonal(areaLightFrontDir),
+		m_pMaterialBuffer);
+
+	m_AreaLight->Init();
+
+	m_AreaLight->SetRadiance(AreaLightRadianceScale * glm::vec3(100.f, 100.f, 100.f));
+
+	m_pConfManager->GetConfVars()->UseIBL = m_pConfManager->GetConfVarsGUI()->UseIBL = 0;
+		
+	InitKdTree();
+}
+
 void Scene::LoadBuddha()
 {
 	ClearScene();
 
 	CModel* model = new CModel();
-	model->Init("cb-buddha-diffuse", "obj", m_pMaterialBuffer);
+	model->Init("cb-buddha-specular", "obj", m_pMaterialBuffer);
 	model->SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
 
 	m_pReferenceImage = new CReferenceImage(m_Camera->GetWidth(), m_Camera->GetHeight());
-	m_pReferenceImage->LoadFromFile("References/cb-buddha-full-noclamp.hdr", true);
+	m_pReferenceImage->LoadFromFile("References/cb-buddha-indirect-noclamp.hdr", true);
 
 	m_Models.push_back(model);
 
@@ -594,8 +653,8 @@ void Scene::LoadBuddha()
 		glm::vec3(0.f, 1.f, 0.f),
 		2.0f);
 
-	m_Camera->Init(1, glm::vec3(128.5f, 42.9f, 8.9f), 
-		glm::vec3(128.2f, 42.6f, 9.8f),
+	m_Camera->Init(1, glm::vec3(660.97f, 363.99f, -126.34f), 
+		glm::vec3(660.3f, 363.7f, -125.7f),
 		glm::vec3(0.f, 1.f, 0.f),
 		2.0f);
 
@@ -643,7 +702,7 @@ void Scene::LoadSibernik()
 
 	CModel* model = new CModel();
 	model->Init("sibenik", "obj", m_pMaterialBuffer);
-	model->SetWorldTransform(glm::scale(glm::vec3(100.f, 100.f, 100.f)));
+	model->SetWorldTransform(glm::scale(scale * glm::vec3(1.f, 1.f, 1.f)));
 
 	m_Models.push_back(model);
 
@@ -660,10 +719,17 @@ void Scene::LoadSibernik()
 		glm::vec3(1.f, 0.f, 0.f),
 		2.f);
 
-	m_Camera->Init(2, glm::vec3(-269.1f, -1266.1f, 239.3f), 
-		glm::vec3(-206.1f, -1308.4f, 314.3f),
+	m_Camera->Init(2, scale * 0.01f * glm::vec3(-269.1f, -1266.1f, 239.3f), 
+		scale * 0.01f * glm::vec3(-206.1f, -1308.4f, 314.3f),
 		glm::vec3(0.f, 1.f, 0.f),
 		2.f);
+
+	m_Camera->Init(3, scale * 0.01f * glm::vec3(-1855.f, -923.f, 0.f), 
+		scale * 0.01f * glm::vec3(-1854.f, -923.f, 0.0f),
+		glm::vec3(0.f, 1.f, 0.f),
+		2.f);
+
+	m_Camera->UseCameraConfig(3);
 
 	m_pConfManager->GetConfVars()->AreaLightFrontDirection[0] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[0] = areaLightFrontDir.x;
 	m_pConfManager->GetConfVars()->AreaLightFrontDirection[1] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[1] = areaLightFrontDir.y;
