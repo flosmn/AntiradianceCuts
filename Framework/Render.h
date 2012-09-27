@@ -151,6 +151,8 @@ private:
 	void DrawSceneSamples(CRenderTarget* target);
 	void DrawBidirSceneSamples(CRenderTarget* target);
 		
+	void DrawPointCloud(const std::vector<POINT_CLOUD_POINT>& pcp, CRenderTarget* target);
+
 	glm::vec4 ColorForLight(const AVPL& light);
 	
 	void ExportPartialResult();
@@ -173,7 +175,7 @@ private:
 	CRenderTarget* m_pNormalizeAntiradianceRenderTarget;
 	CRenderTarget* m_pShadeShadowmapRenderTarget;
 	CRenderTarget* m_pShadeAntiradianceRenderTarget;
-	
+		
 	CProgram* m_pGatherProgram;
 	CProgram* m_pGatherWithAtlas;
 	CProgram* m_pGatherWithClustering;

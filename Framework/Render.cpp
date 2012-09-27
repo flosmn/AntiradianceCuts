@@ -194,7 +194,7 @@ Renderer::~Renderer() {
 	SAFE_DELETE(m_pNormalizeAntiradianceRenderTarget);
 	SAFE_DELETE(m_pShadeShadowmapRenderTarget);
 	SAFE_DELETE(m_pShadeAntiradianceRenderTarget);
-	
+		
 	SAFE_DELETE(m_pGatherProgram);
 	SAFE_DELETE(m_pGatherWithAtlas);
 	SAFE_DELETE(m_pGatherWithClustering);
@@ -310,7 +310,7 @@ bool Renderer::Init()
 	V_RET_FOF(m_pShadeShadowmapRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 1, m_pDepthBuffer));
 	V_RET_FOF(m_pShadeAntiradianceRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 1, m_pDepthBuffer));
 	
-	V_RET_FOF(m_pPostProcess->Init());
+	V_RET_FOF(m_pPostProcess->Init(m_pConfManager));
 	V_RET_FOF(m_pPostProcessRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 1, 0));
 	V_RET_FOF(m_pLightDebugRenderTarget->Init(camera->GetWidth(), camera->GetHeight(), 1, m_pDepthBuffer));
 		
@@ -405,7 +405,7 @@ bool Renderer::Init()
 
 	scene = new Scene(camera, m_pConfManager, m_pCLContext);
 	scene->Init();
-	scene->LoadCornellBox();
+	scene->LoadBuddha();
 	scene->GetMaterialBuffer()->InitOGLMaterialBuffer();
 	scene->GetMaterialBuffer()->InitOCLMaterialBuffer();
 		
@@ -620,19 +620,22 @@ void Renderer::Render()
 	UpdateUniformBuffers();
 	
 	if(m_ProfileFrame) timer.Stop("update ubs");
+	
+	m_pAVPLImportanceSampling->CreateSceneSamples();
 
 	if(m_pConfManager->GetConfVars()->UseAVPLImportanceSampling && !m_pConfManager->GetConfVars()->UseDebugMode)
 	{
+		if(m_ProfileFrame) timer.Start();
 		m_pAVPLImportanceSampling->UpdateCurrentIrradiance(m_pNormalizeAntiradianceRenderTarget->GetBuffer(1));
 		m_pAVPLImportanceSampling->UpdateCurrentAntiirradiance(m_pNormalizeAntiradianceRenderTarget->GetBuffer(2));
 		m_pAVPLImportanceSampling->SetNumberOfSceneSamples(m_pConfManager->GetConfVars()->NumSceneSamples);
-		m_pAVPLImportanceSampling->CreateSceneSamples();
+		if(m_ProfileFrame) timer.Stop("importance sample stuff");
 	}
 
 	if(m_CurrentPathAntiradiance == 0 && m_CurrentPathShadowmap == 0)
 	{
-		m_pExperimentData->Init("test", "refine-0.data");
-		m_pExperimentData->MaxTime(1000);
+		m_pExperimentData->Init("test", "nois.data");
+		m_pExperimentData->MaxTime(450);
 
 		m_pGlobalTimer->Start();
 		m_pResultTimer->Start();
@@ -683,9 +686,23 @@ void Renderer::Render()
 	Shade();
 
 	if(m_ProfileFrame) timer.Stop("shade");
+		
 	if(m_ProfileFrame) timer.Start();
 
 	Finalize();
+
+	if(m_pConfManager->GetConfVars()->UseDebugMode) {
+		DrawLights(m_DebugAVPLs, m_pResultRenderTarget);
+	}
+	else
+	{
+		DrawLights(avpls_shadowmap, m_pResultRenderTarget);
+		DrawLights(avpls_antiradiance, m_pResultRenderTarget);
+	}
+	
+	m_pPostProcess->Postprocess(m_pResultRenderTarget->GetBuffer(0), m_pPostProcessRenderTarget);
+	m_pTextureViewer->DrawTexture(m_pPostProcessRenderTarget->GetBuffer(0), 0, 0, camera->GetWidth(), camera->GetHeight());	
+	//m_pTextureViewer->DrawTexture(m_pGBuffer->GetNormalTexture(), 0, 0, camera->GetWidth(), camera->GetHeight());	
 
 	if(m_ProfileFrame) timer.Stop("finalize");
 	if(m_ProfileFrame) timer.Start();
@@ -693,14 +710,7 @@ void Renderer::Render()
 	DrawDebug();
 
 	if(m_ProfileFrame) timer.Stop("draw debug");
-	
-	if(m_pConfManager->GetConfVars()->UseDebugMode) {
-		DrawLights(m_DebugAVPLs, m_pResultRenderTarget);
-	} else {
-		DrawLights(avpls_antiradiance, m_pResultRenderTarget);
-		DrawLights(avpls_shadowmap, m_pResultRenderTarget);
-	}
-	
+		
 	m_NumAVPLs += (int)avpls_antiradiance.size();
 	m_NumAVPLs += (int)avpls_shadowmap.size();
 
@@ -748,25 +758,39 @@ void Renderer::GetAVPLs(std::vector<AVPL>& avpls_shadowmap, std::vector<AVPL>& a
 		
 		std::vector<AVPL> avpls;
 		int numAVPLs = m_pConfManager->GetConfVars()->NumAVPLsPerFrame;
+		int numAVPLsPerBatch = std::min(numAVPLs, 1000);
 		int numPaths = 0;
-		#pragma omp parallel
+
+		while(avpls.size() < numAVPLs)
 		{
-			int num_threads = omp_get_num_threads();
-			std::vector<AVPL> avpls_thread;
-			int numPaths_thread = 0;
-			while(avpls_thread.size() < (numAVPLs + num_threads - 1) / num_threads)
+			#pragma omp parallel
 			{
-				scene->CreatePath(avpls_thread);
-				numPaths_thread++;
-			}
-			
-			#pragma omp critical
-			{
-				avpls.insert(avpls.end(), avpls_thread.begin(), avpls_thread.end());
-				numPaths += numPaths_thread;
+				int num_threads = omp_get_num_threads();
+				std::vector<AVPL> avpls_thread;
+				int numPaths_thread = 0;
+				while(avpls_thread.size() < (numAVPLsPerBatch + num_threads - 1) / num_threads)
+				{
+					scene->CreatePath(avpls_thread);
+					numPaths_thread++;
+				}
+
+				if(m_pConfManager->GetConfVars()->UseAVPLImportanceSampling)
+				{
+					std::vector<AVPL> result;
+					m_pAVPLImportanceSampling->ImportanceSampling(avpls_thread, result);
+					avpls_thread.clear();
+					
+					for(int i = 0; i < result.size(); ++i)
+					avpls_thread.push_back(result[i]);
+				}
+				
+				#pragma omp critical
+				{
+					avpls.insert(avpls.end(), avpls_thread.begin(), avpls_thread.end());
+					numPaths += numPaths_thread;
+				}
 			}
 		}
-		
 		SeparateAVPLs(avpls, avpls_shadowmap, avpls_antiradiance, numPaths);
 	}
 }
@@ -846,16 +870,19 @@ void Renderer::Shade()
 void Renderer::Finalize()
 {
 	if(m_pConfManager->GetConfVars()->LightingMode == 2)
-		DrawAreaLight(m_pResultRenderTarget, glm::vec3(0.f, 0.f, 0.f));
+	{
+		DrawAreaLight(m_pShadeShadowmapRenderTarget, glm::vec3(0.f, 0.f, 0.f));
+		DrawAreaLight(m_pShadeAntiradianceRenderTarget, glm::vec3(0.f, 0.f, 0.f));
+	}
 	else
-		DrawAreaLight(m_pResultRenderTarget);
-	DrawAreaLight(m_pShadeShadowmapRenderTarget);
+	{
+		DrawAreaLight(m_pShadeShadowmapRenderTarget);
+	}	
+	
 	DrawAreaLight(m_pShadeAntiradianceRenderTarget, glm::vec3(0.f, 0.f, 0.f));
 	
 	Add(m_pResultRenderTarget, m_pShadeShadowmapRenderTarget, m_pShadeAntiradianceRenderTarget);
-
-	m_pTextureViewer->DrawTexture(m_pResultRenderTarget->GetBuffer(0), 0, 0, camera->GetWidth(), camera->GetHeight());	
-
+		
 	CalculateError();
 }
 
@@ -883,7 +910,7 @@ void Renderer::DrawDebug()
 {
 	if(m_pConfManager->GetConfVars()->DrawDirectLighting)
 		m_pTextureViewer->DrawTexture(m_pShadeShadowmapRenderTarget->GetBuffer(0), 0, 0, camera->GetWidth(), camera->GetHeight());
-	
+
 	if(m_pConfManager->GetConfVars()->DrawIndirectLighting)
 		m_pTextureViewer->DrawTexture(m_pShadeAntiradianceRenderTarget->GetBuffer(0), 0, 0, camera->GetWidth(), camera->GetHeight());
 	
@@ -1204,7 +1231,6 @@ void Renderer::Normalize(CRenderTarget* pTarget, CRenderTarget* source, int norm
 	COGLBindLock lock2(source->GetBuffer(2), COGL_TEXTURE2_SLOT);
 
 	m_pFullScreenQuad->Draw();
-	
 }
 
 void Renderer::Shade(CRenderTarget* target, CRenderTarget* source)
@@ -1446,38 +1472,9 @@ void Renderer::DrawLights(const std::vector<AVPL>& avpls, CRenderTarget* target)
 			pcp.push_back(p);
 		}
 	}
-	
-	try
-	{
-		glm::vec4* positionData = new glm::vec4[pcp.size()];
-		glm::vec4* colorData = new glm::vec4[pcp.size()];
-		for(uint i = 0; i < pcp.size(); ++i)
-		{
-			positionData[i] = pcp[i].position;
-			colorData[i] = pcp[i].color;
-		}
 
-		{
-			CRenderTargetLock lock(target);
-			
-			COGLBindLock lockProgram(m_pPointCloudProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
-			
-			SetTranformToCamera();
-
-			glEnable(GL_DEPTH_TEST);
-			glDepthMask(GL_FALSE);
-			m_pPointCloud->Draw(positionData, colorData, (int)pcp.size());
-			glDepthMask(GL_TRUE);
-		}
-		
-		pcp.clear();
-		delete [] positionData;
-		delete [] colorData;
-	}
-	catch(std::bad_alloc)
-	{
-		std::cout << "bad_alloc exception at Renderer::DrawLights()" << std::endl;
-	}
+	DrawPointCloud(pcp, target);
+	pcp.clear();
 }
 
 void Renderer::DrawSceneSamples(CRenderTarget* target)
@@ -1489,38 +1486,12 @@ void Renderer::DrawSceneSamples(CRenderTarget* target)
 	{
 		POINT_CLOUD_POINT p;
 		p.position = glm::vec4(sceneSamples[i].position, 1.0f);
-		p.color = glm::vec4(0.5f * sceneSamples[i].normal + glm::vec3(0.5f), 1.0f);
+		p.color = glm::vec4(1.f, 1.f, 0.f, 1.0f);
 		pcp.push_back(p);
 	}
 	
-	try
-	{
-		glm::vec4* positionData = new glm::vec4[pcp.size()];
-		glm::vec4* colorData = new glm::vec4[pcp.size()];
-		for(uint i = 0; i < pcp.size(); ++i)
-		{
-			positionData[i] = pcp[i].position;
-			colorData[i] = pcp[i].color;
-		}
-		
-		{
-			CRenderTargetLock lock(target);
-			
-			COGLBindLock lockProgram(m_pPointCloudProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
-			
-			glDepthMask(GL_FALSE);
-			m_pPointCloud->Draw(positionData, colorData, (int)pcp.size());		
-			glDepthMask(GL_TRUE);
-		}
-		
-		pcp.clear();
-		delete [] positionData;
-		delete [] colorData;
-	}
-	catch(std::bad_alloc)
-	{
-		std::cout << "bad_alloc exception at Renderer::DrawLights()" << std::endl;
-	}
+	DrawPointCloud(pcp, target);
+	pcp.clear();
 }
 
 void Renderer::DrawBidirSceneSamples(CRenderTarget* target)
@@ -1563,34 +1534,34 @@ void Renderer::DrawBidirSceneSamples(CRenderTarget* target)
 		}
 	}
 
-	try
+	DrawPointCloud(pcp, target);
+
+	pcp.clear();
+}
+
+void Renderer::DrawPointCloud(const std::vector<POINT_CLOUD_POINT>& pcp, CRenderTarget* target)
+{
+	glm::vec4* positionData = new glm::vec4[pcp.size()];
+	glm::vec4* colorData = new glm::vec4[pcp.size()];
+	for(uint i = 0; i < pcp.size(); ++i)
 	{
-		glm::vec4* positionData = new glm::vec4[pcp.size()];
-		glm::vec4* colorData = new glm::vec4[pcp.size()];
-		for(uint i = 0; i < pcp.size(); ++i)
-		{
-			positionData[i] = pcp[i].position;
-			colorData[i] = pcp[i].color;
-		}
-		
-		{
-			CRenderTargetLock lock(target);
-			
-			COGLBindLock lockProgram(m_pPointCloudProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
-			
-			glDepthMask(GL_FALSE);
-			m_pPointCloud->Draw(positionData, colorData, (int)pcp.size());		
-			glDepthMask(GL_TRUE);
-		}
-		
-		pcp.clear();
-		delete [] positionData;
-		delete [] colorData;
+		positionData[i] = pcp[i].position;
+		colorData[i] = pcp[i].color;
 	}
-	catch(std::bad_alloc)
-	{
-		std::cout << "bad_alloc exception at Renderer::DrawLights()" << std::endl;
-	}
+		
+	CRenderTargetLock lock(target);
+			
+	COGLBindLock lockProgram(m_pPointCloudProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
+	
+	SetTranformToCamera();
+
+	glEnable(GL_DEPTH_TEST);
+	glDepthMask(GL_FALSE);
+	m_pPointCloud->Draw(positionData, colorData, (int)pcp.size());
+	glDepthMask(GL_TRUE);
+		
+	delete [] positionData;
+	delete [] colorData;
 }
 
 void Renderer::Add(CRenderTarget* target, CRenderTarget* source1, CRenderTarget* source2)
@@ -1652,8 +1623,8 @@ void Renderer::ClearAccumulationBuffer()
 {
 	m_NumAVPLsForNextDataExport = 1000;
 	m_NumAVPLsForNextImageExport = 10000;
-	m_TimeForNextDataExport = 10000;
-	m_TimeForNextImageExport = 20000;
+	m_TimeForNextDataExport = 1000;
+	m_TimeForNextImageExport = 30000;
 	m_NumAVPLs = 0;
 
 	glClearColor(0, 0, 0, 0);
@@ -1752,15 +1723,10 @@ glm::vec4 Renderer::ColorForLight(const AVPL& avpl)
 
 void Renderer::Export()
 {
-	m_Export->ExportHDR(m_pResultRenderTarget->GetBuffer(0), "result.hdr");
-	m_Export->ExportPNG(m_pResultRenderTarget->GetBuffer(0), "result.png");
-	m_Export->ExportHDR(m_pErrorRenderTarget->GetBuffer(0), "error.hdr");
-	m_Export->ExportPNG(m_pErrorRenderTarget->GetBuffer(0), "error.png");
-
-	m_Export->ExportPFM(m_pImagePlane->GetOGLTexture(), "imageplane.pfm");
-
-	m_Export->ExportPNG(m_pOctahedronAtlas->GetAVPLAtlas(), "atlas-avpls.png");
-	m_Export->ExportPNG(m_pOctahedronAtlas->GetAVPLClusterAtlas(), "atlas-clusters.png");
+	m_Export->ExportHDR(m_pPostProcessRenderTarget->GetBuffer(0), "result.hdr");
+	m_Export->ExportPNG(m_pPostProcessRenderTarget->GetBuffer(0), "result.png");
+	//m_Export->ExportHDR(m_pErrorRenderTarget->GetBuffer(0), "error.hdr");
+	//m_Export->ExportPNG(m_pErrorRenderTarget->GetBuffer(0), "error.png");
 
 	m_pExperimentData->WriteToFile();
 }
@@ -1777,9 +1743,9 @@ void Renderer::ExportPartialResult()
 	ss2 << "error-" << m_NumAVPLs << "-numAVPLs-" << seconds <<"-sec" << ".pfm";
 	ss3 << "error-" << m_NumAVPLs << "-numAVPLs-" << seconds <<"-sec" << ".png";
 
-	//m_Export->ExportPFM(m_pResultRenderTarget->GetBuffer(0), ss0.str());
-	m_Export->ExportPNG(m_pResultRenderTarget->GetBuffer(0), ss1.str());
-	//m_Export->ExportPFM(m_pErrorRenderTarget->GetBuffer(0), ss2.str());
+	m_Export->ExportPFM(m_pPostProcessRenderTarget->GetBuffer(0), ss0.str());
+	m_Export->ExportPNG(m_pPostProcessRenderTarget->GetBuffer(0), ss1.str());
+	m_Export->ExportPFM(m_pErrorRenderTarget->GetBuffer(0), ss2.str());
 	m_Export->ExportPNG(m_pErrorRenderTarget->GetBuffer(0), ss3.str());
 }
 

@@ -12,16 +12,16 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVarsGUI = new CONF_VARS[1];
 
 	m_pConfVars->UseAntiradiance = m_pConfVarsGUI->UseAntiradiance = 1;
-	m_pConfVars->SeparateDirectIndirectLighting = m_pConfVarsGUI->SeparateDirectIndirectLighting = 0;
+	m_pConfVars->SeparateDirectIndirectLighting = m_pConfVarsGUI->SeparateDirectIndirectLighting = 1;
 	m_pConfVars->LightingMode = m_pConfVarsGUI->LightingMode = 0;
 	m_pConfVars->GatherWithAVPLAtlas = m_pConfVarsGUI->GatherWithAVPLAtlas = 0;
-	m_pConfVars->GatherWithAVPLClustering = m_pConfVarsGUI->GatherWithAVPLClustering = 0;
+	m_pConfVars->GatherWithAVPLClustering = m_pConfVarsGUI->GatherWithAVPLClustering = 1;
 	m_pConfVars->NoAntiradiance = m_pConfVarsGUI->NoAntiradiance = 0;
-	m_pConfVars->GeoTermLimitRadiance = m_pConfVarsGUI->GeoTermLimitRadiance = 0.00001f;
-	m_pConfVars->GeoTermLimitAntiradiance = m_pConfVarsGUI->GeoTermLimitAntiradiance = 0.00001f;
+	m_pConfVars->GeoTermLimitRadiance = m_pConfVarsGUI->GeoTermLimitRadiance = 0.01f;
+	m_pConfVars->GeoTermLimitAntiradiance = m_pConfVarsGUI->GeoTermLimitAntiradiance = 0.0001f;
 	m_pConfVars->ClampGeoTerm = m_pConfVarsGUI->ClampGeoTerm = 1;
-	m_pConfVars->ClampConeMode = m_pConfVarsGUI->ClampConeMode = 1;
-	m_pConfVars->NumAVPLsPerFrame = m_pConfVarsGUI->NumAVPLsPerFrame = 10;
+	m_pConfVars->ClampConeMode = m_pConfVarsGUI->ClampConeMode = 0;
+	m_pConfVars->NumAVPLsPerFrame = m_pConfVarsGUI->NumAVPLsPerFrame = 70000;
 	m_pConfVars->NumAdditionalAVPLs = m_pConfVarsGUI->NumAdditionalAVPLs = 0;
 	m_pConfVars->NumVPLsDirectLight = m_pConfVarsGUI->NumVPLsDirectLight = 10000;
 	m_pConfVars->NumVPLsDirectLightPerFrame = m_pConfVarsGUI->NumVPLsDirectLightPerFrame = 50;
@@ -39,7 +39,6 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 
 	m_pConfVars->UseIBL = m_pConfVarsGUI->UseIBL = 0;
 	
-	m_pConfVars->UseToneMapping = m_pConfVarsGUI->UseToneMapping = 0;
 	m_pConfVars->UseDebugMode = m_pConfVarsGUI->UseDebugMode = 0;
 	m_pConfVars->DrawAVPLAtlas = m_pConfVarsGUI->DrawAVPLAtlas = 0;
 	m_pConfVars->DrawAVPLClusterAtlas = m_pConfVarsGUI->DrawAVPLClusterAtlas = 0;
@@ -50,12 +49,14 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->FilterAvplAtlasLinear = m_pConfVarsGUI->FilterAvplAtlasLinear = 1;
 	m_pConfVars->FillAvplAltasOnGPU = m_pConfVarsGUI->FillAvplAltasOnGPU = 1;
 	m_pConfVars->LimitBounces = m_pConfVarsGUI->LimitBounces = -1;
-		
-	m_pConfVars->Gamma = m_pConfVarsGUI->Gamma = 2.2f;
+	
+	m_pConfVars->UseToneMapping = m_pConfVarsGUI->UseToneMapping = 0;
+	m_pConfVars->UseGammaCorrection = m_pConfVarsGUI->UseGammaCorrection = 1;
+	m_pConfVars->Gamma = m_pConfVarsGUI->Gamma = 1.0f;
 	m_pConfVars->Exposure = m_pConfVarsGUI->Exposure = 1.f;
 	m_pConfVars->Intersection_BFC = m_pConfVarsGUI->Intersection_BFC = 1;
 			
-	m_pConfVars->NumAVPLsDebug = m_pConfVarsGUI->NumAVPLsDebug = 2;
+	m_pConfVars->NumAVPLsDebug = m_pConfVarsGUI->NumAVPLsDebug = 100;
 	m_pConfVars->AntiradFilterMode = m_pConfVarsGUI->AntiradFilterMode = 0;
 	m_pConfVars->AntiradFilterGaussFactor = m_pConfVarsGUI->AntiradFilterGaussFactor = 2.5f;
 	m_pConfVars->RenderBounce = m_pConfVarsGUI->RenderBounce = -1;
@@ -65,8 +66,7 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->LightTreeCutDepth = m_pConfVarsGUI->LightTreeCutDepth = -1;
 	m_pConfVars->ClusterDepth = m_pConfVarsGUI->ClusterDepth = 0;
 	m_pConfVars->ClusterMethod = m_pConfVarsGUI->ClusterMethod = 0;
-	
-		
+			
 	m_pConfVars->DrawDirectLighting = m_pConfVarsGUI->DrawDirectLighting = 0;
 	m_pConfVars->DrawIndirectLighting = m_pConfVarsGUI->DrawIndirectLighting = 0;
 	
@@ -83,7 +83,7 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	m_pConfVars->UseAVPLImportanceSampling = m_pConfVarsGUI->UseAVPLImportanceSampling = 0;
 	m_pConfVars->ISMode = m_pConfVarsGUI->ISMode = 0;
 	m_pConfVars->ConeFactorIS = m_pConfVarsGUI->ConeFactorIS = 4;
-	m_pConfVars->NumSceneSamples = m_pConfVarsGUI->NumSceneSamples = 100;
+	m_pConfVars->NumSceneSamples = m_pConfVarsGUI->NumSceneSamples = 128;
 	m_pConfVars->DrawSceneSamples = m_pConfVarsGUI->DrawSceneSamples = 0;
 	m_pConfVars->DrawCollectedAVPLs = m_pConfVarsGUI->DrawCollectedAVPLs = 0;
 	m_pConfVars->DrawCollectedISAVPLs = m_pConfVarsGUI->DrawCollectedISAVPLs = 0;
@@ -197,6 +197,12 @@ void CConfigManager::Update()
 	if(m_pConfVarsGUI->UseToneMapping != m_pConfVars->UseToneMapping)
 	{
 		m_pConfVars->UseToneMapping = m_pConfVarsGUI->UseToneMapping;
+		configureLighting = true;
+	}
+
+	if(m_pConfVarsGUI->UseGammaCorrection != m_pConfVars->UseGammaCorrection)
+	{
+		m_pConfVars->UseGammaCorrection = m_pConfVarsGUI->UseGammaCorrection;
 		configureLighting = true;
 	}
 

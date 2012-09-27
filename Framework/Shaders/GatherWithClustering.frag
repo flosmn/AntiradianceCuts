@@ -10,8 +10,8 @@ layout(std140) uniform;
 #define SIZE_CLUSTER 6
 #define SIZE_MATERIAL 4
 
-#define MAX_RAD 1e3f
-#define MAX_ANTIRAD 1e3f
+#define MAX_RAD 1e4f
+#define MAX_ANTIRAD 1e4f
 #define MAX_RADIANCE vec4(MAX_RAD, MAX_RAD, MAX_RAD, 1.f)
 #define MAX_ANTIRADIANCE vec4(MAX_ANTIRAD, MAX_ANTIRAD, MAX_ANTIRAD, 1.f)
 

@@ -12,6 +12,8 @@
 #include <algorithm>
 #include <math.h>
 
+#include "..\AVPL.h"
+
 glm::mat4 IdentityMatrix() 
 {
 	return glm::mat4(
@@ -88,6 +90,20 @@ glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, const float u1,
 		std::cout << "wrong direction" << std::endl;
 
 	return direction;
+}
+
+void GetStratifiedDirections(std::vector<glm::vec3>& directions, std::vector<float>& pdfs, int numDirections, glm::vec3 orientation, uint order)
+{
+	std::vector<glm::vec2> samples;
+	GetStratifiedSamples2D(samples, glm::vec2(1.f, 1.f), numDirections);
+
+	for(int i = 0; i < numDirections; ++i)
+	{
+		float pdf = 0.f;
+		glm::vec3 direction = GetRandomSampleDirectionCosCone(orientation, samples[i].x, samples[i].y, pdf, order);
+		directions.push_back(direction);
+		pdfs.push_back(pdf);
+	}
 }
 
 glm::mat3 ComputeTangentSpace(const glm::vec3& n)
@@ -177,10 +193,8 @@ glm::vec3 SampleConeDirection(const glm::vec3& axis, const float& theta, const f
 
 void GetStratifiedSamples2D(std::vector<glm::vec2>& samples, const glm::vec2& range, const uint numSamples)
 {
-	uint N = GetBiggestSquareNumSmallerThan(numSamples);
-	uint n = uint(sqrt(float(N)));
-	uint remaining = numSamples - N;
-
+	uint n = uint(sqrt(float(numSamples)));
+	
 	// create stratified samples
 	const float grid_size_x = range.x / float(n);
 	const float grid_size_y = range.y / float(n);
@@ -193,13 +207,6 @@ void GetStratifiedSamples2D(std::vector<glm::vec2>& samples, const glm::vec2& ra
 				(float(j)+Rand01()) * grid_size_y);
 			samples.push_back(sample);
 		}
-	}
-
-	// create remaining uniformly distributed random samples
-	for(uint i = 0; i < remaining; ++i)
-	{
-		glm::vec2 sample = glm::vec2(Rand01() * range.x, Rand01() * range.y);
-		samples.push_back(sample);
 	}
 }
 
@@ -373,6 +380,16 @@ float Luminance(glm::vec3 v)
 float Luminance(glm::vec4 v)
 {
 	return Luminance(glm::vec3(v));
+}
+
+float Average(glm::vec3 v)
+{
+	return 1.f/3.f * (std::max(v.r, 0.f) + std::max(v.g, 0.f) + std::max(v.b, 0.f));
+}
+
+float Average(glm::vec4 v)
+{
+	return Average(glm::vec3(v));
 }
 
 float ProbPSA(const SceneSample& from, const SceneSample& to, const float pdfSA)

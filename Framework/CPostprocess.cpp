@@ -6,6 +6,8 @@
 #include "CRenderTarget.h"
 #include "CRenderTargetLock.h"
 
+#include "CConfigManager.h"
+
 #include "Utils\ShaderUtil.h"
 
 #include "OGLResources\COGLProgram.h"
@@ -40,7 +42,7 @@ CPostprocess::~CPostprocess()
 	SAFE_DELETE(m_pUniformBuffer);
 }
 
-bool CPostprocess::Init()
+bool CPostprocess::Init(CConfigManager* pConfigManager)
 {
 	POST_PROCESS pp;
 	pp.one_over_gamma = 1.f / m_Gamma;
@@ -53,6 +55,8 @@ bool CPostprocess::Init()
 	
 	m_pPostProcessProgram->BindSampler(0, m_pPointSampler);
 	m_pPostProcessProgram->BindUniformBuffer(m_pUniformBuffer, "postprocess");
+
+	m_pConfigManager = pConfigManager;
 
 	return true;
 }
@@ -67,6 +71,8 @@ void CPostprocess::Release()
 
 void CPostprocess::Postprocess(COGLTexture2D* pTexture, CRenderTarget* pTarget)
 {
+	UpdateUniformBuffer();
+	
 	CRenderTargetLock lock(pTarget);
 
 	COGLBindLock lockProgram(m_pPostProcessProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
@@ -80,8 +86,16 @@ void CPostprocess::Postprocess(COGLTexture2D* pTexture, CRenderTarget* pTarget)
 
 void CPostprocess::UpdateUniformBuffer()
 {
+	float gamma = 1.f;
+	if(m_pConfigManager->GetConfVars()->UseGammaCorrection)
+		gamma = m_pConfigManager->GetConfVars()->Gamma;
+
+	float exposure = 1.f;
+	if(m_pConfigManager->GetConfVars()->UseToneMapping)
+		exposure = m_pConfigManager->GetConfVars()->Exposure;
+	
 	POST_PROCESS pp;
-	pp.one_over_gamma = 1.f / m_Gamma;
-	pp.exposure = m_Exposure;
+	pp.one_over_gamma = 1.f / gamma;
+	pp.exposure = exposure;
 	m_pUniformBuffer->UpdateData(&pp);
 }

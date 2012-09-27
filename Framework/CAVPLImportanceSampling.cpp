@@ -15,10 +15,28 @@ CAVPLImportanceSampling::CAVPLImportanceSampling(Scene* pScene, CConfigManager* 
 {
 	m_AvgAntiirradiance = 0.f;
 	m_AvgIrradiance = 0.f;
+		
+	m_RadianceContrib = 0.0f;
+	m_NumContribSamples = 1;
 }
 
 CAVPLImportanceSampling::~CAVPLImportanceSampling()
 {
+}
+
+void CAVPLImportanceSampling::ImportanceSampling(const std::vector<AVPL>& avpls, std::vector<AVPL>& result)
+{
+	for(int i = 0; i < avpls.size(); ++i)
+	{
+		float scale = 0.f;
+		AVPL a = avpls[i];
+		if(EvaluateAVPLImportance(a, &scale))
+		{
+			a.ScaleIncidentRadiance(scale);
+			a.ScaleAntiradiance(scale);
+			result.push_back(a);
+		}
+	}
 }
 
 void CAVPLImportanceSampling::SetNumberOfSceneSamples(uint num)
@@ -43,7 +61,7 @@ void CAVPLImportanceSampling::UpdateCurrentIrradiance(COGLTexture2D* pTexture)
 	
 	delete [] pData;
 	
-	m_AvgIrradiance = Luminance(irradiance) / float(width * height);
+	m_AvgIrradiance = Average(irradiance) / float(width * height);
 }
 
 void CAVPLImportanceSampling::UpdateCurrentAntiirradiance(COGLTexture2D* pTexture)
@@ -62,7 +80,40 @@ void CAVPLImportanceSampling::UpdateCurrentAntiirradiance(COGLTexture2D* pTextur
 
 	delete [] pData;
 
-	m_AvgAntiirradiance = Luminance(antiirradiance) / float(width * height);
+	m_AvgAntiirradiance = Average(antiirradiance) / float(width * height);
+}
+
+glm::vec3 CAVPLImportanceSampling::f(const AVPL& avpl, const SceneSample& ss)
+{
+	const glm::vec3 w_i = glm::normalize(avpl.GetPosition() - ss.position);
+	const glm::vec3 w_o = glm::normalize(m_pScene->GetCamera()->GetPosition() - ss.position);
+	const glm::vec3 n = ss.normal;
+	
+	glm::vec4 BRDF = glm::vec4(0.f);
+	
+	if(glm::dot(w_i, n) >= 0.f && glm::dot(w_o, n) >= 0.f)
+		BRDF = Phong(w_i, w_o, n, m_pScene->GetMaterial(ss));
+
+	return glm::vec3(BRDF);
+}
+
+glm::vec3 CAVPLImportanceSampling::f_light(const AVPL& avpl, const SceneSample& ss)
+{
+	glm::vec3 direction = glm::normalize(ss.position - avpl.GetPosition());
+	glm::vec4 BRDF_light = glm::vec4(0.f);
+	
+	if( glm::dot(direction, ss.normal) >= 0.f &&
+		glm::dot(-avpl.GetDirection(), ss.normal) >= 0.f &&
+		glm::length(avpl.GetDirection()) != 0.f)
+	{
+		BRDF_light = Phong(-avpl.GetDirection(), direction, ss.normal, m_pScene->GetMaterial(ss));
+	}
+
+	// check for light source AVPL
+	if(glm::length(avpl.GetDirection()) == 0.f)
+		BRDF_light = glm::vec4(1.f);
+
+	return glm::vec3(BRDF_light);
 }
 
 bool CAVPLImportanceSampling::EvaluateAVPLImportance0(AVPL& avpl, float* scale)
@@ -73,18 +124,19 @@ bool CAVPLImportanceSampling::EvaluateAVPLImportance0(AVPL& avpl, float* scale)
 		return true;
 	}
 	
-	glm::vec3 irradiance = glm::vec3(0.f);
-	glm::vec3 antiirradiance = glm::vec3(0.f);
+	glm::vec3 radianceContrib = glm::vec3(0.f);
+	glm::vec3 antiradianceContrib = glm::vec3(0.f);
 	for(uint i = 0; i < m_NumSceneSamples; ++i)
 	{
-		irradiance += avpl.GetIrradiance(m_SceneSamples[i]);
-		antiirradiance += avpl.GetAntiirradiance(m_SceneSamples[i], m_ConeFactor);
+		glm::vec3 BRDF = f(avpl, m_SceneSamples[i]);
+		radianceContrib += BRDF * avpl.GetIrradiance(m_SceneSamples[i]);
+		antiradianceContrib += BRDF * avpl.GetAntiirradiance(m_SceneSamples[i]);
 	}
-	irradiance *= m_OneOverNumSceneSamples;
-	antiirradiance *= m_OneOverNumSceneSamples;
+	radianceContrib /= float(m_NumSceneSamples);
+	antiradianceContrib /= float(m_NumSceneSamples);
 	
-	const float frac_irr = Luminance(irradiance) / m_AvgIrradiance;
-	const float frac_antiirr = Luminance(antiirradiance) / m_AvgAntiirradiance;
+	const float frac_irr = Average(radianceContrib) / m_AvgIrradiance;
+	const float frac_antiirr = Average(antiradianceContrib) / m_AvgAntiirradiance;
 
 	if(frac_irr >= 1.f || frac_antiirr >= 1.f)
 	{
@@ -111,25 +163,25 @@ bool CAVPLImportanceSampling::EvaluateAVPLImportance1(AVPL& avpl, float* scale)
 		*scale = 1.f;
 		return true;
 	}
-	
-	glm::vec3 antiirradiance = glm::vec3(0.f);
+
+	glm::vec3 radianceContrib = glm::vec3(0.f);
+	glm::vec3 antiradianceContrib = glm::vec3(0.f);
 	for(uint i = 0; i < m_NumSceneSamples; ++i)
 	{
-		if(Luminance(avpl.GetAntiirradiance(m_SceneSamples[i], m_ConeFactor)) > 0.f)
-		{
-			*scale = 1.f;
-			return true;
-		}
+		glm::vec3 BRDF = f(avpl, m_SceneSamples[i]);
+		radianceContrib += BRDF * avpl.GetIrradiance(m_SceneSamples[i]);
+		antiradianceContrib += BRDF * avpl.GetAntiirradiance(m_SceneSamples[i]);
 	}
-	
-	glm::vec3 irradiance = glm::vec3(0.f);
-	for(uint i = 0; i < m_NumSceneSamples; ++i)
+	radianceContrib /= float(m_NumSceneSamples);
+	antiradianceContrib /= float(m_NumSceneSamples);
+
+	if(glm::length(antiradianceContrib) > 0.1f)
 	{
-		irradiance += avpl.GetIrradiance(m_SceneSamples[i]);
+		*scale = 1.f;
+		return true;
 	}
-	irradiance *= m_OneOverNumSceneSamples;
 	
-	const float frac_irr = Luminance(irradiance) / m_AvgIrradiance;
+	const float frac_irr = Average(radianceContrib) / m_AvgIrradiance;
 	
 	if(frac_irr >= 1.f)
 	{
@@ -138,8 +190,8 @@ bool CAVPLImportanceSampling::EvaluateAVPLImportance1(AVPL& avpl, float* scale)
 	}
 
 	const float p_accept = std::min(1.f, frac_irr + m_Epsilon);
-		
-	if(Rand01() < p_accept)
+	const float p = Rand01();
+	if(p < p_accept)
 	{
 		*scale = 1.f / (p_accept);
 		return true;
@@ -148,37 +200,39 @@ bool CAVPLImportanceSampling::EvaluateAVPLImportance1(AVPL& avpl, float* scale)
 	return false;
 }
 
-bool CAVPLImportanceSampling::EvaluateAVPLImportance2(AVPL& avpl, float* scale)
+bool CAVPLImportanceSampling::EvaluateAVPLImportance(AVPL& avpl, float* scale)
 {
-	glm::vec3 antiirradiance = glm::vec3(0.f);
-	for(uint i = 0; i < m_SceneSamples.size(); ++i)
-	{
-		antiirradiance += avpl.GetAntiirradiance(m_SceneSamples[i], m_ConeFactor);
-	}
-	antiirradiance *= m_OneOverNumSceneSamples;
-			
-	const float A = Luminance(antiirradiance);
-	if(m_AvgAntiirradiance == 0)
-	{
-		*scale = 1.f;
-		return true;
-	}
+	*scale = 1.f;
 
-	if(A > 0.f)
+	if(m_AvgIrradiance == 0) return true;
+	
+	glm::vec3 radianceContrib = glm::vec3(0.f);
+	for(uint i = 0; i < m_NumSceneSamples; ++i)
 	{
-		avpl.SetColor(glm::vec3(1.f, 1.f, 0.f));
-		*scale = 1.f;
+		const glm::vec3 w_A = avpl.GetDirection();
+		const glm::vec3 w = glm::normalize(m_SceneSamples[i].position - avpl.GetPosition());
+		const float theta = acos(clamp(glm::dot(w, w_A), 0, 1));
+		
+		if(theta < PI/10.f && glm::dot(m_SceneSamples[i].normal, -w_A) >= 0.f)
+			return true;
+		
+		glm::vec3 BRDF = f(avpl, m_SceneSamples[i]);
+		radianceContrib += BRDF * avpl.GetIrradiance(m_SceneSamples[i]);
+	}
+	radianceContrib /= float(m_NumSceneSamples);
+	
+	const float frac_irr = Average(radianceContrib) / m_AvgIrradiance;
+	
+	if(frac_irr >= 1.f) return true;
+
+	const float p_accept_irr = std::min(1.f, frac_irr + m_Epsilon);
+	
+	if(Rand01() < p_accept_irr)
+	{
+		*scale = 1.f / (p_accept_irr);
 		return true;
 	}
 		
-	const float p_accept = std::min(1.f, m_Alpha + m_Epsilon);
-	if(Rand01() < p_accept)
-	{
-		avpl.SetColor(glm::vec3(0.f, 1.f, 1.f));
-		*scale = 1.f / p_accept;
-		return true;
-	}
-
 	return false;
 }
 
@@ -188,33 +242,41 @@ void CAVPLImportanceSampling::CreateSceneSamples()
 	m_Epsilon = m_pConfManager->GetConfVars()->AcceptProbabEpsilon;
 	m_ConeFactor = float(m_pConfManager->GetConfVars()->ConeFactorIS);
 
-	std::vector<Ray> eye_rays;
-	std::vector<glm::vec2> samples;
-	
 	m_SceneSamples.clear();
 	m_SceneSamples.reserve(m_NumSceneSamples);
 
+	int k = 0;
 	while(m_NumSceneSamples - m_SceneSamples.size() > 0)
 	{
-		m_pScene->GetCamera()->GetEyeRays(eye_rays, samples, m_NumSceneSamples);
+		Ray r = m_pScene->GetCamera()->GetEyeRay();
 		
-		for(int i = 0; i < eye_rays.size() && m_SceneSamples.size() < m_NumSceneSamples; ++i)
-		{		
-			float t = 0.f;
-			Intersection intersection;
-			bool isect = m_pScene->IntersectRayScene(eye_rays[i], &t, &intersection, CPrimitive::FRONT_FACE);
+		float t = 0.f;
+		Intersection intersection;
+		bool isect = m_pScene->IntersectRayScene(r, &t, &intersection, CPrimitive::FRONT_FACE);
 			
-			if(isect) {
-				SceneSample ss(intersection);
-				m_SceneSamples.push_back(ss);
-			}
+		if(isect) {
+			SceneSample ss(intersection);
+			m_SceneSamples.push_back(ss);
 		}
-
+		
 		// no scene parts visible?
-		if(m_SceneSamples.size() == 0)
+		k++;
+		if(k > int(100 * m_NumSceneSamples))
 			break;
 	}
+}
 
-	eye_rays.clear();
-	samples.clear();
+bool CAVPLImportanceSampling::HasAntiradianceContribution(const AVPL& avpl)
+{
+	for(uint i = 0; i < m_NumSceneSamples; ++i)
+	{
+		const glm::vec3 w_A = avpl.GetDirection();
+		const glm::vec3 w = glm::normalize(m_SceneSamples[i].position - avpl.GetPosition());
+		const float theta = acos(clamp(glm::dot(w, w_A), 0, 1));
+		
+		if(theta < PI/10.f && glm::dot(m_SceneSamples[i].normal, -w_A) >= 0.f)
+			return true;
+	}
+
+	return false;
 }

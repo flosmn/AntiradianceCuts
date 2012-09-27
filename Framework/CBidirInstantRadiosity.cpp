@@ -10,8 +10,6 @@
 #include <iostream>
 #include <assert.h>
 
-const float EPSILON = 0.05f;
-
 CBidirInstantRadiosity::CBidirInstantRadiosity(Scene* pScene, CConfigManager* pConfManager)
 	: m_pScene(pScene), m_pConfManager(pConfManager)
 {

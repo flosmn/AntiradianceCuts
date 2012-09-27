@@ -26,8 +26,12 @@ glm::vec3 hue_colormap(const float v, const float range_min, const float range_m
 
 glm::vec2 GetUniformRandomSample2D(glm::vec2 range_u, glm::vec2 range_v);
 void GetRandomSampleDirectionProbability(glm::vec3 orientation, glm::vec3 direction, float& pdf, uint order);
+
 glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, const float u1, const float u2, float&pdf, uint order);
+void GetStratifiedDirections(std::vector<glm::vec3>& directions, std::vector<float>& pdfs, int numDirections, glm::vec3 orientation, uint order);
+
 glm::vec3 SampleConeDirection(const glm::vec3& axis, const float& theta, const float& u1, const float& u2, float* pdf);
+
 glm::vec2 ConcentricSampleDisk(float u1, float u2);
 
 glm::mat3 ComputeTangentSpace(const glm::vec3& n);
@@ -73,8 +77,14 @@ uint GetBiggestSquareNumSmallerThan(uint num);
 float G(glm::vec3 p1, glm::vec3 n1, glm::vec3 p2, glm::vec3 n2);
 float G_A(glm::vec3 p_avpl, glm::vec3 n_avpl, glm::vec3 p_point, glm::vec3 n_point);
 
-float Luminance(glm::vec3 v);
-float Luminance(glm::vec4 v);
+//float Luminance(glm::vec3 v);
+//float Luminance(glm::vec4 v);
+
+float Average(glm::vec3 v);
+float Average(glm::vec4 v);
+
+glm::vec3 GetIrradiance(const AVPL& avpl, const SceneSample& ss);
+glm::vec3 GetAntiirradiance(const AVPL& avpl, const SceneSample& ss, float N);
 
 template<typename T>
 inline bool is_nan(T value)

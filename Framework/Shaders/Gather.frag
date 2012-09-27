@@ -9,8 +9,8 @@
 #define SIZE_MATERIAL 4
 #define EPSILON 0.001f
 
-#define MAX_RAD 1e10f
-#define MAX_ANTIRAD 1e10f
+#define MAX_RAD 1e4f
+#define MAX_ANTIRAD 1e4f
 #define MAX_RADIANCE vec4(MAX_RAD, MAX_RAD, MAX_RAD, 1.f)
 #define MAX_ANTIRADIANCE vec4(MAX_ANTIRAD, MAX_ANTIRAD, MAX_ANTIRAD, 1.f)
 
@@ -131,12 +131,14 @@ void main()
 		{
 			float G = G_CLAMP(vPositionWS, vNormalWS, p, n);
 			radiance = min(MAX_RADIANCE, L * BRDF_light * G * BRDF);
+			//radiance = L * BRDF_light * G * BRDF;
 		}
 		
 		// calc antiradiance
 		if(length(A) > 0.f)
 		{
 			antiradiance = min(MAX_ANTIRADIANCE, BRDF * GetAntiradiance(A, p, vPositionWS, n, vNormalWS, w, coneFactor));
+			//antiradiance = BRDF * GetAntiradiance(A, p, vPositionWS, n, vNormalWS, w, coneFactor);
 		}
 		
 		diff = radiance - antiradiance;
@@ -164,8 +166,8 @@ vec4 GetAntiradiance(in vec4 A, in vec3 avpl_pos, in vec3 pos, in vec3 avpl_norm
 	if(dot(norm, -avpl_to_pos) <= 0.f + EPSILON)
 		return res;
 
-	if(dot(avpl_norm, avpl_to_pos) >= 0.f - EPSILON)
-		return res;
+	//if(dot(avpl_norm, avpl_to_pos) >= 0.f - EPSILON)
+	//	return res;
 
 	const float theta = acos(dot(avpl_to_pos, w));
 	if(theta < PI / cone_factor)

@@ -56,6 +56,8 @@ public:
 	void LoadCornellBoxDragon();
 	void LoadBuddha();
 	void LoadCornellEmpty();
+	void LoadRoom();
+	void LoadConferenceRoom();
 
 	bool HasLightSource() { return m_HasLightSource; }
 

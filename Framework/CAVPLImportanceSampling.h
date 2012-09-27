@@ -6,6 +6,7 @@
 class Scene;
 class COGLTexture2D;
 class CConfigManager;
+class CMaterialBuffer;
 class AVPL;
 
 #include "Intersection.h"
@@ -28,11 +29,18 @@ public:
 
 	bool EvaluateAVPLImportance0(AVPL& avpl, float* scale);
 	bool EvaluateAVPLImportance1(AVPL& avpl, float* scale);	
-	bool EvaluateAVPLImportance2(AVPL& avpl, float* scale);
-
+	bool EvaluateAVPLImportance(AVPL& avpl, float* scale);	
+	
 	const std::vector<SceneSample>& GetSceneSamples() const { return m_SceneSamples; }
 
+	void ImportanceSampling(const std::vector<AVPL>& avpls, std::vector<AVPL>& result);
+
+	bool HasAntiradianceContribution(const AVPL& avpl);
+
 private:
+
+	glm::vec3 f(const AVPL& avpl, const SceneSample& ss);
+	glm::vec3 f_light(const AVPL& avpl, const SceneSample& ss);
 	
 	uint m_NumSceneSamples;
 	float m_OneOverNumSceneSamples;
@@ -43,6 +51,9 @@ private:
 
 	float m_AvgIrradiance;		// average luminance irradiance per pixel
 	float m_AvgAntiirradiance;  // average luminance antiiradiance per pixel
+
+	float m_RadianceContrib;
+	int m_NumContribSamples;
 
 	float m_Alpha;
 	float m_Epsilon;

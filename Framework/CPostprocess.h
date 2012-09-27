@@ -11,6 +11,7 @@ class CProgram;
 class CRenderTarget;
 
 class CFullScreenQuad;
+class CConfigManager;
 
 class CPostprocess
 {
@@ -18,7 +19,7 @@ public:
 	CPostprocess();
 	~CPostprocess();
 
-	bool Init();
+	bool Init(CConfigManager* pConfigManager);
 	void Release();
 	
 	void Postprocess(COGLTexture2D* pTexture, CRenderTarget* result);
@@ -37,6 +38,8 @@ private:
 	
 	float m_Gamma;
 	float m_Exposure;
+
+	CConfigManager* m_pConfigManager;
 };
 
 #endif // _C_POST_PROCESS_H_

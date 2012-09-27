@@ -35,7 +35,7 @@ public:
 	void ScaleAntiradiance(float s) { m_Antiradiance *= s; }
 	
 	glm::vec3 GetIrradiance(const SceneSample& ss) const;
-	glm::vec3 GetAntiirradiance(const SceneSample& ss, const float angleFactor) const;
+	glm::vec3 GetAntiirradiance(const SceneSample& ss) const;
 
 	glm::vec3 SampleAntiradianceDirection();
 

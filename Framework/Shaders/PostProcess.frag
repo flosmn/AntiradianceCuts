@@ -17,10 +17,10 @@ uniform postprocess
 void main()
 {
 	vec4 color = texture2D(textureSampler, texCoord);
-	color = 1 - exp(-uPostProcess.exposure * color);
+	//color = 1 - exp(-uPostProcess.exposure * color);
 	color.r = pow(color.r, uPostProcess.one_over_gamma);
 	color.g = pow(color.g, uPostProcess.one_over_gamma);
 	color.b = pow(color.b, uPostProcess.one_over_gamma);
 	
-	outputColor = vec4(1.f, 0.f, 0.f, 1.f); //color;
+	outputColor = color;
 }

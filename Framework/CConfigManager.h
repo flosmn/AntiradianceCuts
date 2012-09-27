@@ -9,7 +9,6 @@ struct CONF_VARS
 	int DrawReference;
 
 	int UseAntiradiance;
-	int UseToneMapping;
 	int UseDebugMode;
 	int DrawAVPLAtlas;
 	int DrawAVPLClusterAtlas;
@@ -44,6 +43,8 @@ struct CONF_VARS
 	int ClampGeoTerm;
 	int ClampConeMode;
 	
+	int UseToneMapping;
+	int UseGammaCorrection;
 	float Gamma;
 	float Exposure;
 	int Intersection_BFC;

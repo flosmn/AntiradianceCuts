@@ -71,8 +71,9 @@ bool CGUI::Init(uint window_width, uint window_height)
 
 	TwAddSeparator(m_pTwBar, "", "");
 
-	TwAddVarRW(m_pTwBar, "Use Tone Mapping", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->UseToneMapping), "min=0 max=1 step=1");
+	TwAddVarRW(m_pTwBar, "Use Gamma Correction", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->UseGammaCorrection), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Gamma", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->Gamma), " min=0.0 max=100.0 step=0.1 ");
+	TwAddVarRW(m_pTwBar, "Use Tone Mapping", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->UseToneMapping), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Exposure", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->Exposure), " min=0.0 max=100.0 step=0.1 ");
 	TwAddVarRW(m_pTwBar, "Isect. BFC", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->Intersection_BFC), " min=0 max=1 step=1 ");
 

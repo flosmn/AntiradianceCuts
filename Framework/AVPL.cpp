@@ -8,6 +8,8 @@
 #include "Utils\Util.h"
 #include "Utils\Rand.h"
 
+#define EPSILON 0.001f
+
 static glm::mat4 projMatrix = glm::perspective(90.0f, 1.0f, 0.1f, 100.0f);
 
 AVPL::AVPL(glm::vec3 p, glm::vec3 n, glm::vec3 L,
@@ -96,10 +98,10 @@ glm::vec3 AVPL::GetIrradiance(const SceneSample& ss) const
 	return G(m_Position, m_Orientation, ss.position, ss.normal) * GetRadiance(direction);
 }
 
-glm::vec3 AVPL::GetAntiirradiance(const SceneSample& ss, const float angleFactor) const
+glm::vec3 AVPL::GetAntiirradiance(const SceneSample& ss) const
 {
 	const glm::vec3 w = glm::normalize(ss.position - m_Position);
-	return G_A(m_Position, m_Orientation, ss.position, ss.normal) * GetAntiradiance(w, angleFactor);
+	return G_A(m_Position, m_Orientation, ss.position, ss.normal) * GetAntiradiance(w, m_ConeAngle);
 }
 
 glm::vec3 AVPL::SampleAntiradianceDirection()
@@ -109,16 +111,18 @@ glm::vec3 AVPL::SampleAntiradianceDirection()
 	return dir;
 }
 
-glm::vec3 AVPL::GetAntiradiance(const glm::vec3& w, const float angleFactor) const
+glm::vec3 AVPL::GetAntiradiance(const glm::vec3& direction, const float angleFactor) const
 {
 	glm::vec3 res = glm::vec3(0.f);
+	glm::vec3 antiradDirection = m_Direction;
 
-	if(glm::dot(w, m_Direction) < 0.01f)
-	{
+	if(glm::dot(direction, antiradDirection) <= 0.f + EPSILON)
 		return res;
-	}
-
-	const float theta = acos(clamp(glm::dot(w, m_Direction), 0, 1));
+	
+	if(glm::dot(m_Orientation, direction) >= 0.f - EPSILON)
+		return res;
+	
+	const float theta = acos(clamp(glm::dot(direction, antiradDirection), 0, 1));
 
 	if(theta < PI/angleFactor)
 	{
