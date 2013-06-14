@@ -94,7 +94,7 @@ void COCLContext::Release()
 bool COCLContext::GetPlatform()
 {
 	cl_uint nPlatforms = 0;
-	cl_platform_id* platforms = new cl_platform_id[2];
+	cl_platform_id platforms[2];
 
 	V_RET_FOF(CHECK_CL_SUCCESS(clGetPlatformIDs(2, platforms, &nPlatforms), "clGetPlatformIDs"));
 	

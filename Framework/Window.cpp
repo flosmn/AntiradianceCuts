@@ -10,6 +10,8 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 
+#include <CL/cl.h>
+
 #include <iostream>
 
 #include "CGUI.h"
@@ -342,6 +344,11 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	{
 		return 0;
 	}
+
+	cl_uint nPlatforms = 0;
+	cl_platform_id platforms[2];
+
+	clGetPlatformIDs(2, platforms, &nPlatforms);
 
 	if (!Init())
 	{

@@ -13,20 +13,20 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 
 	m_pConfVars->UseAntiradiance = m_pConfVarsGUI->UseAntiradiance = 1;
 	m_pConfVars->SeparateDirectIndirectLighting = m_pConfVarsGUI->SeparateDirectIndirectLighting = 1;
-	m_pConfVars->LightingMode = m_pConfVarsGUI->LightingMode = 0;
+	m_pConfVars->LightingMode = m_pConfVarsGUI->LightingMode = 2;
 	m_pConfVars->GatherWithAVPLAtlas = m_pConfVarsGUI->GatherWithAVPLAtlas = 0;
 	m_pConfVars->GatherWithAVPLClustering = m_pConfVarsGUI->GatherWithAVPLClustering = 1;
 	m_pConfVars->NoAntiradiance = m_pConfVarsGUI->NoAntiradiance = 0;
 	m_pConfVars->GeoTermLimitRadiance = m_pConfVarsGUI->GeoTermLimitRadiance = 0.01f;
 	m_pConfVars->GeoTermLimitAntiradiance = m_pConfVarsGUI->GeoTermLimitAntiradiance = 0.0001f;
-	m_pConfVars->ClampGeoTerm = m_pConfVarsGUI->ClampGeoTerm = 1;
+	m_pConfVars->ClampGeoTerm = m_pConfVarsGUI->ClampGeoTerm = 0;
 	m_pConfVars->ClampConeMode = m_pConfVarsGUI->ClampConeMode = 0;
-	m_pConfVars->NumAVPLsPerFrame = m_pConfVarsGUI->NumAVPLsPerFrame = 70000;
+	m_pConfVars->NumAVPLsPerFrame = m_pConfVarsGUI->NumAVPLsPerFrame = 5000;
 	m_pConfVars->NumAdditionalAVPLs = m_pConfVarsGUI->NumAdditionalAVPLs = 0;
-	m_pConfVars->NumVPLsDirectLight = m_pConfVarsGUI->NumVPLsDirectLight = 10000;
-	m_pConfVars->NumVPLsDirectLightPerFrame = m_pConfVarsGUI->NumVPLsDirectLightPerFrame = 50;
+	m_pConfVars->NumVPLsDirectLight = m_pConfVarsGUI->NumVPLsDirectLight = 500;
+	m_pConfVars->NumVPLsDirectLightPerFrame = m_pConfVarsGUI->NumVPLsDirectLightPerFrame = 5;
 	m_pConfVars->ConeFactor = m_pConfVarsGUI->ConeFactor = 10.f;
-	m_pConfVars->ClusterRefinementThreshold = m_pConfVarsGUI->ClusterRefinementThreshold = 0.1f;
+	m_pConfVars->ClusterRefinementThreshold = m_pConfVarsGUI->ClusterRefinementThreshold = 0.01f;
 	m_pConfVars->ClusterRefinementWeight = m_pConfVarsGUI->ClusterRefinementWeight = 0.8f;
 	m_pConfVars->ClusterRefinementMaxRadiance = m_pConfVarsGUI->ClusterRefinementMaxRadiance = 20.f;
 
@@ -52,7 +52,7 @@ CConfigManager::CConfigManager(Renderer* pRenderer)
 	
 	m_pConfVars->UseToneMapping = m_pConfVarsGUI->UseToneMapping = 0;
 	m_pConfVars->UseGammaCorrection = m_pConfVarsGUI->UseGammaCorrection = 1;
-	m_pConfVars->Gamma = m_pConfVarsGUI->Gamma = 1.0f;
+	m_pConfVars->Gamma = m_pConfVarsGUI->Gamma = 2.2f;
 	m_pConfVars->Exposure = m_pConfVarsGUI->Exposure = 1.f;
 	m_pConfVars->Intersection_BFC = m_pConfVarsGUI->Intersection_BFC = 1;
 			

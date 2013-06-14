@@ -41,6 +41,40 @@ struct AVPL_STRUCT
 	float padd0;
 };
 
+struct AVPL_TRANSFORM
+{
+	glm::mat4 ViewMatrix;
+	glm::mat4 ProjectionMatrix;
+};
+
+struct AVPL_DATA
+{
+	glm::vec4 L;			// radiance
+	glm::vec4 A;			// antiradiance;
+	
+	glm::vec3 pos;			// position
+	float materialIndex;	// Index in the material buffer
+	
+	glm::vec3 norm;			// orientation;
+	float angleFactor;	
+	
+	glm::vec3 w;			// direction of antiradiance, incident light direction;
+	float bounnce;			// order of indiection
+
+	glm::vec4 DebugColor;
+	
+	glm::vec3 pMin;
+	float padd0;
+
+	glm::vec3 pMax;
+	float padd1;
+
+	float left_id;
+	float right_id;
+	float size;
+	float depth;	// depth in the cluster tree
+};
+
 struct AVPL_BUFFER
 {
 	glm::vec4 L;	// radiance;
@@ -50,6 +84,7 @@ struct AVPL_BUFFER
 	glm::vec4 w;	// direction of antiradiance, incident light direction;
 	float angleFactor;	// PI/AngleFactor = Half opening angleFactor of AR cone
 	float materialIndex;
+
 	float padd0;
 	float padd1;
 };
@@ -60,7 +95,7 @@ struct CLUSTER_BUFFER
 	float depth;
 	
 	glm::vec3 intensity;
-	float avplIndex;	
+	float avplIndex;
 	
 	glm::vec3 normal;
 	float id;	
@@ -75,6 +110,9 @@ struct CLUSTER_BUFFER
 
 	glm::vec3 pMax;
 	float padd1;
+
+	glm::vec3 incomingDirection;
+	float materialIndex;
 };
 
 struct CONFIG

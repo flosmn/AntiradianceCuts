@@ -37,7 +37,7 @@ public:
 	void RotDown(float t);
 	void ZoomOut(float t);
 	void ZoomIn(float t);
-	void SetSpeed(float s);
+	void SetSpeed(float s) { m_Speed = s; };
 	void MoveForward(float t);
 	void MoveBackward(float t);
 	void MoveLeft(float t);

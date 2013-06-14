@@ -58,6 +58,7 @@ public:
 	void LoadCornellEmpty();
 	void LoadRoom();
 	void LoadConferenceRoom();
+	void LoadHouse();
 
 	bool HasLightSource() { return m_HasLightSource; }
 

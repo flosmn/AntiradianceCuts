@@ -232,8 +232,8 @@ bool Scene::ContinueAVPLPath(AVPL* pred, AVPL* newAVPL, glm::vec3 direction, flo
 	if(inter_kd)
 	{
 		// gather information for the new VPL
-		glm::vec3 pos = intersection.GetPosition();
 		glm::vec3 norm = intersection.GetPrimitive()->GetNormal();
+		glm::vec3 pos = intersection.GetPosition() - 0.1f * norm;
 		uint index = intersection.GetPrimitive()->GetMaterialIndex();
 		if(index > 100)
 			std::cout << "material index uob" << std::endl;
@@ -543,7 +543,7 @@ void Scene::LoadCornellBox()
 	ClearScene();
 
 	CModel* model = new CModel();
-	model->Init("cb-diffuse-hightessellation", "obj", m_pMaterialBuffer);
+	model->Init("cb-buddha-diffuse", "obj", m_pMaterialBuffer);
 	model->SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
 
 	m_pReferenceImage = new CReferenceImage(m_Camera->GetWidth(), m_Camera->GetHeight());
@@ -551,8 +551,8 @@ void Scene::LoadCornellBox()
 
 	m_Models.push_back(model);
 
-	m_Camera->Init(0, glm::vec3(278.f, 273.f, -800.f), 
-		glm::vec3(278.f, 273.f, -799.f),
+	m_Camera->Init(0, glm::vec3(278.f, 273.f, -650.f), 
+		glm::vec3(278.f, 273.f, -649.f),
 		glm::vec3(0.f, 1.f, 0.f),
 		2.0f);
 
@@ -576,7 +576,7 @@ void Scene::LoadCornellBox()
 		glm::vec3(0.f, 1.f, 0.f),
 		2.0f);
 
-	m_Camera->UseCameraConfig(1);
+	m_Camera->UseCameraConfig(0);
 	
 	glm::vec3 areaLightFrontDir = glm::vec3(0.0f, -1.0f, 0.0f);
 	glm::vec3 areaLightPosition = glm::vec3(278.f, 548.78999f, 279.5f);
@@ -661,7 +661,7 @@ void Scene::LoadBuddha()
 	ClearScene();
 
 	CModel* model = new CModel();
-	model->Init("cb-buddha-diffuse", "obj", m_pMaterialBuffer);
+	model->Init("cb-buddha-specular", "obj", m_pMaterialBuffer);
 	model->SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
 
 	m_pReferenceImage = new CReferenceImage(m_Camera->GetWidth(), m_Camera->GetHeight());
@@ -750,6 +750,53 @@ void Scene::LoadConferenceRoom()
 		areaLightPosition, 
 		areaLightFrontDir,
 		Orthogonal(areaLightFrontDir),
+		m_pMaterialBuffer);
+
+	m_AreaLight->Init();
+
+	m_AreaLight->SetRadiance(AreaLightRadianceScale * glm::vec3(1.f, 1.f, 1.f));
+
+	m_pConfManager->GetConfVars()->UseIBL = m_pConfManager->GetConfVarsGUI()->UseIBL = 0;
+		
+	InitKdTree();
+}
+
+void Scene::LoadHouse()
+{
+	ClearScene();
+
+	CModel* model = new CModel();
+	model->Init("house_stair", "obj", m_pMaterialBuffer);
+	model->SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
+		
+	m_Models.push_back(model);
+
+	m_Camera->Init(0, glm::vec3(-1.f, 4.45f, 11.5f), 
+		glm::vec3(-1.f, 4.45f, 10.5f),
+		glm::vec3(0.f, 1.f, 0.f),
+		2.0f);
+	
+	m_Camera->UseCameraConfig(0);
+	m_Camera->SetSpeed(0.1);
+	
+	glm::vec3 areaLightFrontDir = glm::normalize(glm::vec3(1.0f, -1.0f, 0.0f));
+	glm::vec3 areaLightPosition = glm::vec3(-19.87f, 12.00f, -10.140f);
+	
+	m_pConfManager->GetConfVars()->AreaLightFrontDirection[0] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[0] = areaLightFrontDir.x;
+	m_pConfManager->GetConfVars()->AreaLightFrontDirection[1] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[1] = areaLightFrontDir.y;
+	m_pConfManager->GetConfVars()->AreaLightFrontDirection[2] = m_pConfManager->GetConfVarsGUI()->AreaLightFrontDirection[2] = areaLightFrontDir.z;
+
+	m_pConfManager->GetConfVars()->AreaLightPosX = m_pConfManager->GetConfVarsGUI()->AreaLightPosX = areaLightPosition.x;
+	m_pConfManager->GetConfVars()->AreaLightPosY = m_pConfManager->GetConfVarsGUI()->AreaLightPosY = areaLightPosition.y;
+	m_pConfManager->GetConfVars()->AreaLightPosZ = m_pConfManager->GetConfVarsGUI()->AreaLightPosZ = areaLightPosition.z;
+
+	float AreaLightRadianceScale = 5000;
+	m_pConfManager->GetConfVars()->AreaLightRadianceScale = m_pConfManager->GetConfVarsGUI()->AreaLightRadianceScale = AreaLightRadianceScale;
+
+	m_AreaLight = new AreaLight(5.0f, 5.0f, 
+		areaLightPosition, 
+		areaLightFrontDir,
+		glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f)),
 		m_pMaterialBuffer);
 
 	m_AreaLight->Init();

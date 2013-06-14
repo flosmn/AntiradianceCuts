@@ -32,6 +32,9 @@ struct CLUSTER
 	glm::vec3 mean;
 	glm::vec3 intensity;
 	glm::vec3 normal;
+
+	glm::vec3 incomingDirection;
+	float materialIndex;
 	
 	void Fill(CLUSTER_BUFFER* buffer)
 	{
@@ -44,6 +47,8 @@ struct CLUSTER
 		buffer->size = float(size);
 		buffer->pMin = bbox.pMin;
 		buffer->pMax = bbox.pMax;
+		buffer->materialIndex = materialIndex;
+		buffer->incomingDirection = incomingDirection;
 
 		if(left)
 			buffer->left_id = float(left->id);

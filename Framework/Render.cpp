@@ -378,12 +378,10 @@ bool Renderer::Init()
 
 	m_pShadeProgram->BindSampler(0, m_pGLPointSampler);
 	m_pShadeProgram->BindUniformBuffer(m_pUBCamera, "camera");
-	m_pShadeProgram->BindUniformBuffer(m_pUBTransform, "transform");
 
 	m_pErrorProgram->BindSampler(0, m_pGLPointSampler);
 	m_pErrorProgram->BindSampler(1, m_pGLPointSampler);
 	m_pErrorProgram->BindUniformBuffer(m_pUBCamera, "camera");
-	m_pErrorProgram->BindUniformBuffer(m_pUBTransform, "transform");
 
 	m_pAddProgram->BindSampler(0, m_pGLPointSampler);
 	m_pAddProgram->BindSampler(1, m_pGLPointSampler);
@@ -405,7 +403,7 @@ bool Renderer::Init()
 
 	scene = new Scene(camera, m_pConfManager, m_pCLContext);
 	scene->Init();
-	scene->LoadBuddha();
+	scene->LoadCornellBox();
 	scene->GetMaterialBuffer()->InitOGLMaterialBuffer();
 	scene->GetMaterialBuffer()->InitOCLMaterialBuffer();
 		
@@ -413,7 +411,7 @@ bool Renderer::Init()
 
 	time(&m_StartTime);
 
-	int dim_atlas = 4096;
+	int dim_atlas = 3072;
 	int dim_tile = 16;
 		
 	ATLAS_INFO atlas_info;
@@ -421,10 +419,11 @@ bool Renderer::Init()
 	atlas_info.dim_tile = dim_tile;
 	m_pUBAtlasInfo->UpdateData(&atlas_info);
 	
-	m_pOctahedronMap->Init(32);
+	m_pOctahedronMap->Init(16);
 	m_pOctahedronMap->FillWithDebugData();
 
 	m_MaxNumAVPLs = int(std::pow(float(dim_atlas) / float(dim_tile), 2.f));
+	std::cout << "max num avpls: " << m_MaxNumAVPLs << std::endl;
 
 	V_RET_FOF(m_pAVPLPositions->Init(sizeof(AVPL_POSITION) * m_MaxNumAVPLs, GL_STATIC_DRAW, GL_R32F));
 
@@ -702,8 +701,7 @@ void Renderer::Render()
 	
 	m_pPostProcess->Postprocess(m_pResultRenderTarget->GetBuffer(0), m_pPostProcessRenderTarget);
 	m_pTextureViewer->DrawTexture(m_pPostProcessRenderTarget->GetBuffer(0), 0, 0, camera->GetWidth(), camera->GetHeight());	
-	//m_pTextureViewer->DrawTexture(m_pGBuffer->GetNormalTexture(), 0, 0, camera->GetWidth(), camera->GetHeight());	
-
+	
 	if(m_ProfileFrame) timer.Stop("finalize");
 	if(m_ProfileFrame) timer.Start();
 
@@ -949,8 +947,8 @@ void Renderer::DrawDebug()
 		int border = 10;
 		int width = (camera->GetWidth() - 4 * border) / 2;
 		int height = (camera->GetHeight() - 4 * border) / 2;
-		m_pTextureViewer->DrawTexture(m_pNormalizeAntiradianceRenderTarget->GetBuffer(0),  border, border, width, height);
-		m_pTextureViewer->DrawTexture(m_pNormalizeAntiradianceRenderTarget->GetBuffer(1),  3 * border + width, border, width, height);
+		m_pTextureViewer->DrawTexture(m_pGBuffer->GetNormalTexture(),  border, border, width, height);
+		m_pTextureViewer->DrawTexture(m_pGBuffer->GetPositionTextureWS(),  3 * border + width, border, width, height);
 		m_pTextureViewer->DrawTexture(m_pNormalizeAntiradianceRenderTarget->GetBuffer(2),  border, 3 * border + height, width, height);
 		m_pTextureViewer->DrawTexture(m_pGBuffer->GetMaterialTexture(),  3 * border + width, 3 * border + height, width, height);
 	}
@@ -973,7 +971,7 @@ void Renderer::CheckExport()
 #else
 	bool exportImage = m_NumAVPLs >= m_NumAVPLsForNextImageExport;
 #endif
-
+	
 	if(exportData)
 	{
 		float error = 0.f;
@@ -991,7 +989,7 @@ void Renderer::CheckExport()
 		m_NumAVPLsForNextDataExport = int(float(m_NumAVPLsForNextDataExport) * std::pow(10.f, 0.25f));
 #endif
 	}
-
+	
 	if(exportImage)
 	{
 		ExportPartialResult();
@@ -1311,7 +1309,6 @@ void Renderer::CreateClustering(std::vector<AVPL>& avpls)
 
 	m_pClusterTree->Release();		
 	m_pClusterTree->BuildTree(avpls);
-	m_pClusterTree->Color(avpls, m_pConfManager->GetConfVars()->ClusterDepth);
 
 	if(m_pConfManager->GetConfVars()->UseDebugMode)
 		m_pClusterTree->Color(m_DebugAVPLs, m_pConfManager->GetConfVars()->ClusterDepth);
@@ -1621,10 +1618,10 @@ void Renderer::WindowChanged()
 
 void Renderer::ClearAccumulationBuffer()
 {
-	m_NumAVPLsForNextDataExport = 1000;
+	m_NumAVPLsForNextDataExport = 50000;
 	m_NumAVPLsForNextImageExport = 10000;
 	m_TimeForNextDataExport = 1000;
-	m_TimeForNextImageExport = 30000;
+	m_TimeForNextImageExport = 60000;
 	m_NumAVPLs = 0;
 
 	glClearColor(0, 0, 0, 0);
@@ -1725,9 +1722,7 @@ void Renderer::Export()
 {
 	m_Export->ExportHDR(m_pPostProcessRenderTarget->GetBuffer(0), "result.hdr");
 	m_Export->ExportPNG(m_pPostProcessRenderTarget->GetBuffer(0), "result.png");
-	//m_Export->ExportHDR(m_pErrorRenderTarget->GetBuffer(0), "error.hdr");
-	//m_Export->ExportPNG(m_pErrorRenderTarget->GetBuffer(0), "error.png");
-
+	
 	m_pExperimentData->WriteToFile();
 }
 
@@ -1735,18 +1730,9 @@ void Renderer::ExportPartialResult()
 {
 	int seconds = (int)(m_pGlobalTimer->GetTime() / 1000.f);
 	std::stringstream ss0;
-	std::stringstream ss1;
-	std::stringstream ss2;
-	std::stringstream ss3;
 	ss0 << "result-" << m_NumAVPLs << "-numAVPLs-" << seconds <<"-sec" << ".pfm";
-	ss1 << "result-" << m_NumAVPLs << "-numAVPLs-" << seconds <<"-sec" << ".png";
-	ss2 << "error-" << m_NumAVPLs << "-numAVPLs-" << seconds <<"-sec" << ".pfm";
-	ss3 << "error-" << m_NumAVPLs << "-numAVPLs-" << seconds <<"-sec" << ".png";
-
+	
 	m_Export->ExportPFM(m_pPostProcessRenderTarget->GetBuffer(0), ss0.str());
-	m_Export->ExportPNG(m_pPostProcessRenderTarget->GetBuffer(0), ss1.str());
-	m_Export->ExportPFM(m_pErrorRenderTarget->GetBuffer(0), ss2.str());
-	m_Export->ExportPNG(m_pErrorRenderTarget->GetBuffer(0), ss3.str());
 }
 
 void Renderer::NewDebugLights()

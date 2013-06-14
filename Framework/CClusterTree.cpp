@@ -158,19 +158,36 @@ CLUSTER CClusterTree::BuildTree(int* indices_split_axis_from, int* indices_other
 
 CLUSTER CClusterTree::MergeClusters(const CLUSTER& l, const CLUSTER& r, int depth)
 {
+	const float thresh = l.intensity.length() / (l.intensity.length() + r.intensity.length());
+	const float p = Rand01();
+	
 	const float sl = float(l.size);
 	const float sr = float(r.size);
 	const float norm = 1.f / (sl + sr);
 	
 	const int id = m_ClusterId;
+
+	if (p <= thresh)
+	{
+		m_pClustering[id].mean = l.mean;
+		m_pClustering[id].normal = l.normal;
+		m_pClustering[id].incomingDirection = l.incomingDirection;
+		m_pClustering[id].materialIndex = l.materialIndex;
+	}
+	else
+	{
+		m_pClustering[id].mean = r.mean;
+		m_pClustering[id].normal = r.normal;
+		m_pClustering[id].incomingDirection = r.incomingDirection;
+		m_pClustering[id].materialIndex = r.materialIndex;
+	}
+	
 	m_pClustering[id].bbox = BBox::Union(l.bbox, r.bbox);
 	m_pClustering[id].avplIndex = -1;
 	m_pClustering[id].depth = depth;
 	m_pClustering[id].left = &(m_pClustering[l.id]);
 	m_pClustering[id].right = &(m_pClustering[r.id]);
 	m_pClustering[id].intensity = l.intensity + r.intensity;
-	m_pClustering[id].mean = norm * (sl * l.mean + sr * r.mean);
-	m_pClustering[id].normal = norm * (sl * l.normal + sr * r.normal);
 	m_pClustering[id].size = l.size + r.size;
 	m_pClustering[id].id = id;
 
@@ -190,9 +207,11 @@ void CClusterTree::CreateLeafClusters(const std::vector<AVPL>& avpls)
 		m_pClustering[id].id = id;
 		m_pClustering[id].bbox = BBox(pos, pos);
 		m_pClustering[id].depth = -1;
-		m_pClustering[id].intensity = avpls[i].GetIncidentRadiance() + avpls[i].GetAntiradiance(avpls[i].GetDirection());
+		m_pClustering[id].intensity = avpls[i].GetIncidentRadiance(); // + avpls[i].GetAntiradiance(avpls[i].GetDirection());
+		m_pClustering[id].incomingDirection = avpls[i].GetDirection();
+		m_pClustering[id].materialIndex = avpls[i].GetMaterialIndex();
 		m_pClustering[id].mean = pos;
-		m_pClustering[id].normal = avpls[i].GetOrientation();
+		m_pClustering[id].normal = glm::normalize(avpls[i].GetOrientation());
 		m_pClustering[id].size = 1;
 		m_pClustering[id].left = 0;
 		m_pClustering[id].right = 0;

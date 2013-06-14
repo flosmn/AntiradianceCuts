@@ -7,13 +7,13 @@ layout(std140) uniform;
 #define ONE_OVER_THREE 0.333333f
 
 #define EPSILON 0.001f
-#define SIZE_CLUSTER 6
+#define SIZE_CLUSTER 7
 #define SIZE_MATERIAL 4
+#define MAX_CLUSTER_SIZE 5
 
-#define MAX_RAD 1e4f
-#define MAX_ANTIRAD 1e4f
-#define MAX_RADIANCE vec4(MAX_RAD, MAX_RAD, MAX_RAD, 1.f)
-#define MAX_ANTIRADIANCE vec4(MAX_ANTIRAD, MAX_ANTIRAD, MAX_ANTIRAD, 1.f)
+const bool useDiskAreaLight = false;
+const bool useAtlas = false;
+const bool useAntiradiance = false;
 
 uniform atlas_info
 {
@@ -96,7 +96,6 @@ void main()
 	vec3 vPositionWS = texture2D(samplerPositionWS, coord).xyz;
 	vec3 vNormalWS = normalize(texture2D(samplerNormalWS, coord).xyz);
 
-	int sizeMaterial = 4;
 	int materialIndex = int(texture2D(samplerNormalWS, coord).w);
 	const vec4 cDiffuse =	texelFetch(samplerMaterialBuffer, materialIndex * SIZE_MATERIAL + 1);
 	const vec4 cSpecular =	texelFetch(samplerMaterialBuffer, materialIndex * SIZE_MATERIAL + 2);
@@ -106,6 +105,8 @@ void main()
 	outputRadiance = vec4(0.f);
 	outputAntiradiance = vec4(0.f);
 	
+	int columns = uAtlasInfo.dim_atlas / uAtlasInfo.dim_tile;
+
 	int cut_size = 0;
 	int indicesStack[32];
 	int stackPointer = 0;
@@ -122,79 +123,49 @@ void main()
 		const vec3 mean = temp.xyz;
 		int depth = int(temp.w);
 
-		// process current node
-		if(uInfo.lightTreeCutDepth == -1)
+		const vec4 ids = texelFetch(samplerClusterBuffer, currentId * SIZE_CLUSTER + 3);
+		int leftId = int(ids.x);
+		int rightId = int(ids.y);
+		int size = int(ids.z);
+		bool bigEnough = (size >= MAX_CLUSTER_SIZE);
+
+		vec4 radiance = vec4(0.f);
+		vec4 antiradiance = vec4(0.f);
+
+		ProcessCluster(currentId, mean, vPositionWS, vNormalWS, radiance, antiradiance, cDiffuse, cSpecular, exponent);
+
+		const bool leaf = (rightId == -1 && leftId == -1);
+		bool refine = leaf ? false : (!useDiskAreaLight || bigEnough) && Refine(currentId, mean, vPositionWS, vNormalWS, radiance, antiradiance);
+		if(refine)
 		{
-			// use every leaf
-			const vec4 ids = texelFetch(samplerClusterBuffer, currentId * SIZE_CLUSTER + 3);
-			int leftId = int(ids.x);
-			int rightId = int(ids.y);
-
-			vec4 radiance = vec4(0.f);
-			vec4 antiradiance = vec4(0.f);
-
-			ProcessCluster(currentId, mean, vPositionWS, vNormalWS, radiance, antiradiance, cDiffuse, cSpecular, exponent);
-
-			const bool leaf = (rightId == -1 && leftId == -1);
-			
-			bool refine = leaf ? false : Refine(currentId, mean, vPositionWS, vNormalWS, radiance, antiradiance);
-			if(refine)
-			{
-				if(leftId != -1)
-					indicesStack[stackPointer++] = leftId;	// issue traversal of left subtree	
-				if(rightId != -1)
-					indicesStack[stackPointer++] = rightId;	// issue traversal of right subtree
-			}
-			else
-			{
-				vec4 diff = vec4(0.f);
-				
-				outputDiff += radiance - antiradiance;
-				outputRadiance += radiance;
-				outputAntiradiance += antiradiance;	
-
-				cut_size += 1;
-			}
+			if(leftId != -1)
+				indicesStack[stackPointer++] = leftId;	// issue traversal of left subtree	
+			if(rightId != -1)
+				indicesStack[stackPointer++] = rightId;	// issue traversal of right subtree
 		}
 		else
 		{
-			const vec4 ids = texelFetch(samplerClusterBuffer, currentId * SIZE_CLUSTER + 3);
-			int leftId = int(ids.x);
-			int rightId = int(ids.y);
-			const bool leaf = rightId == -1 && leftId == -1;
-
-			if(depth == uInfo.lightTreeCutDepth || leaf)
-			{			
-				vec4 radiance = vec4(0.f);
-				vec4 antiradiance = vec4(0.f);
-				vec4 diff = vec4(0.f);
-								
-				ProcessCluster(currentId, mean, vPositionWS, vNormalWS, radiance, antiradiance,
-					cDiffuse, cSpecular, exponent);		
+			vec4 diff = vec4(0.f);
 			
+			if(useAntiradiance)
 				outputDiff += radiance - antiradiance;
-				outputRadiance += radiance;
-				outputAntiradiance += antiradiance;	
-
-				cut_size += 1;
-			}
 			else
-			{							
-				if(rightId != -1)
-					indicesStack[stackPointer++] = rightId;	// issue traversal of right subtree
-				if(leftId != -1)
-					indicesStack[stackPointer++] = leftId;	// issue traversal of left subtree		
-			}
+				outputDiff += radiance;
+			outputRadiance += radiance;
+			outputAntiradiance += vec4(0.f); //antiradiance;
+
+			cut_size += 1;
 		}
 		
-		breakLoop++;		
+		breakLoop++;
 	}
 
 	if(breakLoop >= 100000)
 		outputDiff += vec4(0.f, 0.f, 1000.f, 1.f);
 
 	const float frac_temp01 = float(cut_size) / float(uInfo.numLights);
-	outputCutSizes = vec4(frac_temp01, frac_temp01, frac_temp01, 0.f);
+	outputCutSizes = vec4(frac_temp01, 0.f, 0.f, 1.f);
+	
 	outputDiff.w = 1.f;
 	outputRadiance.w = 1.f;
 	outputAntiradiance.w = 1.f;
@@ -206,57 +177,87 @@ void ProcessCluster(in int clusterId, in vec3 avpl_pos, in vec3 pos, in vec3 nor
 	const vec4 ids = texelFetch(samplerClusterBuffer, clusterId * SIZE_CLUSTER + 3);
 	int leftId = int(ids.x);
 	int rightId = int(ids.y);
+	int size = int(ids.z);
 	
-	const vec3 avpl_norm = texelFetch(samplerClusterBuffer, clusterId * SIZE_CLUSTER + 2).xyz;
+	const vec4 avplInfo = texelFetch(samplerClusterBuffer, clusterId * SIZE_CLUSTER + 6);
+	const vec3 incomingDirectionAVPL = normalize(avplInfo.xyz);
+	int materialIndex = int(avplInfo.w);
+
+	const vec4 cDiffuseAVPL = texelFetch(samplerMaterialBuffer, materialIndex * SIZE_MATERIAL + 1);
+	const vec4 cSpecularAVPL = texelFetch(samplerMaterialBuffer, materialIndex * SIZE_MATERIAL + 2);
+	const float exponentAVPL = texelFetch(samplerMaterialBuffer, materialIndex * SIZE_MATERIAL + 3).r;
+	
+	const vec3 avpl_norm = normalize(texelFetch(samplerClusterBuffer, clusterId * SIZE_CLUSTER + 2).xyz);
 	const vec3 avpl_to_pos = normalize(pos - avpl_pos);
+
+	vec4 brdf_avpl = f_r(-incomingDirectionAVPL, avpl_to_pos, avpl_norm, cDiffuseAVPL, cSpecularAVPL, exponentAVPL);
+	vec4 brdf_pos = f_r(avpl_pos, pos, uCamera.vPositionWS, norm, diffuse, specular, exponent);
 
 	const bool leaf = (rightId == -1 && leftId == -1);
 	int atlasIndex = leaf ? clusterId : clusterId - uInfo.numLights;
 					
 	vec4 rad = vec4(0.f);
 	vec4 antirad = vec4(0.f);
-	AccessAvplAtlas(avpl_to_pos, rad, antirad, atlasIndex, leaf);
+
+	if(!useAtlas)
+		rad = vec4(texelFetch(samplerClusterBuffer, clusterId * SIZE_CLUSTER + 1).xyz, 1.f);
+	else
+		AccessAvplAtlas(avpl_to_pos, rad, antirad, atlasIndex, leaf);
 	
 	if(dot(norm, -avpl_to_pos) <= 0.f + EPSILON)
 		antirad = vec4(0.f);
 
 	if(dot(avpl_norm, avpl_to_pos) >= 0.f - EPSILON)
 		antirad = vec4(0.f);
-
+	
 	const float dist = length(pos - avpl_pos);
 	const float cos_theta_pos_to_avpl = clamp(dot(norm, -avpl_to_pos), 0.f, 1.f);
-	
-	float G = cos_theta_pos_to_avpl / (dist * dist);
-	const float G_rad = uConfig.ClampGeoTerm == 1 ? clamp(G, 0, uConfig.GeoTermLimitRadiance) : G;
-	const float G_antirad = uConfig.ClampGeoTerm == 1 ? clamp(G, 0, uConfig.GeoTermLimitAntiradiance) : G;
-	
-	vec4 BRDF = f_r(avpl_pos, pos, uCamera.vPositionWS, norm, diffuse, specular, exponent);
-	
-	antiradiance = min(MAX_ANTIRADIANCE, BRDF * G_antirad * antirad);
-	radiance = min(MAX_RADIANCE, BRDF * G_rad * rad);
-}
+	const float cos_theta_avpl_to_pos = clamp(dot(avpl_norm, avpl_to_pos), 0.f, 1.f);
 
+	if (!useDiskAreaLight || (size >= MAX_CLUSTER_SIZE))
+	{
+		float G = (cos_theta_pos_to_avpl) / (dist * dist);
+		
+		if(!useAtlas)
+			G *= cos_theta_avpl_to_pos;
+
+		const float G_rad = uConfig.ClampGeoTerm == 1 ? clamp(G, 0, uConfig.GeoTermLimitRadiance) : G;
+		const float G_antirad = uConfig.ClampGeoTerm == 1 ? clamp(G, 0, uConfig.GeoTermLimitAntiradiance) : G;
+		
+		if(useAtlas)
+			antiradiance = brdf_pos * G_antirad * antirad;
+		else
+			antiradiance = vec4(0.f);
+
+		radiance = brdf_pos * G_rad * rad;
+
+		if(!useAtlas)
+			radiance *= brdf_avpl;
+	}
+	else // treat cluster as area light (disk)
+	{
+		const vec3 bbMin = texelFetch(samplerClusterBuffer, clusterId * SIZE_CLUSTER + 4).xyz;
+		const vec3 bbMax = texelFetch(samplerClusterBuffer, clusterId * SIZE_CLUSTER + 5).xyz;
+		const float radius = 0.5f * length(bbMin - bbMax);
+		const float area = PI * radius * radius;
+
+		if(!useAtlas)
+		{
+			antiradiance = vec4(0.f);
+			radiance = PI * brdf_pos * (cos_theta_avpl_to_pos * cos_theta_pos_to_avpl) / (area + PI * dist * dist) * brdf_avpl * rad;		
+		}
+		else
+		{
+			antiradiance = PI * brdf_pos * (cos_theta_avpl_to_pos * cos_theta_pos_to_avpl) / (area + PI * dist * dist) * antirad;
+			radiance = PI * brdf_pos * (cos_theta_pos_to_avpl) / (area + PI * dist * dist) * rad;
+		}
+	}
+}
 
 bool Refine(in int cluster_id, in vec3 cluster_center, in vec3 position, in vec3 normal, in vec4 radiance, in vec4 antiradiance)
 {
-	/*
-	vec3 pMin = texelFetch(samplerClusterBuffer, cluster_id * SIZE_CLUSTER + 4).xyz;
-	vec3 pMax = texelFetch(samplerClusterBuffer, cluster_id * SIZE_CLUSTER + 5).xyz;
+#if 0
 
-	const vec3 toCluster = normalize(cluster_center - position);
-	const float dist = length(toCluster);
-	const float one_over_dist_squared = 1.f / (dist * dist);
-
-	const float radius = length(pMax - pMin) / 2.f;
-	const float cos_theta = 1.f; //clamp(dot(toCluster, normal), 0.f, 1.f);
-	const float solid_angle = PI * radius * radius * cos_theta * one_over_dist_squared;
-
-	if(solid_angle >= uInfo.clusterRefinementThreshold)
-	{
-		return true;
-	}
-	return false;
-	*/
 	vec3 pMin = texelFetch(samplerClusterBuffer, cluster_id * SIZE_CLUSTER + 4).xyz;
 	vec3 pMax = texelFetch(samplerClusterBuffer, cluster_id * SIZE_CLUSTER + 5).xyz;
 	
@@ -277,7 +278,24 @@ bool Refine(in int cluster_id, in vec3 cluster_center, in vec3 position, in vec3
 	/*const*/ float rad = map(clamp(avg(diff), 0.f, uInfo.clusterRefinementMaxRadiance), 0.f, uInfo.clusterRefinementMaxRadiance, 0.f, 1.f);
 	const float alpha = uInfo.clusterRefinementWeight;
 
-	const float weight = alpha * solid_angle + (1.f-alpha) * rad;
+	const float weight = solid_angle; //alpha * solid_angle + (1.f-alpha) * rad;
+
+#endif
+
+	const vec3 bbMin = texelFetch(samplerClusterBuffer, cluster_id * SIZE_CLUSTER + 4).xyz;
+	const vec3 bbMax = texelFetch(samplerClusterBuffer, cluster_id * SIZE_CLUSTER + 5).xyz;
+	const float radius = 0.5f * length(bbMin - bbMax);
+	const float area = PI * radius * radius;
+
+	const float dist = length(position - cluster_center);
+	const vec3 avpl_to_pos = normalize(position - cluster_center);
+
+	const vec3 avpl_norm = normalize(texelFetch(samplerClusterBuffer, cluster_id * SIZE_CLUSTER + 2).xyz);
+	const float cos_theta_pos_to_avpl = clamp(dot(normal, -avpl_to_pos), 0.f, 1.f);
+	const float cos_theta_avpl_to_pos = 1.f; //clamp(dot(avpl_norm, avpl_to_pos), 0.f, 1.f);
+
+	const float weight = /*(1.f - dist / (sqrt(radius * radius + dist * dist)));*/
+		area / (area + PI * dist * dist);
 
 	if(weight >= uInfo.clusterRefinementThreshold)
 	{
@@ -346,7 +364,7 @@ vec4 f_r(in vec3 w_i, in vec3 w_o, in vec3 n, in vec4 diffuse, in vec4 specular,
 	const vec4 d = ONE_OVER_PI * diffuse;
 	const float cos_theta = max(0.f, dot(reflect(-w_i, n), w_o));
 	const vec4 s = max(0.5f * ONE_OVER_PI * (exponent+2.f) * pow(cos_theta, exponent) * specular, 0.f);
-	return vec4(d.x + s.x, d.y + s.y, d.z + s.z, 1.f);
+	return d; //vec4(d.x + s.x, d.y + s.y, d.z + s.z, 1.f);
 }
 
 vec2 GetTexCoordForDir(vec3 dir){

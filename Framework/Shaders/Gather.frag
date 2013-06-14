@@ -9,11 +9,6 @@
 #define SIZE_MATERIAL 4
 #define EPSILON 0.001f
 
-#define MAX_RAD 1e4f
-#define MAX_ANTIRAD 1e4f
-#define MAX_RADIANCE vec4(MAX_RAD, MAX_RAD, MAX_RAD, 1.f)
-#define MAX_ANTIRADIANCE vec4(MAX_ANTIRAD, MAX_ANTIRAD, MAX_ANTIRAD, 1.f)
-
 layout(std140) uniform;
 
 uniform info_block
@@ -74,7 +69,7 @@ vec4 f_r(in vec3 w_i, in vec3 w_o, in vec3 n, in vec4 diffuse, in vec4 specular,
 	const vec4 d = ONE_OVER_PI * diffuse;
 	const float cos_theta = max(0.f, dot(reflect(-w_i, n), w_o));
 	const vec4 s = max(0.5f * ONE_OVER_PI * (exponent+2.f) * pow(cos_theta, exponent) * specular, 0.f);
-	return vec4(d.x + s.x, d.y + s.y, d.z + s.z, 1.f);
+	return d; //vec4(d.x + s.x, d.y + s.y, d.z + s.z, 1.f);
 }
 
 vec4 GetAntiradiance(in vec4 A, in vec3 avpls_pos, in vec3 pos, in vec3 avpl_norm, in vec3 norm, in vec3 w, float cone_factor);
@@ -107,7 +102,7 @@ void main()
 		const vec4 L =				texelFetch(samplerLightBuffer, i * SIZE_LIGHT + 0);
 		vec4 A =					texelFetch(samplerLightBuffer, i * SIZE_LIGHT + 1);
 		const vec3 p =		vec3(	texelFetch(samplerLightBuffer, i * SIZE_LIGHT + 2));
-		const vec3 n =		vec3(	texelFetch(samplerLightBuffer, i * SIZE_LIGHT + 3));		
+		const vec3 n =		vec3(	texelFetch(samplerLightBuffer, i * SIZE_LIGHT + 3));
 		const vec3 w =		vec3(	texelFetch(samplerLightBuffer, i * SIZE_LIGHT + 4));
 		const vec4 temp =			texelFetch(samplerLightBuffer, i * SIZE_LIGHT + 5);
 		const float coneFactor = temp.x;
@@ -130,14 +125,12 @@ void main()
 		if(length(L) > 0.f)
 		{
 			float G = G_CLAMP(vPositionWS, vNormalWS, p, n);
-			radiance = min(MAX_RADIANCE, L * BRDF_light * G * BRDF);
-			//radiance = L * BRDF_light * G * BRDF;
+			radiance = L * BRDF_light * G * BRDF;
 		}
 		
 		// calc antiradiance
 		if(length(A) > 0.f)
 		{
-			antiradiance = min(MAX_ANTIRADIANCE, BRDF * GetAntiradiance(A, p, vPositionWS, n, vNormalWS, w, coneFactor));
 			//antiradiance = BRDF * GetAntiradiance(A, p, vPositionWS, n, vNormalWS, w, coneFactor);
 		}
 		
