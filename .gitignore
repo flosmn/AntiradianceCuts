@@ -1,4 +1,18 @@
 
 /Debug
+/Release
+/x64
 /Framework/Debug
 /Framework/Export
+/Framework/x64
+/Framework/Experiments
+/Framework/References
+/Framework/Resources
+
+*.tlog
+
+
+
+/*.suo
+
+/ipch/framework-a822d13e/*.ipch
