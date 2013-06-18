@@ -3,19 +3,20 @@
 
 #include <glm/glm.hpp>
 
+#include <memory>
+#include <vector>
+
 typedef unsigned int uint;
 
 class CCamera;
-class COGLTexture2D;
+
+#include "OGLResources\COGLTexture2D.h"
 
 class CImagePlane
 {
 public:
-	CImagePlane();
-	~CImagePlane();
-
-	bool Init(CCamera* pCamera);
-	void Release();
+	CImagePlane(CCamera* pCamera);
+	virtual ~CImagePlane() {}
 
 	void Clear();
 	glm::vec2 GetPixelSample();
@@ -30,9 +31,11 @@ private:
 	uint m_Width;
 	uint m_Height;
 	glm::vec2 m_CurrentPixelSample;
-	COGLTexture2D* m_pOGLTexture;
-	uint* m_pNumSamples;
-	glm::vec4* m_pData;
+
+	std::vector<uint> m_numSamples;
+	std::vector<glm::vec4> m_data;
+
+	std::unique_ptr<COGLTexture2D> m_texture;
 };
 
 #endif _C_IMAGE_PLANE_H_

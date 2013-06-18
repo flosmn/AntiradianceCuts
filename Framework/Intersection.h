@@ -1,31 +1,31 @@
 #ifndef INTERSECTION_H
 #define INTERSECTION_H
 
+typedef unsigned int uint;
+
 #include "glm/glm.hpp"
 
-#include "CTriangle.h"
-
+class CTriangle;
 class CModel;
-class CPrimitive;
 
 class Intersection
 {
 public:
 	Intersection() { m_Position = glm::vec3(0.f); m_pPrimitive = 0; }
-	Intersection(const glm::vec3& position, CPrimitive* pPrimitive) { m_Position = position; m_pPrimitive = pPrimitive; }
+	Intersection(const glm::vec3& position, CTriangle* pPrimitive) { m_Position = position; m_pPrimitive = pPrimitive; }
 	~Intersection() {}	
 
-	CPrimitive* GetPrimitive() const { return m_pPrimitive; }
+	CTriangle const* GetPrimitive() const { return m_pPrimitive; }
 	glm::vec3 GetPosition() const { return m_Position; }
 	
-	glm::vec3 Intersection::GetNormal() const;
+	glm::vec3 GetNormal() const;
 	uint GetMaterialIndex () const;
 
-	void SetPrimitive(CPrimitive* pPrimitive) { m_pPrimitive = pPrimitive; }
+	void SetPrimitive(CTriangle const* const pPrimitive) { m_pPrimitive = pPrimitive; }
 	void SetPosition(const glm::vec3& position) { m_Position = position; }
 
 private:
-	CPrimitive* m_pPrimitive;
+	CTriangle const* m_pPrimitive;
 	glm::vec3 m_Position;
 };
 

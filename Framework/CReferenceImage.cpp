@@ -11,34 +11,19 @@
 CReferenceImage::CReferenceImage(uint width, uint height)
 	: m_Width(width), m_Height(height)
 {
-	m_pImage = new CImage(m_Width, m_Height);
-	m_pOGLTexture = new COGLTexture2D("CReferenceImage.m_pOGLTexture");
+	m_image.reset(new CImage(m_Width, m_Height));
+	m_texture.reset(new COGLTexture2D(m_Width, m_Height, GL_RGBA32F, 
+		GL_RGBA, GL_FLOAT, 1, false, "CReferenceImage.m_pOGLTexture"));
 }
 
 CReferenceImage::~CReferenceImage()
-{
-	SAFE_DELETE(m_pImage);
-	SAFE_DELETE(m_pOGLTexture);
-	
+{	
 }
 
 void CReferenceImage::LoadFromFile(const char* path, bool flipImage)
 {
-	m_pImage->LoadFromFile(path, flipImage);
-	
-	glm::vec4* pData = m_pImage->GetData();
-	for(int i = 0; i < m_pImage->GetWidth() * m_pImage->GetHeight(); ++i)
-	{
-		pData[i] = glm::min(glm::vec4(100.f), pData[i]);
-	}
-
-	m_pOGLTexture->Init(m_Width, m_Height, GL_RGBA32F, GL_RGBA, GL_FLOAT, 1, false);
-	m_pOGLTexture->SetPixelData(m_pImage->GetData());
-}
-
-void CReferenceImage::Release()
-{
-	m_pOGLTexture->Release();
+	m_image->LoadFromFile(path, flipImage);
+	m_texture->SetPixelData(m_image->GetData());
 }
 
 float CReferenceImage::GetError(COGLTexture2D* comp)
@@ -46,7 +31,7 @@ float CReferenceImage::GetError(COGLTexture2D* comp)
 	uint w = comp->GetWidth();
 	uint h = comp->GetHeight();
 	
-	glm::vec4* pRefData = m_pImage->GetData();
+	glm::vec4* pRefData = m_image->GetData();
 	glm::vec4* pCompData = new glm::vec4[w * h];
 	comp->GetPixelData(pCompData);
 

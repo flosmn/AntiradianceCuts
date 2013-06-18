@@ -42,8 +42,8 @@ uniform info_block
 	int filterAVPLAtlas;
 	int lightTreeCutDepth;
 	float clusterRefinementThreshold;
-	int padd1;
-	int padd2;
+	float padd1;
+	float padd2;
 } uInfo;
 
 uniform config

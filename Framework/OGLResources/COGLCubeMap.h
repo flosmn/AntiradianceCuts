@@ -12,11 +12,8 @@
 class COGLCubeMap : public COGLResource
 {
 public:
-	COGLCubeMap(const char* debugName);
+	COGLCubeMap(unsigned int width, unsigned int height, GLenum internalFormat, unsigned int nMipMapLevels, std::string const& debugName = "");
 	~COGLCubeMap();
-
-	virtual bool Init(unsigned int width, unsigned int height, GLenum internalFormat, unsigned int nMipMapLevels);
-	virtual void Release();
 
 	void LoadCubeMapFromFiles(
 		const char* pos_x, const char* neg_x, 

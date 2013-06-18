@@ -3,6 +3,8 @@
 
 #include "GL/glew.h"
 
+#include <memory>
+
 class COGLTexture2D;
 class COGLSampler;
 class COGLUniformBuffer;
@@ -16,12 +18,9 @@ class CConfigManager;
 class CPostprocess
 {
 public:
-	CPostprocess();
+	CPostprocess(CConfigManager* pConfigManager);
 	~CPostprocess();
 
-	bool Init(CConfigManager* pConfigManager);
-	void Release();
-	
 	void Postprocess(COGLTexture2D* pTexture, CRenderTarget* result);
 
 	void SetExposure(float exposure) { m_Exposure = exposure; UpdateUniformBuffer(); }
@@ -30,11 +29,10 @@ public:
 private:
 	void UpdateUniformBuffer();
 
-	CProgram* m_pPostProcessProgram;
-	CFullScreenQuad* m_pFullScreenQuad;
-
-	COGLUniformBuffer* m_pUniformBuffer;
-	COGLSampler* m_pPointSampler;
+	std::unique_ptr<CProgram> m_program;
+	std::unique_ptr<CFullScreenQuad> m_fullScreenQuad;
+	std::unique_ptr<COGLUniformBuffer> m_uniformBuffer;
+	std::unique_ptr<COGLSampler> m_pointSampler;
 	
 	float m_Gamma;
 	float m_Exposure;

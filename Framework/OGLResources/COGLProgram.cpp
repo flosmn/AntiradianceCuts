@@ -5,30 +5,18 @@
 
 #include "..\Utils\GLErrorUtil.h"
 
-#include "..\OGLResources\COGLUniformBuffer.h"
-#include "..\OGLResources\COGLSampler.h"
+#include "COGLUniformBuffer.h"
+#include "COGLSampler.h"
 
 #include <istream>
 #include <fstream>
 #include <sstream>
 #include <assert.h>
 
-COGLProgram::COGLProgram(const std::string debugName, const std::string VS, const std::string GS, 
-	const std::string FS, std::vector<std::string> headerFiles)
+COGLProgram::COGLProgram(const std::string VS, const std::string GS, 
+	const std::string FS, std::vector<std::string> headerFiles, std::string const& debugName)
 	: COGLResource(COGL_PROGRAM, debugName), m_VS(VS), m_GS(GS), m_FS(FS), m_HeaderFiles(headerFiles)
 {
-	
-}
-
-COGLProgram::~COGLProgram()
-{
-	COGLResource::~COGLResource();
-}
-
-bool COGLProgram::Init()
-{
-	V_RET_FOF(COGLResource::Init());
-	
 	GLuint vertexShader = LoadShader(GL_VERTEX_SHADER, m_VS);
 	GLuint geometryShader;
 	if(m_GS != "")
@@ -59,14 +47,12 @@ bool COGLProgram::Init()
 	glDeleteShader(vertexShader);
 	if(m_GS != "")
 		glDeleteShader(geometryShader);
-	glDeleteShader(fragmentShader);
-
-	return true;
+	glDeleteShader(fragmentShader);	
 }
-	
-void COGLProgram::Release()
+
+COGLProgram::~COGLProgram()
 {
-	COGLResource::Release();
+	COGLResource::~COGLResource();
 
 	glDeleteProgram(m_Resource);
 }
@@ -74,8 +60,6 @@ void COGLProgram::Release()
 void COGLProgram::BindUniformBuffer(COGLUniformBuffer* pGLUniformBuffer, 
 	const std::string strUniformBlockName)
 {
-	CheckInitialized("COGLProgram::BindUniformBuffer()");
-
 	GLuint index = glGetUniformBlockIndex(m_Resource, strUniformBlockName.c_str());
 
 	CheckGLError("COGLProgram", "BindUniformBuffer()");
@@ -89,8 +73,6 @@ void COGLProgram::BindUniformBuffer(COGLUniformBuffer* pGLUniformBuffer,
 
 void COGLProgram::BindSampler(GLuint samplerSlot, COGLSampler* pGLSampler)
 {
-	CheckInitialized("COGLProgram::BindSampler()");
-
 	COGLBindLock lockProgram(this, COGL_PROGRAM_SLOT);
 
 	glBindSampler(samplerSlot, pGLSampler->GetResourceIdentifier());

@@ -19,7 +19,7 @@ CMaterialBuffer::CMaterialBuffer(COCLContext* pOCLContext)
 {
 	MATERIAL mat;
 	m_Materials.push_back(mat);
-	m_pOGLMaterialBuffer = new COGLTextureBuffer("CMaterialBuffer.m_pOGLMaterialBuffer");
+	
 	m_pOCLMaterialBuffer = new COCLBuffer(pOCLContext, "CMaterialBuffer.m_pOCLMaterialBuffer");
 }
 
@@ -28,7 +28,6 @@ CMaterialBuffer::~CMaterialBuffer()
 	m_MapMatNameToIndex.clear();
 	m_Materials.clear();
 
-	SAFE_DELETE(m_pOGLMaterialBuffer);
 	SAFE_DELETE(m_pOCLMaterialBuffer);
 }
 
@@ -60,19 +59,11 @@ MATERIAL* CMaterialBuffer::GetMaterial(int i)
 	return &(m_Materials[i]);
 }
 
-bool CMaterialBuffer::InitOGLMaterialBuffer()
+bool CMaterialBuffer::FillOGLMaterialBuffer()
 {
-	V_RET_FOF(m_pOGLMaterialBuffer->Init((m_Materials.size()+1) * sizeof(MATERIAL), GL_STATIC_DRAW, GL_RGBA32F));
-
-	MATERIAL* pData = new MATERIAL[(m_Materials.size()+1)];
-	memset(pData, 0, (m_Materials.size()+1) * sizeof(MATERIAL));
-	for(int i = 0; i < (m_Materials.size()+1); ++i)
-	{
-		pData[i] = m_Materials[i];
-	}
-	m_pOGLMaterialBuffer->SetContent(pData, (m_Materials.size()+1) * sizeof(MATERIAL));
-	delete [] pData;
-
+	m_oglMaterialBuffer.reset(new COGLTextureBuffer(GL_RGBA32F));
+	m_oglMaterialBuffer->SetContent(m_Materials.size() * sizeof(MATERIAL), GL_STATIC_DRAW, m_Materials.data());
+	
 	return true;
 }
 
@@ -92,20 +83,9 @@ bool CMaterialBuffer::InitOCLMaterialBuffer()
 	return true;
 }
 
-void CMaterialBuffer::ReleaseOGLMaterialBuffer()
-{
-	m_pOGLMaterialBuffer->Release();
-}
-
 void CMaterialBuffer::ReleaseOCLMaterialBuffer()
 {
 	m_pOCLMaterialBuffer->Release();
-}
-
-COGLTextureBuffer* CMaterialBuffer::GetOGLMaterialBuffer()
-{
-	m_pOGLMaterialBuffer->CheckInitialized("CMaterialBuffer.GetOGLMaterialBuffer()");
-	return m_pOGLMaterialBuffer;
 }
 
 COCLBuffer* CMaterialBuffer::GetOCLMaterialBuffer()

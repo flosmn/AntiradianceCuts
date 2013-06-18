@@ -4,57 +4,29 @@
 
 #include "..\Utils\GLErrorUtil.h"
 
-COGLTextureBuffer::COGLTextureBuffer(std::string debugName)
-	: COGLResource(COGL_TEXTURE_BUFFER, debugName), m_Size(0)
+COGLTextureBuffer::COGLTextureBuffer(GLenum type, std::string const& debugName)
+	: COGLResource(COGL_TEXTURE_BUFFER, debugName), m_Type(type)
 {
+	glGenTextures(1, &m_TextureBufferTexture);
+	glGenBuffers(1, &m_Resource);
 
+	CheckGLError(m_DebugName, "COGLTextureBuffer::COGLTextureBuffer()");
 }
 
 COGLTextureBuffer::~COGLTextureBuffer()
 {
-
-}
-
-bool COGLTextureBuffer::Init(size_t size, GLenum usage, GLenum type)
-{
-	V_RET_FOF(COGLResource::Init());
-
-	glGenTextures(1, &m_TextureBufferTexture);
-	glGenBuffers(1, &m_Resource);
-
-	CheckGLError(m_DebugName, "COGLTextureBuffer::Init()");
-
-	m_Usage = usage;
-	m_Type = type;
-	m_Size = size;
-	SetContent(NULL, m_Size);
-
-	return true;
-}
-
-void COGLTextureBuffer::Release()
-{
-	COGLResource::Release();
-
 	glDeleteTextures(1, &m_TextureBufferTexture);
 	glDeleteBuffers(1, &m_Resource);
 
-	CheckGLError(m_DebugName, "COGLTextureBuffer::Release()");
+	CheckGLError(m_DebugName, "COGLTextureBuffer::~COGLTextureBuffer()");
 }
 
-void COGLTextureBuffer::SetContent(void* content, size_t size)
+void COGLTextureBuffer::SetContent(size_t size, GLenum usage, void* content)
 {
-	CheckInitialized("COGLTextureBuffer.SetContent()");
-	CheckResourceNotNull("COGLTextureBuffer.SetContent()");
-
-	if(size > m_Size)
-	{
-		std::cout << "COGLTextureBuffer::SetContent(): Warning: size of data greater than buffer size." << std::endl;
-		size = std::min(size, m_Size);
-	}
+	m_size = size;
 
 	glBindBuffer(GL_TEXTURE_BUFFER, m_Resource);
-	glBufferData(GL_TEXTURE_BUFFER, size, content, m_Usage);
+	glBufferData(GL_TEXTURE_BUFFER, size, content, usage);
 	glBindBuffer(GL_TEXTURE_BUFFER, 0);
 
 	CheckGLError(m_DebugName, "COGLTextureBuffer::SetContent()");
@@ -78,9 +50,4 @@ void COGLTextureBuffer::Unbind()
 	glBindTexture(GL_TEXTURE_BUFFER, 0);
 
 	CheckGLError(m_DebugName, "COGLTextureBuffer::Unbind()");
-}
-
-size_t COGLTextureBuffer::GetSize()
-{
-	return m_Size;
 }

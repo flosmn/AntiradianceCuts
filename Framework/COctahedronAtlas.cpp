@@ -24,8 +24,8 @@
 #include <algorithm>
 #include <assert.h>
 
-COctahedronAtlas::COctahedronAtlas(COCLContext* pOCLContext)
-	: m_pOCLContext(pOCLContext)
+COctahedronAtlas::COctahedronAtlas(COCLContext* pOCLContext, uint atlasDim, uint tileDim, uint maxNumAVPLs, CMaterialBuffer* pMaterialBuffer)
+	: m_pOCLContext(pOCLContext), m_AtlasDim(atlasDim), m_TileDim(tileDim), m_pMaterialBuffer(pMaterialBuffer)
 {
 	m_pOCLProgram = new COCLProgram(pOCLContext, "COctahedronAtlas.m_pOCLProgram");
 	m_pOCLCopyToImageKernel = new COCLKernel(m_pOCLContext, m_pOCLProgram, "COctahedronAtlas.m_pOCLCopyToImageKernel");
@@ -43,61 +43,29 @@ COctahedronAtlas::COctahedronAtlas(COCLContext* pOCLContext)
 
 	m_pOCLAtlas = new COCLTexture2D(m_pOCLContext, "COctahedronAtlas.m_pOCLAtlas");
 	m_pOCLClusterAtlas = new COCLTexture2D(m_pOCLContext, "COctahedronAtlas.m_pOCLClusterAtlas");
-	m_pOGLAtlas = new COGLTexture2D("COctahedronAtlas.m_pOGLAtlas");
-	m_pOGLAtlasDebug = new COGLTexture2D("COctahedronAtlas.m_pOGLAtlasDebug");
-	m_pOGLAtlasCPU = new COGLTexture2D("COctahedronAtlas.m_pOGLAtlasCPU");
-	m_pOGLClusterAtlas = new COGLTexture2D("COctahedronAtlas.m_pOGLClusterAtlas");
-	m_pOGLClusterAtlasCPU = new COGLTexture2D("COctahedronAtlas.m_pOGLClusterAtlasCPU");
-}
-
-COctahedronAtlas::~COctahedronAtlas()
-{
-	SAFE_DELETE(m_pOCLAtlas);
-	SAFE_DELETE(m_pOCLClusterAtlas);
-	SAFE_DELETE(m_pOCLCopyToImageKernel);
-	SAFE_DELETE(m_pOCLCalcAvplClusterAtlasKernel);
-	SAFE_DELETE(m_pOCLKernelClear);
-	SAFE_DELETE(m_pOCLProgram);
-	SAFE_DELETE(m_pAtlasBuffer);
-	SAFE_DELETE(m_pAtlasClusterBuffer);
-	SAFE_DELETE(m_pAvplBuffer);
-	SAFE_DELETE(m_pClusteringBuffer);
-	SAFE_DELETE(m_pIndexBuffer);
-	SAFE_DELETE(m_pOGLAtlas);
-	SAFE_DELETE(m_pOGLAtlasDebug);
-	SAFE_DELETE(m_pOGLAtlasCPU);
-	SAFE_DELETE(m_pOGLClusterAtlas);
-	SAFE_DELETE(m_pOGLClusterAtlasCPU);
-}
-
-bool COctahedronAtlas::Init(uint atlasDim, uint tileDim, uint maxNumAVPLs, CMaterialBuffer* pMaterialBuffer)
-{
-	m_AtlasDim = atlasDim;
-	m_TileDim = tileDim;
-	m_pMaterialBuffer = pMaterialBuffer;
-
-	V_RET_FOF(m_pOCLProgram->Init("Kernels\\FillAVPLAtlas.cl"));
-	V_RET_FOF(m_pOCLCalcAvplAtlasKernel->Init("CalcAvplAtlas"));
-	V_RET_FOF(m_pOCLCalcAvplClusterAtlasKernel->Init("CalcAvplClusterAtlas"));
-	V_RET_FOF(m_pOCLCopyToImageKernel->Init("CopyToImage"));
-	V_RET_FOF(m_pOCLKernelClear->Init("Clear"));
-
-	V_RET_FOF(m_pOGLAtlas->Init(atlasDim, atlasDim, GL_RGBA32F, GL_RGBA, GL_FLOAT, 0, false));
-	V_RET_FOF(m_pOGLAtlasCPU->Init(atlasDim, atlasDim, GL_RGBA32F, GL_RGBA, GL_FLOAT, 0, false));
-	V_RET_FOF(m_pOGLAtlasDebug->Init(atlasDim, atlasDim, GL_RGBA32F, GL_RGBA, GL_FLOAT, 0, false));
-	V_RET_FOF(m_pOGLClusterAtlas->Init(atlasDim, atlasDim, GL_RGBA32F, GL_RGBA, GL_FLOAT, 0, false));
-	V_RET_FOF(m_pOGLClusterAtlasCPU->Init(atlasDim, atlasDim, GL_RGBA32F, GL_RGBA, GL_FLOAT, 0, false));
-
-	V_RET_FOF(m_pAtlasBuffer->Init(atlasDim * atlasDim * 4 * sizeof(float), CL_MEM_READ_WRITE));
-	V_RET_FOF(m_pAtlasClusterBuffer->Init(atlasDim * atlasDim * 4 * sizeof(float), CL_MEM_READ_WRITE));
 	
-	V_RET_FOF(m_pIndexBuffer->Init(sizeof(int), CL_MEM_READ_WRITE));
+	m_oglAtlas			.reset(new COGLTexture2D(atlasDim, atlasDim, GL_RGBA32F, GL_RGBA, GL_FLOAT, 0, false, "COctahedronAtlas.m_pOGLAtlas"));
+	m_oglAtlasDebug		.reset(new COGLTexture2D(atlasDim, atlasDim, GL_RGBA32F, GL_RGBA, GL_FLOAT, 0, false, "COctahedronAtlas.m_pOGLAtlasDebug"));
+	m_oglAtlasCPU		.reset(new COGLTexture2D(atlasDim, atlasDim, GL_RGBA32F, GL_RGBA, GL_FLOAT, 0, false, "COctahedronAtlas.m_pOGLAtlasCPU"));
+	m_oglClusterAtlas	.reset(new COGLTexture2D(atlasDim, atlasDim, GL_RGBA32F, GL_RGBA, GL_FLOAT, 0, false, "COctahedronAtlas.m_pOGLClusterAtlas"));
+	m_oglClusterAtlasCPU.reset(new COGLTexture2D(atlasDim, atlasDim, GL_RGBA32F, GL_RGBA, GL_FLOAT, 0, false, "COctahedronAtlas.m_pOGLClusterAtlasCPU"));
 
-	V_RET_FOF(m_pOCLAtlas->Init(m_pOGLAtlas));
-	V_RET_FOF(m_pOCLClusterAtlas->Init(m_pOGLClusterAtlas));
+	m_pOCLProgram->Init("Kernels\\FillAVPLAtlas.cl");
+	m_pOCLCalcAvplAtlasKernel->Init("CalcAvplAtlas");
+	m_pOCLCalcAvplClusterAtlasKernel->Init("CalcAvplClusterAtlas");
+	m_pOCLCopyToImageKernel->Init("CopyToImage");
+	m_pOCLKernelClear->Init("Clear");
 
-	V_RET_FOF(m_pAvplBuffer->Init(sizeof(AVPL_BUFFER) * maxNumAVPLs, CL_MEM_READ_WRITE));
-	V_RET_FOF(m_pClusteringBuffer->Init(sizeof(CLUSTERING) * (2 * maxNumAVPLs) - 1, CL_MEM_READ_WRITE));
+	m_pAtlasBuffer->Init(atlasDim * atlasDim * 4 * sizeof(float), CL_MEM_READ_WRITE);
+	m_pAtlasClusterBuffer->Init(atlasDim * atlasDim * 4 * sizeof(float), CL_MEM_READ_WRITE);
+	
+	m_pIndexBuffer->Init(sizeof(int), CL_MEM_READ_WRITE);
+
+	m_pOCLAtlas->Init(m_oglAtlas.get());
+	m_pOCLClusterAtlas->Init(m_oglClusterAtlas.get());
+
+	m_pAvplBuffer->Init(sizeof(AVPL_BUFFER) * maxNumAVPLs, CL_MEM_READ_WRITE);
+	m_pClusteringBuffer->Init(sizeof(CLUSTERING) * (2 * maxNumAVPLs) - 1, CL_MEM_READ_WRITE);
 	
 	m_pOCLCalcAvplAtlasKernel->SetKernelArg(0, sizeof(cl_mem), m_pAtlasBuffer->GetCLBuffer());
 	m_pOCLCalcAvplAtlasKernel->SetKernelArg(1, sizeof(int), &m_TileDim);
@@ -119,11 +87,9 @@ bool COctahedronAtlas::Init(uint atlasDim, uint tileDim, uint maxNumAVPLs, CMate
 	m_pClusterData = new glm::vec4[m_AtlasDim * m_AtlasDim];
 	memset(m_pData, 0, m_AtlasDim * m_AtlasDim * sizeof(glm::vec4));
 	memset(m_pClusterData, 0, m_AtlasDim * m_AtlasDim * sizeof(glm::vec4));
-
-	return true;
 }
 
-void COctahedronAtlas::Release()
+COctahedronAtlas::~COctahedronAtlas()
 {
 	m_pAtlasBuffer->Release();
 	m_pAtlasClusterBuffer->Release();
@@ -137,39 +103,18 @@ void COctahedronAtlas::Release()
 	m_pAvplBuffer->Release();
 	m_pClusteringBuffer->Release();
 	m_pIndexBuffer->Release();
-	m_pOGLAtlas->Release();
-	m_pOGLAtlasDebug->Release();
-	m_pOGLAtlasCPU->Release();
-	m_pOGLClusterAtlas->Release();
-	m_pOGLClusterAtlasCPU->Release();
-}
-
-COGLTexture2D* COctahedronAtlas::GetAVPLAtlas()
-{
-	m_pOGLAtlas->CheckInitialized("COctahedronAtlas.GetTexture()");
-
-	return m_pOGLAtlas;
-}
-
-COGLTexture2D* COctahedronAtlas::GetAVPLAtlasCPU()
-{
-	m_pOGLAtlasCPU->CheckInitialized("COctahedronAtlas.GetRefTexture()");
-
-	return m_pOGLAtlasCPU;
-}
-
-COGLTexture2D* COctahedronAtlas::GetAVPLClusterAtlas()
-{
-	m_pOGLClusterAtlas->CheckInitialized("COctahedronAtlas.GetTexture()");
-
-	return m_pOGLClusterAtlas;
-}
-
-COGLTexture2D* COctahedronAtlas::GetAVPLClusterAtlasCPU()
-{
-	m_pOGLClusterAtlasCPU->CheckInitialized("COctahedronAtlas.GetRefTexture()");
-
-	return m_pOGLClusterAtlasCPU;
+	
+	SAFE_DELETE(m_pOCLAtlas);
+	SAFE_DELETE(m_pOCLClusterAtlas);
+	SAFE_DELETE(m_pOCLCopyToImageKernel);
+	SAFE_DELETE(m_pOCLCalcAvplClusterAtlasKernel);
+	SAFE_DELETE(m_pOCLKernelClear);
+	SAFE_DELETE(m_pOCLProgram);
+	SAFE_DELETE(m_pAtlasBuffer);
+	SAFE_DELETE(m_pAtlasClusterBuffer);
+	SAFE_DELETE(m_pAvplBuffer);
+	SAFE_DELETE(m_pClusteringBuffer);
+	SAFE_DELETE(m_pIndexBuffer);
 }
 
 void COctahedronAtlas::FillAtlasGPU(const std::vector<AVPL>& avpls, const int sqrt_num_ss_samples, const float& N, bool border)
@@ -344,7 +289,7 @@ void COctahedronAtlas::FillAtlas(const std::vector<AVPL>& avpls, const int sqrt_
 		
 	}
 	
-	m_pOGLAtlasCPU->SetPixelData(m_pData);
+	m_oglAtlasCPU->SetPixelData(m_pData);
 }
 
 void COctahedronAtlas::FillClusterAtlas(const std::vector<AVPL>& avpls, CLUSTER* pClustering, int clusteringSize)
@@ -409,7 +354,7 @@ void COctahedronAtlas::FillClusterAtlas(const std::vector<AVPL>& avpls, CLUSTER*
 		}
 	}
 
-	m_pOGLClusterAtlasCPU->SetPixelData(m_pClusterData);
+	m_oglClusterAtlasCPU->SetPixelData(m_pClusterData);
 }
 
 glm::vec4 COctahedronAtlas::SampleTexel(uint x, uint y, const int sqrt_num_ss_samples, const float& N, const AVPL& avpl, bool border)

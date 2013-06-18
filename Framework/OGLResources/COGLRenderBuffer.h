@@ -6,11 +6,8 @@
 class COGLRenderBuffer : public COGLResource
 {
 public:
-	COGLRenderBuffer(std::string debugName);
+	COGLRenderBuffer(GLuint width, GLuint height, GLenum internalFormat, std::string const& debugName = "");
 	~COGLRenderBuffer();
-
-	virtual bool Init(GLuint width, GLuint height, GLenum internalFormat);
-	virtual void Release();
 
 private:
 	virtual void Bind(COGLBindSlot slot);

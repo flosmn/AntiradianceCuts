@@ -70,36 +70,16 @@ struct CONF_VARS
 	float AreaLightPosZ;
 	float AreaLightRadianceScale;
 
-	int UseAVPLImportanceSampling;
-	int ISMode;
-	int ConeFactorIS;
-	int NumSceneSamples;
-	int DrawSceneSamples;
-	int DrawCollectedAVPLs;
-	int DrawCollectedISAVPLs;
-	int CollectAVPLs;
-	int CollectISAVPLs;
-	float IrradAntiirradWeight;
-	float AcceptProbabEpsilon;
-
-	int UseBIDIR;
-	int UseStratification;
-	int DrawBIDIRSamples;
-	int DrawBIDIRSamplesMode;
-	int NumEyeRaysSS;	
-	int NumSamplesForPESS;	
-	int NumEyeRaysASS;	
-	int NumSamplesForPEASS;
-
 	int DrawCubeMapFace;
 };
 
 class CConfigManager
 {
 public:
-	CConfigManager(Renderer* renderer);
+	CConfigManager();
 	~CConfigManager();
 
+	void setRenderer(Renderer* renderer) { m_renderer = renderer; }
 	CONF_VARS* GetConfVarsGUI() { return m_pConfVarsGUI; }
 	CONF_VARS* GetConfVars() { return m_pConfVars; }
 
@@ -109,7 +89,7 @@ private:
 	CONF_VARS* m_pConfVarsGUI;
 	CONF_VARS* m_pConfVars;
 
-	Renderer* m_pRenderer;
+	Renderer* m_renderer;
 };
 
 #endif // _C_CONFIG_MANAGER_H_

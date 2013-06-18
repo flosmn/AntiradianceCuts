@@ -38,8 +38,6 @@ bool COCLBuffer::Init(COGLTextureBuffer* pGLTextureBuffer, cl_mem_flags flags)
 {
 	V_RET_FOF(m_pContext->CheckInitialized("COCLBuffer.Init()"));
 
-	V_RET_FOF(pGLTextureBuffer->CheckInitialized("COCLBuffer.Init()"));
-
 	m_pOGLTextureBuffer = pGLTextureBuffer;
 
 	cl_int err;

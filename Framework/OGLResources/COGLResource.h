@@ -18,21 +18,15 @@ public:
 	enum COGLResourceType { COGL_TEXTURE_2D, COGL_FRAMEBUFFER, COGL_RENDERBUFFER, COGL_VERTEXBUFFER,
 		COGL_VERTEXARRAY, COGL_UNIFORMBUFFER, COGL_PROGRAM, COGL_SAMPLER, COGL_TEXTURE_BUFFER, COGL_CUBE_MAP };
 
-	COGLResource(COGLResourceType resourceType, std::string debugName);
+	COGLResource(COGLResourceType resourceType, std::string const& debugName = "");
 	virtual ~COGLResource();
-
-	virtual bool Init();
-	virtual void Release();
-
+	
 	GLuint GetResourceIdentifier();
 	std::string GetDebugName();
 
-	bool CheckInitialized(std::string checker);
-	bool CheckNotInitialized(std::string checker);
 	bool CheckBound(std::string checker);
 	bool CheckNotBound(std::string checker);
-	bool CheckResourceNotNull(std::string checker);
-
+	
 protected:
 	virtual void Bind(COGLBindSlot slot);
 	virtual void Unbind();

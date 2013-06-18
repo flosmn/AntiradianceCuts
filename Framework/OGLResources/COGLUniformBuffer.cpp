@@ -10,21 +10,9 @@
 uint COGLUniformBuffer::static_GlobalBindingPoint = 0;
 
 
-COGLUniformBuffer::COGLUniformBuffer(std::string debugName)
+COGLUniformBuffer::COGLUniformBuffer(uint size, void* data, GLenum usage, std::string const& debugName)
 	: COGLResource(COGL_UNIFORMBUFFER, debugName), m_Size(0)
 {
-
-}
-
-COGLUniformBuffer::~COGLUniformBuffer()
-{
-	COGLResource::~COGLResource();
-}
-
-bool COGLUniformBuffer::Init(uint size, void* data, GLenum usage)
-{
-	V_RET_FOF(COGLResource::Init());
-
 	m_Size = size;
 	m_GlobalBindingPoint = GetUniqueGlobalBindingPoint();
 
@@ -40,20 +28,15 @@ bool COGLUniformBuffer::Init(uint size, void* data, GLenum usage)
 	glBindBufferRange(GL_UNIFORM_BUFFER, m_GlobalBindingPoint, m_Resource, 0, m_Size);
 	
 	CheckGLError("COGLUniformBuffer", "Init() 3");
+}
 
-	return true;
-}	
-
-void COGLUniformBuffer::Release()
+COGLUniformBuffer::~COGLUniformBuffer()
 {
-	COGLResource::Release();
-
 	glDeleteBuffers(1, &m_Resource);
 }
 
 void COGLUniformBuffer::UpdateData(void* data)
 {
-	CheckInitialized("COGLUniformBuffer::UpdateData()");
 	CheckNotBound("COGLUniformBuffer::UpdateData()");
 	
 	COGLBindLock lock(this, COGL_UNIFORM_BUFFER_SLOT);
@@ -67,8 +50,6 @@ void COGLUniformBuffer::UpdateData(void* data)
 
 uint COGLUniformBuffer::GetGlobalBindingPoint()
 {
-	CheckInitialized("COGLUniformBuffer::GetGlobalBindingPoint()");
-
 	return m_GlobalBindingPoint;
 }
 

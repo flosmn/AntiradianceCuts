@@ -19,15 +19,13 @@
 
 #include <iostream>
 
-CCubeShadowMap::CCubeShadowMap()
+CCubeShadowMap::CCubeShadowMap(COGLUniformBuffer* pUBTransform)
 {
-	m_pCreateProgram = new CProgram("CCubeShadowMap.m_pCreateProgram", 
+	m_program.reset(new CProgram( 
 		"Shaders/CreateCubeShadowMap.vert", 
-		//"Shaders/CreateCubeShadowMap.geom", 
-		"Shaders/CreateCubeShadowMap.frag");
+		"Shaders/CreateCubeShadowMap.frag"));
+	m_cubeMapFace.reset(new COGLTexture2D(512, 512, GL_RGBA32F, GL_RGBA, GL_FLOAT, 1, false));
 
-	m_pCubeMapFace = new COGLTexture2D("CCubeShadowMap.m_pCubeMapFace");
-	
 	m_Proj = glm::perspective(45.f, 1.f, 0.01f, 20000.f);
 	m_Directions[0] = glm::vec3(1.f, 0.f, 0.f);
 	m_Directions[1] = glm::vec3(-1.f, 0.f, 0.f);
@@ -42,16 +40,7 @@ CCubeShadowMap::CCubeShadowMap()
 	m_Ups[3] = glm::vec3(1.f, 0.f, 0.f);
 	m_Ups[4] = glm::vec3(0.f, 1.f, 0.f);
 	m_Ups[5] = glm::vec3(0.f, 1.f, 0.f);
-}
 
-CCubeShadowMap::~CCubeShadowMap()
-{
-	SAFE_DELETE(m_pCreateProgram);
-	SAFE_DELETE(m_pCubeMapFace);
-}
-
-bool CCubeShadowMap::Init(COGLUniformBuffer* pUBTransform)
-{
 	int face;
 	GLenum status;
 	
@@ -90,22 +79,14 @@ bool CCubeShadowMap::Init(COGLUniformBuffer* pUBTransform)
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-
-	m_pCreateProgram->Init();
-	m_pCubeMapFace->Init(512, 512, GL_RGBA32F, GL_RGBA, GL_FLOAT, 1, false);
-
-	m_pCreateProgram->BindUniformBuffer(pUBTransform, "transform");
-
-	return true;
+	
+	m_program->BindUniformBuffer(pUBTransform, "transform");
 }
 
-void CCubeShadowMap::Release()
+CCubeShadowMap::~CCubeShadowMap()
 {
 	glDeleteTextures(1, &m_CubeMap);
 	glDeleteFramebuffers(1, &m_FrameBuffer);
-
-	m_pCreateProgram->Release();
-	m_pCubeMapFace->Release();
 }
 
 void CCubeShadowMap::Create(Scene* pScene, const AVPL& avpl, COGLUniformBuffer* pUBTransform)
@@ -116,7 +97,7 @@ void CCubeShadowMap::Create(Scene* pScene, const AVPL& avpl, COGLUniformBuffer* 
 	//glEnable(GL_POLYGON_OFFSET_FILL);
 	//glPolygonOffset(1.1f, 4.0f);
 	
-	COGLBindLock lockProgram(m_pCreateProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
+	COGLBindLock lockProgram(m_program->GetGLProgram(), COGL_PROGRAM_SLOT);
 	glBindFramebuffer(GL_FRAMEBUFFER, m_FrameBuffer);
 	
 	glViewport(0, 0, 512, 512);
@@ -153,7 +134,7 @@ COGLTexture2D* CCubeShadowMap::GetCubeMapFace(int i)
 	glGetTexImage(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, GL_FLOAT, pData);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
-	m_pCubeMapFace->SetPixelData(pData);
+	m_cubeMapFace->SetPixelData(pData);
 	delete [] pData;
-	return m_pCubeMapFace;
+	return m_cubeMapFace.get();
 }

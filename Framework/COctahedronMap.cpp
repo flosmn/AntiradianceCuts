@@ -19,45 +19,22 @@
 	|---------|
 */
 
-COctahedronMap::COctahedronMap()
+COctahedronMap::COctahedronMap(uint dimension)
+	: m_Dimension(dimension)
 {
-	m_pTexture = new COGLTexture2D("COctahedronMap.m_pTexture");
+	m_texture.reset(new COGLTexture2D(m_Dimension, m_Dimension, GL_RGBA32F, 
+		GL_RGBA, GL_FLOAT, 1, false, "COctahedronMap.m_pTexture"));
 }
 
 COctahedronMap::~COctahedronMap()
 {
-	SAFE_DELETE(m_pTexture);
-}
-
-bool COctahedronMap::Init(uint dimension)
-{
-	m_Dimension = dimension;
-	
-	V_RET_FOF(m_pTexture->Init(m_Dimension, m_Dimension, GL_RGBA32F, GL_RGBA, GL_FLOAT, 1, false));
-
-	return true;
-}
-
-void COctahedronMap::Release()
-{
-	m_pTexture->Release();
-}
-
-COGLTexture2D* COctahedronMap::GetTexture()
-{
-	m_pTexture->CheckInitialized("COctahedronMap.GetTexture()");
-
-	return m_pTexture;
 }
 
 void COctahedronMap::FillWithDebugData()
 {
-	m_pTexture->CheckInitialized("COctahedronMap.GetTexture()");
-
 	glm::vec4* pData = new glm::vec4[m_Dimension * m_Dimension];
 	memset(pData, 0, sizeof(glm::vec4) * m_Dimension * m_Dimension);
-
-	
+		
 	for(uint x = 1; x < m_Dimension - 1; ++x)
 	{
 		for(uint y = 1; y < m_Dimension - 1; ++y)
@@ -140,7 +117,7 @@ void COctahedronMap::FillWithDebugData()
 	*AccessMap(0,				m_Dimension - 1,	pData) = *AccessMap(m_Dimension-2,	1,				pData);
 	*AccessMap(m_Dimension - 1, 0,					pData) = *AccessMap(1,				m_Dimension-2,	pData);
 	
-	m_pTexture->SetPixelData((void*)pData);
+	m_texture->SetPixelData((void*)pData);
 
 	delete [] pData;
 }

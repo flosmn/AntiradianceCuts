@@ -8,11 +8,8 @@ typedef unsigned int uint;
 class COGLUniformBuffer : public COGLResource
 {
 public:
-	COGLUniformBuffer(std::string debugName);
+	COGLUniformBuffer(uint size, void* data, GLenum usage, std::string const& debugName = "");
 	~COGLUniformBuffer();
-
-	virtual bool Init(uint size, void* data, GLenum usage);
-	virtual void Release();
 
 	void UpdateData(void* data);
 	uint GetGlobalBindingPoint();

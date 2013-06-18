@@ -1,7 +1,7 @@
 #ifndef _C_PBRT_KD_TREE_ACCELERATOR_H_
 #define _C_PBRT_KD_TREE_ACCELERATOR_H_
 
-#include "CPrimitive.h"
+#include "CTriangle.h"
 
 #include "BBox.h"
 #include "Ray.h"
@@ -17,13 +17,13 @@ struct BoundEdge;
 class CPbrtKdTreeAccel
 {
 public:
-    CPbrtKdTreeAccel(const std::vector<CPrimitive*>& p, int icost = 80, 
+    CPbrtKdTreeAccel(const std::vector< CTriangle*>& p, int icost = 80, 
 		int scost = 1, float ebonus = 0.5f, int maxp = 1, int maxDepth = -1);
     ~CPbrtKdTreeAccel();
 	
 	BBox WorldBound() const { return bounds; }
     
-	bool Intersect(const Ray &ray, Intersection *isect, CPrimitive::IsectMode isectMode) const;
+	bool Intersect(const Ray &ray, Intersection *isect,  CTriangle::IsectMode isectMode) const;
 
 private:
     // KdTreeAccel Private Methods
@@ -34,7 +34,7 @@ private:
     // KdTreeAccel Private Data
     int isectCost, traversalCost, maxPrims, maxDepth;
     float emptyBonus;
-    std::vector<CPrimitive*> primitives;
+    std::vector< CTriangle*> primitives;
     KdAccelNode *nodes;
     int nAllocedNodes, nextFreeNode;
     BBox bounds;

@@ -158,7 +158,7 @@ CLUSTER CClusterTree::BuildTree(int* indices_split_axis_from, int* indices_other
 
 CLUSTER CClusterTree::MergeClusters(const CLUSTER& l, const CLUSTER& r, int depth)
 {
-	const float thresh = l.intensity.length() / (l.intensity.length() + r.intensity.length());
+	const float thresh = float(l.intensity.length()) / float(l.intensity.length() + r.intensity.length());
 	const float p = Rand01();
 	
 	const float sl = float(l.size);

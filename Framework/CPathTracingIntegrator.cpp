@@ -9,20 +9,13 @@
 
 #include <iostream>
 
-CPathTracingIntegrator::CPathTracingIntegrator()
+CPathTracingIntegrator::CPathTracingIntegrator(Scene* scene, CImagePlane* imagePlane)
+	: m_scene(scene), m_imagePlane(imagePlane)
 {
 }
 
 CPathTracingIntegrator::~CPathTracingIntegrator()
 {
-}
-
-bool CPathTracingIntegrator::Init(Scene* pScene, CImagePlane* pImagePlane)
-{
-	m_pScene = pScene;
-	m_pImagePlane = pImagePlane;
-
-	return true;
 }
 
 void CPathTracingIntegrator::Integrate(uint numPaths, bool MIS)
@@ -37,7 +30,7 @@ void CPathTracingIntegrator::Integrate(uint numPaths, bool MIS)
 
 		#pragma omp critical
 		{
-			r = m_pScene->GetCamera()->GetEyeRay(pixel);
+			r = m_scene->GetCamera()->GetEyeRay(pixel);
 		}
 
 		SceneSample y[100];
@@ -48,14 +41,14 @@ void CPathTracingIntegrator::Integrate(uint numPaths, bool MIS)
 
 		float t = 0;
 		Intersection intersection;
-		if(m_pScene->IntersectRayScene(r, &t, &intersection, CPrimitive::FRONT_FACE))
+		if(m_scene->IntersectRayScene(r, &t, &intersection, CTriangle::FRONT_FACE))
 		{
 			SceneSample ss(intersection);
 
-			y[0] = m_pScene->GetCamera()->GetCameraAsSceneSample();
+			y[0] = m_scene->GetCamera()->GetCameraAsSceneSample();
 			p_A[0] = 1.f;
 			y[1] = ss;
-			p_A[1] = 1.f; //m_pScene->GetCamera()->GetProbWrtArea(ss);
+			p_A[1] = 1.f; //m_scene->GetCamera()->GetProbWrtArea(ss);
 
 			f_x = glm::vec4(1.f); //glm::vec4(G(y[0], y[1]) / p_A[1]);
 		}
@@ -72,13 +65,13 @@ void CPathTracingIntegrator::Integrate(uint numPaths, bool MIS)
 			i++;
 
 			// check implicit path
-			if(glm::length(m_pScene->GetMaterial(intersection)->emissive) > 0.f)
+			if(glm::length(m_scene->GetMaterial(intersection)->emissive) > 0.f)
 			{
 				float w = 0.f;
 				if(i > 1)
 				{
 					const float pdfSA = PhongPdf(y[i-2].position, y[i-1].position, y[i].position, y[i-1].normal, 
-						m_pScene->GetMaterial(y[i-1]), MIS);
+						m_scene->GetMaterial(y[i-1]), MIS);
 					
 					if(pdfSA <= 0.f)
 					{
@@ -94,16 +87,16 @@ void CPathTracingIntegrator::Integrate(uint numPaths, bool MIS)
 					w = 1.f;
 				}
 				
-				color += w * f_x * m_pScene->GetMaterial(intersection)->emissive;
+				color += w * f_x * m_scene->GetMaterial(intersection)->emissive;
 			}
 
 			// make explicit connection
 			SceneSample ls_sample;
-			m_pScene->SampleLightSource(ls_sample);
-			if(m_pScene->Visible(y[i], ls_sample))
+			m_scene->SampleLightSource(ls_sample);
+			if(m_scene->Visible(y[i], ls_sample))
 			{
 				const float pdfSA = PhongPdf(y[i-1].position, y[i].position, ls_sample.position, y[i].normal, 
-					m_pScene->GetMaterial(y[i]), MIS);
+					m_scene->GetMaterial(y[i]), MIS);
 				
 				if(pdfSA <= 0.f)
 				{
@@ -113,10 +106,10 @@ void CPathTracingIntegrator::Integrate(uint numPaths, bool MIS)
 				
 				const float p_A = ProbA(y[i], ls_sample, pdfSA);
 				const float w = ls_sample.pdf / (ls_sample.pdf + p_A);
-				const glm::vec4 L_e = m_pScene->GetMaterial(ls_sample)->emissive;
+				const glm::vec4 L_e = m_scene->GetMaterial(ls_sample)->emissive;
 			
 				const glm::vec4 BRDF = Phong(y[i-1].position, y[i].position, ls_sample.position, y[i].normal, 
-					m_pScene->GetMaterial(y[i]));
+					m_scene->GetMaterial(y[i]));
 							
 				color += w * f_x * BRDF * G(ls_sample, y[i]) * L_e/ls_sample.pdf;
 			}
@@ -135,7 +128,7 @@ void CPathTracingIntegrator::Integrate(uint numPaths, bool MIS)
 				#pragma omp critical
 				{
 					direction = SamplePhong(glm::normalize(y[i-1].position - y[i].position), y[i].normal, 
-						m_pScene->GetMaterial(y[i]), pdf, MIS);
+						m_scene->GetMaterial(y[i]), pdf, MIS);
 				}
 				
 				if(glm::dot(direction, y[i].normal) <= 0.f)
@@ -147,7 +140,7 @@ void CPathTracingIntegrator::Integrate(uint numPaths, bool MIS)
 				
 				Ray ray(y[i].position, direction);
 
-				if(m_pScene->IntersectRayScene(ray, &t, &intersection, CPrimitive::FRONT_FACE) && pdf > 0.f)
+				if(m_scene->IntersectRayScene(ray, &t, &intersection, CTriangle::FRONT_FACE) && pdf > 0.f)
 				{
 					SceneSample ss(intersection);
 					y[i+1] = ss;
@@ -162,7 +155,7 @@ void CPathTracingIntegrator::Integrate(uint numPaths, bool MIS)
 					p_A[i+1] = p_A[i] + temp;
 					
 					const glm::vec4 BRDF = Phong(y[i-1].position, y[i].position, y[i+1].position, y[i].normal, 
-						m_pScene->GetMaterial(y[i]));
+						m_scene->GetMaterial(y[i]));
 
 					f_x = 1.f/(ProbPSA(y[i], y[i+1], pdf) * t_prob) * f_x * BRDF;
 				}
@@ -175,7 +168,7 @@ void CPathTracingIntegrator::Integrate(uint numPaths, bool MIS)
 
 		#pragma omp critical
 		{
-			m_pImagePlane->AddSample(pixel, color);
+			m_imagePlane->AddSample(pixel, color);
 		}
 	}
 }

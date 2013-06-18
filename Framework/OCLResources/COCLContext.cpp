@@ -14,40 +14,13 @@ typedef unsigned int uint;
 
 #define DEBUG
 
-COCLContext::COCLContext()
+COCLContext::COCLContext(COGLContext* pGLContext)
 	: COCLResource("COCLContext")
 {
-}
-
-COCLContext::~COCLContext()
-{
-	CheckNotInitialized("COCLContext.~COCLContext()");
-}
-
-bool COCLContext::Init()
-{
 	cl_int err;
 
-	V_RET_FOF(GetPlatform());
-	V_RET_FOF(GetDevice());
-
-	m_Context = clCreateContext(NULL, 1, &m_DeviceId, NULL, NULL, &err);
-
-	V_RET_FOF(CHECK_CL_SUCCESS(err, "clCreateContext"));
-
-	V_RET_FOF(CreateCommandQueue());
-
-	V_RET_FOF(COCLResource::Init());
-
-	return true;
-}
-
-bool COCLContext::Init(COGLContext* pGLContext)
-{
-	cl_int err;
-
-	V_RET_FOF(GetPlatform());
-	V_RET_FOF(GetDevice());
+	GetPlatform();
+	GetDevice();
 	
 	const char* CL_GL_SHARING_EXT = "cl_khr_gl_sharing";
 			
@@ -60,7 +33,7 @@ bool COCLContext::Init(COGLContext* pGLContext)
 	int supported = IsExtensionSupported(CL_GL_SHARING_EXT, ext_string, ext_size);
 	if( ! supported )
 	{
-		return false;
+		return;
 	}
 
 	// Create CL context properties, add WGL context & handle to DC
@@ -73,19 +46,17 @@ bool COCLContext::Init(COGLContext* pGLContext)
 
 	m_Context = clCreateContext(properties, 1, &m_DeviceId, NULL, NULL, &err);
 
-	V_RET_FOF(CHECK_CL_SUCCESS(err, "clCreateContext()"));
+	CHECK_CL_SUCCESS(err, "clCreateContext()");
 
-	V_RET_FOF(CreateCommandQueue());
+	CreateCommandQueue();
 	
-	V_RET_FOF(COCLResource::Init());
-
-	return true;
+	COCLResource::Init();
 }
 
-void COCLContext::Release()
+COCLContext::~COCLContext()
 {
-	COCLResource::Release();
-
+	CheckNotInitialized("COCLContext.~COCLContext()");
+	
 	CHECK_CL_SUCCESS(clReleaseCommandQueue(m_CommandQueue), "clReleaseCommandQueue");
 
 	CHECK_CL_SUCCESS(clReleaseContext(m_Context), "clReleaseContext");

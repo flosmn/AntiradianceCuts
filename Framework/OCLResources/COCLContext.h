@@ -10,14 +10,9 @@ class COGLContext;
 class COCLContext : public COCLResource
 {
 public:
-	COCLContext();
+	COCLContext(COGLContext* pOGLContext);
 	~COCLContext();
-
-	virtual bool Init();
-	virtual bool Init(COGLContext* pOGLContext);
-
-	virtual void Release();
-
+	
 	const cl_context* GetCLContext() { CheckInitialized("COCLContext.GetCLContext()"); return &m_Context; }
 	const cl_device_id* GetCLDeviceId() { CheckInitialized("COCLContext.GetCLDeviceId()"); return &m_DeviceId; }
 	const cl_command_queue* GetCLCommandQueue() { CheckInitialized("COCLContext.GetCLCommandQueue()"); return &m_CommandQueue; } 

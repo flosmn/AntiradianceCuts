@@ -3,6 +3,8 @@
 
 #include "glm/glm.hpp"
 
+#include "Structs.h"
+
 #include "Intersection.h"
 
 class CConfigManager;
@@ -61,7 +63,7 @@ private:
 	int m_MaterialIndex;
 	int padd;
 
-	CConfigManager* m_pConfManager;
+	CConfigManager* m_confManager;
 	CMaterialBuffer* m_pMaterialBuffer;
 };
 

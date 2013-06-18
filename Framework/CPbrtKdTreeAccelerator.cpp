@@ -91,7 +91,7 @@ struct BoundEdge {
 
 
 // KdTreeAccel Method Definitions
-CPbrtKdTreeAccel::CPbrtKdTreeAccel(const std::vector<CPrimitive*>& p,
+CPbrtKdTreeAccel::CPbrtKdTreeAccel(const std::vector< CTriangle*>& p,
                          int icost, int tcost, float ebonus, int maxp,
                          int md)
     : isectCost(icost), traversalCost(tcost), maxPrims(maxp), maxDepth(md),
@@ -262,7 +262,7 @@ void CPbrtKdTreeAccel::buildTree(int nodeNum, const BBox &nodeBounds,
 
 
 bool CPbrtKdTreeAccel::Intersect(const Ray &ray,
-	Intersection *isect, CPrimitive::IsectMode isectMode) const {
+	Intersection *isect,  CTriangle::IsectMode isectMode) const {
     // Compute initial parametric range of ray inside kd-tree extent
 	float t_best = std::numeric_limits<float>::max();
 	Intersection isect_best;
@@ -324,7 +324,7 @@ bool CPbrtKdTreeAccel::Intersect(const Ray &ray,
             // Check for intersections inside leaf node
             uint nPrimitives = node->nPrimitives();
             if (nPrimitives == 1) {
-                CPrimitive* prim = primitives[node->onePrimitive];
+                 CTriangle* prim = primitives[node->onePrimitive];
                 // Check one primitive inside leaf node
 				float t = 0.f;
                 if (prim->Intersect(ray, &t, isect, isectMode))
@@ -340,7 +340,7 @@ bool CPbrtKdTreeAccel::Intersect(const Ray &ray,
             else {
                 uint *prims = node->primitives;
                 for (uint i = 0; i < nPrimitives; ++i) {
-                    CPrimitive* prim = primitives[prims[i]];
+                     CTriangle* prim = primitives[prims[i]];
                     // Check one primitive inside leaf node
                     float t = 0.f;
 					if (prim->Intersect(ray, &t, isect, isectMode))

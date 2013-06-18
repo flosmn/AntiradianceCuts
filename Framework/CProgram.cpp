@@ -6,51 +6,32 @@
 #include "OGLResources\COGLUniformBuffer.h"
 #include "OGLResources\COGLSampler.h"
 
-CProgram::CProgram(const std::string debugName, const std::string VS, const std::string FS)
+CProgram::CProgram(std::string const& VS, std::string const& FS, std::string const& debugName)
 {
 	std::vector<std::string> headerFiles;
-	m_pGLProgram = new COGLProgram(debugName, VS, "", FS, headerFiles);
+	m_program.reset(new COGLProgram(VS, "", FS, headerFiles, debugName));
 }
 
-CProgram::CProgram(const std::string debugName, const std::string VS, const std::string GS, const std::string FS)
+CProgram::CProgram(std::string const& VS, std::string const& FS, std::vector<std::string> headerFiles, std::string const& debugName)
 {
-	std::vector<std::string> headerFiles;
-	m_pGLProgram = new COGLProgram(debugName, VS, GS, FS, headerFiles);
-}
-
-CProgram::CProgram(const std::string debugName, const std::string VS, const std::string FS, std::vector<std::string> headerFiles)
-{
-	m_pGLProgram = new COGLProgram(debugName, VS, "", FS, headerFiles);
+	m_program.reset(new COGLProgram(VS, "", FS, headerFiles, debugName));
 }
 
 CProgram::~CProgram()
 {
-	SAFE_DELETE(m_pGLProgram);
-}
-
-bool CProgram::Init()
-{
-	V_RET_FOF(m_pGLProgram->Init());
-
-	return true;
-}
-
-void CProgram::Release()
-{
-	m_pGLProgram->Release();
 }
 
 void CProgram::BindUniformBuffer(COGLUniformBuffer* pGLUniformBuffer, std::string strUniformBlockName)
 {
-	m_pGLProgram->BindUniformBuffer(pGLUniformBuffer, strUniformBlockName);
+	m_program->BindUniformBuffer(pGLUniformBuffer, strUniformBlockName);
 }
 
 void CProgram::BindSampler(uint samplerSlot, COGLSampler* pSampler)
 {
-	m_pGLProgram->BindSampler(samplerSlot, pSampler);
+	m_program->BindSampler(samplerSlot, pSampler);
 }
 
 COGLProgram* CProgram::GetGLProgram()
 {
-	return m_pGLProgram;
+	return m_program.get();
 }

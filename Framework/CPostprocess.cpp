@@ -23,50 +23,28 @@ struct POST_PROCESS
 	float exposure;
 };
 
-CPostprocess::CPostprocess() 
+CPostprocess::CPostprocess(CConfigManager* pConfigManager) 
 {
 	m_Gamma = 2.2f;
 	m_Exposure = 1.0f;
 
-	m_pFullScreenQuad = new CFullScreenQuad();
-	m_pPostProcessProgram = new CProgram("CPostProcess", "Shaders\\PostProcess.vert", "Shaders\\PostProcess.frag");
-	m_pPointSampler = new COGLSampler("CPostProcess.m_pPointSampler");
-	m_pUniformBuffer = new COGLUniformBuffer("CPostProcess.m_pUniformBuffer");
-}
-
-CPostprocess::~CPostprocess() 
-{
-	SAFE_DELETE(m_pFullScreenQuad);
-	SAFE_DELETE(m_pPostProcessProgram);
-	SAFE_DELETE(m_pPointSampler);
-	SAFE_DELETE(m_pUniformBuffer);
-}
-
-bool CPostprocess::Init(CConfigManager* pConfigManager)
-{
 	POST_PROCESS pp;
 	pp.one_over_gamma = 1.f / m_Gamma;
 	pp.exposure = m_Exposure;
 	
-	V_RET_FOF(m_pFullScreenQuad->Init());	
-	V_RET_FOF(m_pPostProcessProgram->Init());
-	V_RET_FOF(m_pUniformBuffer->Init(sizeof(POST_PROCESS), &pp, GL_STATIC_DRAW));
-	V_RET_FOF(m_pPointSampler->Init(GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT));
+	m_fullScreenQuad.reset(new CFullScreenQuad());
+	m_program		.reset(new CProgram("Shaders\\PostProcess.vert", "Shaders\\PostProcess.frag"));
+	m_pointSampler 	.reset(new COGLSampler(GL_NEAREST, GL_NEAREST, GL_REPEAT, GL_REPEAT, "CPostProcess.m_pPointSampler"));
+	m_uniformBuffer .reset(new COGLUniformBuffer(sizeof(POST_PROCESS), &pp, GL_STATIC_DRAW, "CPostProcess.m_pUniformBuffer"));
 	
-	m_pPostProcessProgram->BindSampler(0, m_pPointSampler);
-	m_pPostProcessProgram->BindUniformBuffer(m_pUniformBuffer, "postprocess");
+	m_program->BindSampler(0, m_pointSampler.get());
+	m_program->BindUniformBuffer(m_uniformBuffer.get(), "postprocess");
 
 	m_pConfigManager = pConfigManager;
-
-	return true;
 }
 
-void CPostprocess::Release()
+CPostprocess::~CPostprocess() 
 {
-	m_pFullScreenQuad->Release();
-	m_pPostProcessProgram->Release();
-	m_pUniformBuffer->Release();
-	m_pPointSampler->Release();
 }
 
 void CPostprocess::Postprocess(COGLTexture2D* pTexture, CRenderTarget* pTarget)
@@ -75,13 +53,13 @@ void CPostprocess::Postprocess(COGLTexture2D* pTexture, CRenderTarget* pTarget)
 	
 	CRenderTargetLock lock(pTarget);
 
-	COGLBindLock lockProgram(m_pPostProcessProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
+	COGLBindLock lockProgram(m_program->GetGLProgram(), COGL_PROGRAM_SLOT);
 
 	COGLBindLock lockTexture(pTexture, COGL_TEXTURE0_SLOT);
 	
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	m_pFullScreenQuad->Draw();
+	m_fullScreenQuad->Draw();
 }
 
 void CPostprocess::UpdateUniformBuffer()
@@ -97,5 +75,5 @@ void CPostprocess::UpdateUniformBuffer()
 	POST_PROCESS pp;
 	pp.one_over_gamma = 1.f / gamma;
 	pp.exposure = exposure;
-	m_pUniformBuffer->UpdateData(&pp);
+	m_uniformBuffer->UpdateData(&pp);
 }

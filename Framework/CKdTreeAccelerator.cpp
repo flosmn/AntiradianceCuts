@@ -1,6 +1,6 @@
 #include "CKdTreeAccelerator.h"
 
-#include "CPrimitive.h"
+#include "CTriangle.h"
 
 #include <algorithm>
 #include <limits>
@@ -11,7 +11,7 @@ static const int MAX_TO_TRAVERSE = 64;
 
 struct KdAccelNode;
 
-CKdTreeAccelerator::CKdTreeAccelerator(const std::vector<CPrimitive*>& primitives,
+CKdTreeAccelerator::CKdTreeAccelerator(const std::vector<CTriangle>& primitives,
 	int intersectionCost, int traversalCost, int maxNumPrimitives, int maxDepth)
 	: m_IntersectionCost(intersectionCost), m_TraversalCost(traversalCost),
 	m_MaxNumPrimitives(maxNumPrimitives), m_MaxDepth(maxDepth)
@@ -39,8 +39,8 @@ void CKdTreeAccelerator::BuildTree()
 	primitiveBounds.reserve(m_Primitives.size());
 	for(uint i = 0; i < m_Primitives.size(); ++i)
 	{
-		CPrimitive* prim = m_Primitives[i];
-		BBox b = prim->GetBBox();
+		CTriangle& prim = m_Primitives[i];
+		BBox b = prim.GetBBox();
 		m_BoundingBox = BBox::Union(m_BoundingBox, b);
 		primitiveBounds.push_back(b);
 	}
@@ -214,7 +214,7 @@ void CKdTreeAccelerator::InitializeInteriorNode(int node, const BBox& nodeBounds
 		edges, prims0, prims1 + numOverlappingPrimitives, badRefines);
 }
 
-bool CKdTreeAccelerator::Intersect(const Ray& ray, float *t, Intersection* pIntersection, CPrimitive::IsectMode isectMode) const
+bool CKdTreeAccelerator::Intersect(const Ray& ray, float *t, Intersection* pIntersection, CTriangle::IsectMode isectMode) const
 {
 	// compute initial parametric range of ray inside kd-tree extent
 	float t_min = std::numeric_limits<float>::max();
@@ -291,10 +291,10 @@ bool CKdTreeAccelerator::Intersect(const Ray& ray, float *t, Intersection* pInte
 			uint numPrimitives = node->GetNumPrimitives();
 			if(numPrimitives == 1)
 			{
-				CPrimitive* primitive = m_Primitives[node->m_OnePrimitive];
+				CTriangle const& primitive = m_Primitives[node->m_OnePrimitive];
 				float t_temp = 0.f;
 				Intersection isect_temp;
-				if(primitive->Intersect(ray, &t_temp, &isect_temp, isectMode))
+				if(primitive.Intersect(ray, &t_temp, &isect_temp, isectMode))
 				{
 					if(t_temp < t_best && t_temp > 0.f) {
 						t_best = t_temp;
@@ -308,10 +308,10 @@ bool CKdTreeAccelerator::Intersect(const Ray& ray, float *t, Intersection* pInte
 				uint* primitives = node->m_Primitives;
 				for(uint i = 0; i < node->GetNumPrimitives(); ++i)
 				{
-					CPrimitive* primitive = m_Primitives[node->m_Primitives[i]];
+					CTriangle const& primitive = m_Primitives[node->m_Primitives[i]];
 					float t_temp = 0.f;
 					Intersection isect_temp;
-					if(primitive->Intersect(ray, &t_temp, &isect_temp, isectMode))
+					if(primitive.Intersect(ray, &t_temp, &isect_temp, isectMode))
 					{
 						if(t_temp < t_best && t_temp > 0.f) {
 							t_best = t_temp;
@@ -359,9 +359,9 @@ void CKdTreeAccelerator::PrintForDebug()
 	}
 }
 
-std::vector<CPrimitive*> CKdTreeAccelerator::GetPrimitivesOfNode(int i)
+std::vector<CTriangle> CKdTreeAccelerator::GetPrimitivesOfNode(int i)
 {
-	std::vector<CPrimitive*> primitives;
+	std::vector<CTriangle> primitives;
 	if(i < m_NextFreeNode)
 	{
 		if(m_Nodes[i].IsLeaf())

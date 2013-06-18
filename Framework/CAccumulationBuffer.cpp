@@ -6,58 +6,30 @@
 #include "OGLResources\COGLRenderBuffer.h"
 #include "OGLResources\COGLFrameBuffer.h"
 
-CAccumulationBuffer::CAccumulationBuffer()
-	: m_pGLFBRenderTarget(0), m_pGLTAccumTexture(0), m_pDepthBuffer(0),
-	  m_Width(0), m_Height(0), m_ExternalDepthBuffer(false)
+CAccumulationBuffer::CAccumulationBuffer(GLuint width, GLuint height, COGLTexture2D* pDepthBuffer)
+	: m_Width(width), m_Height(height), m_ExternalDepthBuffer(false)
 {
-	m_pGLFBRenderTarget = new COGLFrameBuffer("CAccumulationBuffer.m_pGLFBRenderTarget");
-	m_pGLTAccumTexture = new COGLTexture2D("CAccumulationBuffer.m_pGLTAccumTexture");
+	m_renderTarget.reset(new COGLFrameBuffer("CAccumulationBuffer.m_pGLFBRenderTarget"));
+	m_accumTexture.reset(new COGLTexture2D(m_Width, m_Height, GL_RGBA16F, GL_RGBA, 
+		GL_FLOAT, 1, false, "CAccumulationBuffer.m_pGLTAccumTexture"));
+
+	if (pDepthBuffer == 0)
+	{
+		m_ExternalDepthBuffer = false;
+		m_depthBuffer.reset(new COGLTexture2D(m_Width, m_Height, GL_DEPTH_COMPONENT32F, 
+			GL_DEPTH_COMPONENT, GL_FLOAT, 1, false, "CAccumulationBuffer.m_pDepthBuffer"));
+		m_renderTarget->AttachTexture2D(m_depthBuffer.get(), GL_DEPTH_ATTACHMENT);
+	}
+	else
+	{
+		m_ExternalDepthBuffer = true;
+		m_renderTarget->AttachTexture2D(pDepthBuffer, GL_DEPTH_ATTACHMENT);
+	}
+	
+	m_renderTarget->AttachTexture2D(m_accumTexture.get(), GL_COLOR_ATTACHMENT0);
+	m_renderTarget->CheckFrameBufferComplete();
 }
 
 CAccumulationBuffer::~CAccumulationBuffer() 
 {
-	if(!m_ExternalDepthBuffer)
-		SAFE_DELETE(m_pDepthBuffer);
-
-	SAFE_DELETE(m_pGLTAccumTexture);
-	SAFE_DELETE(m_pGLFBRenderTarget);
-}
-	
-bool CAccumulationBuffer::Init(GLuint width, GLuint height, COGLTexture2D* pDepthBuffer)
-{
-	if(pDepthBuffer != 0)
-	{
-		m_ExternalDepthBuffer = true;
-		m_pDepthBuffer = pDepthBuffer;
-	}
-	else
-	{
-		m_pDepthBuffer = new COGLTexture2D("CAccumulationBuffer.m_pDepthBuffer");
-		V_RET_FOF(m_pDepthBuffer->Init(width, height, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, 1, false));
-
-	}
-
-	m_Width = width;
-	m_Height = height;
-	
-	V_RET_FOF(m_pGLTAccumTexture->Init(m_Width, m_Height, 
-		GL_RGBA16F, GL_RGBA, GL_FLOAT, 1, false));
-	
-	V_RET_FOF(m_pGLFBRenderTarget->Init());
-
-	m_pGLFBRenderTarget->AttachTexture2D(m_pDepthBuffer, GL_DEPTH_ATTACHMENT);
-	m_pGLFBRenderTarget->AttachTexture2D(m_pGLTAccumTexture, GL_COLOR_ATTACHMENT0);
-
-	V_RET_FOF(m_pGLFBRenderTarget->CheckFrameBufferComplete());
-
-	return true;
-}
-
-void CAccumulationBuffer::Release()
-{
-	if(!m_ExternalDepthBuffer)
-		m_pDepthBuffer->Release();
-	
-	m_pGLTAccumTexture->Release();
-	m_pGLFBRenderTarget->Release();
 }

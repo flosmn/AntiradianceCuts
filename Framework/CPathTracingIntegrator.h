@@ -12,16 +12,14 @@ class CImagePlane;
 class CPathTracingIntegrator
 {
 public:
-	CPathTracingIntegrator();
+	CPathTracingIntegrator(Scene* pScene, CImagePlane* pImagePlane);
 	~CPathTracingIntegrator();
-
-	bool Init(Scene* pScene, CImagePlane* pImagePlane);
 
 	void Integrate(uint numPaths, bool MIS);
 
 private:
-	Scene* m_pScene;
-	CImagePlane* m_pImagePlane;
+	Scene* m_scene;
+	CImagePlane* m_imagePlane;
 };
 
 #endif // _C_PATH_TRACING_INTEGRATOR_H_

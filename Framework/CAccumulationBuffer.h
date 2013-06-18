@@ -1,6 +1,8 @@
 #ifndef _C_ACCUMULATION_BUFFER_H
 #define _C_ACCUMULATION_BUFFER_H
 
+#include <memory>
+
 typedef unsigned int uint;
 
 class COGLTexture2D;
@@ -9,19 +11,16 @@ class COGLFrameBuffer;
 class CAccumulationBuffer
 {
 public:
-	CAccumulationBuffer();
+	CAccumulationBuffer(uint width, uint height, COGLTexture2D* pDepthBuffer = 0);
 	~CAccumulationBuffer();
 	
-	bool Init(uint width, uint height, COGLTexture2D* pDepthBuffer);
-	void Release();
-
-	COGLTexture2D* GetTexture() { return m_pGLTAccumTexture; }
-	COGLFrameBuffer* GetRenderTarget() { return m_pGLFBRenderTarget; }
+	COGLTexture2D* GetTexture() { return m_accumTexture.get(); }
+	COGLFrameBuffer* GetRenderTarget() { return m_renderTarget.get(); }
 	
 private:
-	COGLFrameBuffer* m_pGLFBRenderTarget;
-	COGLTexture2D* m_pGLTAccumTexture;
-	COGLTexture2D* m_pDepthBuffer;
+	std::unique_ptr<COGLFrameBuffer> m_renderTarget;
+	std::unique_ptr<COGLTexture2D> m_accumTexture;
+	std::unique_ptr<COGLTexture2D> m_depthBuffer;
 
 	bool m_ExternalDepthBuffer;
 

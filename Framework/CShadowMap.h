@@ -5,28 +5,41 @@ typedef unsigned int uint;
 
 #include "GL/glew.h"
 
-class COGLTexture2D;
-class COGLFrameBuffer;
+#include <glm/gtc/type_ptr.hpp>
+
+#include "Macros.h"
+
+#include "OGLResources\COGLTexture2D.h"
+#include "OGLResources\COGLFrameBuffer.h"
+
+#include <iostream>
+#include <memory>
 
 class CShadowMap 
 {
 public:
-	CShadowMap();
-	~CShadowMap();
+	CShadowMap(uint size) : m_shadowMapSize(size) 
+	{
+		m_renderTarget.reset(new COGLFrameBuffer("CShadowMap.m_pRenderTarget"));
+		m_shadowMapTexture.reset(new COGLTexture2D(m_shadowMapSize, m_shadowMapSize, GL_DEPTH_COMPONENT24, 
+			GL_DEPTH_COMPONENT, GL_FLOAT, 1, false, "CShadowMap.m_pShadowMapTexture"));
 
-	bool Init(uint size);
-	void Release();
+		m_renderTarget->AttachTexture2D(m_shadowMapTexture.get(), GL_DEPTH_ATTACHMENT);
+		m_renderTarget->CheckFrameBufferComplete();
+	};
 
-	COGLTexture2D* GetShadowMapTexture() { return m_pShadowMapTexture; }
-	COGLFrameBuffer* GetRenderTarget() { return m_pRenderTarget; }
+	~CShadowMap() {}
 
-	uint GetShadowMapSize() { return m_ShadowMapSize; }
+	COGLTexture2D* GetShadowMapTexture() { return m_shadowMapTexture.get(); }
+	COGLFrameBuffer* GetRenderTarget() { return m_renderTarget.get(); }
+
+	uint GetShadowMapSize() { return m_shadowMapSize; }
 
 private:
-	COGLFrameBuffer* m_pRenderTarget;
-	COGLTexture2D* m_pShadowMapTexture;
+	std::unique_ptr<COGLFrameBuffer> m_renderTarget;
+	std::unique_ptr<COGLTexture2D> m_shadowMapTexture;
 
-	uint m_ShadowMapSize;
+	uint m_shadowMapSize;
 };
 
 #endif // _C_SHADOW_MAP_H_

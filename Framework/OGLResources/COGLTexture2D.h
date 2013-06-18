@@ -8,26 +8,23 @@ typedef unsigned int uint;
 class COGLTexture2D : public COGLResource
 {
 public:
-	COGLTexture2D(std::string debugName);
+	COGLTexture2D(uint width, uint height, GLenum internalFormat, GLenum format, 
+		GLenum type, uint nMipMaps, bool genMipMaps, std::string const& debugName = "");
 	~COGLTexture2D();
-
-	virtual bool Init(uint width, uint height, GLenum internalFormat,
-		GLenum format, GLenum type, uint nMipMaps, bool genMipMaps);
-	virtual void Release();
 
 	void GenerateMipMaps();
 
-	uint GetWidth() { CheckInitialized("COGLTexture2D.GetWidth()"); return m_Width; }
-	uint GetHeight() { CheckInitialized("COGLTexture2D.GetHeight()"); return m_Height; }
+	uint GetWidth() { return m_Width; }
+	uint GetHeight() { return m_Height; }
 
-	GLenum GetInternalFormat() { CheckInitialized("COGLTexture2D.GetInternalFormat()"); return m_InternalFormat; }
-	GLenum GetFormat() { CheckInitialized("COGLTexture2D.GetFormat()"); return m_Format; }
-	GLenum GetType() { CheckInitialized("COGLTexture2D.GetType()"); return m_Type; }
+	GLenum GetInternalFormat() { return m_InternalFormat; }
+	GLenum GetFormat() { return m_Format; }
+	GLenum GetType() { return m_Type; }
 
 	void GetPixelData(void* pData);
 	void SetPixelData(void* pData);
 
-	void CopyData(COGLTexture2D* pTexture);	
+	void CopyData(COGLTexture2D* pTexture);
 
 	void Clear();
 	

@@ -9,41 +9,23 @@
 #include <assert.h>
 
 
-COGLVertexBuffer::COGLVertexBuffer(std::string debugName)
+COGLVertexBuffer::COGLVertexBuffer(std::string const& debugName)
 	: COGLResource(COGL_VERTEXBUFFER, debugName)
 {
+	glGenBuffers(1, &m_Resource);
 
+	CheckGLError(m_DebugName, "COGLVertexBuffer::COGLVertexBuffer()");
 }
 
 COGLVertexBuffer::~COGLVertexBuffer()
 {
-
-}
-
-bool COGLVertexBuffer::Init()
-{
-	V_RET_FOF(COGLResource::Init());
-
-	glGenBuffers(1, &m_Resource);
-
-	V_RET_FOT(CheckGLError(m_DebugName, "COGLVertexBuffer::Init()"));
-
-	return true;
-}
-
-void COGLVertexBuffer::Release()
-{
-	COGLResource::Release();
-
 	glDeleteBuffers(1, &m_Resource);
 
-	CheckGLError(m_DebugName, "COGLArrayBuffer::Release()");
+	CheckGLError(m_DebugName, "COGLArrayBuffer::~COGLVertexBuffer()");
 }
 
 bool COGLVertexBuffer::SetContent(GLuint size, void* data, GLenum usage)
 {
-	CheckInitialized("COGLVertexBuffer::SetContent()");
-
 	COGLBindLock lock(this, COGL_ARRAY_BUFFER_SLOT);
 	glBufferData(GL_ARRAY_BUFFER, size, data, usage);
 

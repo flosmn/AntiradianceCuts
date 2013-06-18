@@ -11,16 +11,15 @@ class Scene;
 
 #include "AVPL.h"
 
+#include <memory>
+
 class CCubeShadowMap
 {
 public:
-	CCubeShadowMap();
+	CCubeShadowMap(COGLUniformBuffer* pUBTransform);
 	~CCubeShadowMap();
 
-	bool Init(COGLUniformBuffer* m_pUBTransform);
-	void Release();
-
-	void Create(Scene* pScene, const AVPL& avpl, COGLUniformBuffer* pUBTransform);
+	void Create(Scene* pScene, AVPL const& avpl, COGLUniformBuffer* pUBTransform);
 
 	COGLTexture2D* GetCubeMapFace(int i);
 
@@ -28,9 +27,8 @@ private:
 	GLuint m_CubeMap;
 	GLuint m_FrameBuffer;
 
-	CProgram* m_pCreateProgram;
-	COGLTexture2D* m_pCubeMapFace;
-	COGLUniformBuffer* m_pUBTranforms;
+	std::unique_ptr<CProgram> m_program;
+	std::unique_ptr<COGLTexture2D> m_cubeMapFace;
 
 	glm::mat4 m_Proj;
 	glm::vec3 m_Directions[6];

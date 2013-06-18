@@ -1,12 +1,10 @@
 #ifndef _C_KD_TREE_ACCELERATOR_H_
 #define _C_KD_TREE_ACCELERATOR_H_
 
-class CPrimitive;
-
 #include "BBox.h"
 #include "Ray.h"
 #include "Intersection.h"
-#include "CPrimitive.h"
+#include "CTriangle.h"
 
 #include <vector>
 
@@ -19,19 +17,19 @@ typedef unsigned int uint;
 class CKdTreeAccelerator
 {
 public:
-	CKdTreeAccelerator(const std::vector<CPrimitive*>& primitives,
+	CKdTreeAccelerator(const std::vector<CTriangle>& primitives,
 		int intersectionCost, int traversalCost, int maxNumPrimitives, int maxDepth);
 	~CKdTreeAccelerator();
 
 	void BuildTree();
 
-	bool Intersect(const Ray& ray, float* t, Intersection* pIntersection, CPrimitive::IsectMode isectMode) const;
+	bool Intersect(const Ray& ray, float* t, Intersection* pIntersection, CTriangle::IsectMode isectMode) const;
 
 	void PrintForDebug();
 
 	int GetNumNodes() { return m_NextFreeNode; }
 	KdAccelNode* GetNodes() { return m_Nodes; }
-	std::vector<CPrimitive*> GetPrimitivesOfNode(int i);
+	std::vector<CTriangle> GetPrimitivesOfNode(int i);
 
 private:
 	void BuildTreeRecursive(int node, const BBox& nodeBounds,
@@ -57,7 +55,7 @@ private:
 
 	BBox m_BoundingBox;
 
-	std::vector<CPrimitive*> m_Primitives;
+	std::vector<CTriangle> m_Primitives;
 };
 
 struct KdAccelNode

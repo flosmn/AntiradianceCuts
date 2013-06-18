@@ -11,35 +11,19 @@
 #include <iostream>
 
 
-COGLFrameBuffer::COGLFrameBuffer(std::string debugName)
+COGLFrameBuffer::COGLFrameBuffer(std::string const& debugName)
 	: COGLResource(COGL_FRAMEBUFFER, debugName)
 {
-
+	glGenFramebuffers(1, &m_Resource);
+	
+	CheckGLError(m_DebugName, "COGLFrameBuffer::COGLFrameBuffer()");
 }
 
 COGLFrameBuffer::~COGLFrameBuffer()
 {
-	COGLResource::~COGLResource();
-}
-
-bool COGLFrameBuffer::Init()
-{
-	V_RET_FOF(COGLResource::Init());
-
-	glGenFramebuffers(1, &m_Resource);
-	
-	V_RET_FOT(CheckGLError(m_DebugName, "COGLFrameBuffer::Init()"));
-
-	return true;
-}
-
-void COGLFrameBuffer::Release()
-{
-	COGLResource::Release();
-	
 	glDeleteFramebuffers(1, &m_Resource);
 	
-	CheckGLError(m_DebugName, "COGLFrameBuffer::Release()");
+	CheckGLError(m_DebugName, "COGLFrameBuffer::~COGLFrameBuffer()");
 }
 
 void COGLFrameBuffer::AttachRenderBuffer(COGLRenderBuffer* renderBuffer, 

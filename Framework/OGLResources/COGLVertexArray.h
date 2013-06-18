@@ -18,16 +18,10 @@ class COGLVertexBuffer;
 class COGLVertexArray : public COGLResource
 {
 public:
-	COGLVertexArray(std::string debugName);
+	COGLVertexArray(GLenum primitiveType, std::string const& debugName = "");
 	~COGLVertexArray();
 
-	virtual bool Init(GLenum primitiveType);
-	virtual void Release();
-
-	bool AddVertexDataChannel(uint index, uint elements);
-	bool AddVertexData(uint index, uint size, void* pData);
-	
-	bool AddIndexDataChannel();
+	bool AddVertexData(uint index, uint elements, uint size, void* pData);
 	bool AddIndexData(GLuint size, void* pData);
 
 	void Finish();
@@ -37,13 +31,12 @@ public:
 private:
 	virtual void Bind(COGLBindSlot slot);
 	virtual void Unbind();
-
-	COGLVertexBuffer* m_pGLVBIndexData;
+		
 	bool m_HasIndexData;
-
-	COGLVertexBuffer* m_VertexDataChannels[10];
-	CHANNEL_INFO m_VertexDataChannelInfo[10];
-	uint m_ChannelsUsed[10];
+	
+	std::unique_ptr<COGLVertexBuffer> m_IndexData;
+	std::vector<std::unique_ptr<COGLVertexBuffer>> m_VertexDataChannels;
+	std::vector<CHANNEL_INFO> m_VertexDataChannelInfo;
 	
 	GLenum m_PrimitiveType;
 };

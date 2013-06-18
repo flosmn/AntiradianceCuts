@@ -31,31 +31,12 @@
 #include <sstream>
 
 
-CModel::CModel()
-	: m_Mesh(nullptr)
+CModel::CModel(CMesh* mesh)
 {
+	m_subModels.emplace_back(new CSubModel(mesh));
 }
 
-CModel::~CModel()
-{
-	for(int i = 0; i < m_SubModels.size(); ++i)
-		delete m_SubModels[i];
-
-	m_SubModels.clear();
-};
-
-bool CModel::Init(CMesh* mesh) 
-{
-	CSubModel* pSubModel = new CSubModel();
-
-	V_RET_FOF(pSubModel->Init(mesh));
-
-	m_SubModels.push_back(pSubModel);
-
-	return true;
-}
-
-bool CModel::Init(std::string name, std::string ext, CMaterialBuffer* pMaterialBuffer) 
+CModel::CModel(std::string name, std::string ext, CMaterialBuffer* pMaterialBuffer)
 {
 	std::cout << "Start loading model " << name << std::endl;
 	CTimer timer(CTimer::CPU);
@@ -81,7 +62,7 @@ bool CModel::Init(std::string name, std::string ext, CMaterialBuffer* pMaterialB
     else{
 		printf("Couldn't open file: %s\n", ss.str().c_str());
         printf("%s\n", importer.GetErrorString());
-        return false;
+        return;
     }
  
 	std::string pFile(ss.str());
@@ -91,7 +72,7 @@ bool CModel::Init(std::string name, std::string ext, CMaterialBuffer* pMaterialB
     if( !scene)
     {
         printf("%s\n", importer.GetErrorString());
-        return false;
+        return;
     }
  
     // Now we can access the file's contents.
@@ -171,24 +152,17 @@ bool CModel::Init(std::string name, std::string ext, CMaterialBuffer* pMaterialB
 			meshGeometry.SetNormalData(normals);
         }
  		
-		CSubModel* subModel = new CSubModel();
-		subModel->Init(meshGeometry, pMaterialBuffer);
-
-        m_SubModels.push_back(subModel);
+		m_subModels.emplace_back(new CSubModel(meshGeometry, pMaterialBuffer));
 
 		// face, position and normal data will be deleted by CMeshGeometry
     }
 	timer.Stop("Convert geometry info");
 
 	SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
-	
-	return true;
 }
 
-void CModel::Release()
+CModel::~CModel()
 {
-	for(int i = 0; i < m_SubModels.size(); ++i)
-		m_SubModels[i]->Release();
 }
 
 void CModel::Draw(const glm::mat4& mView, const glm::mat4& mProj, COGLUniformBuffer* pUBTranform, COGLUniformBuffer* pUBMaterial) 
@@ -202,7 +176,7 @@ void CModel::Draw(const glm::mat4& mView, const glm::mat4& mProj, COGLUniformBuf
 	pUBTranform->UpdateData(&transform);
 
 	std::vector<CSubModel*>::iterator it;
-	for(it = m_SubModels.begin(); it < m_SubModels.end(); ++it)
+	for(it = m_subModels.begin(); it < m_subModels.end(); ++it)
 	{
 		(*it)->Draw(pUBMaterial);
 	}
@@ -219,7 +193,7 @@ void CModel::Draw(const glm::mat4& mView, const glm::mat4& mProj, COGLUniformBuf
 	pUBTranform->UpdateData(&transform);
 
 	std::vector<CSubModel*>::iterator it;
-	for(it = m_SubModels.begin(); it < m_SubModels.end(); ++it)
+	for(it = m_subModels.begin(); it < m_subModels.end(); ++it)
 	{
 		(*it)->Draw();
 	}
@@ -236,8 +210,8 @@ void CModel::SetWorldTransform(const glm::mat4& transform)
 {
 	m_WorldTransform = transform;
 
-	for(uint i = 0; i < m_SubModels.size(); ++i)
+	for(uint i = 0; i < m_subModels.size(); ++i)
 	{
-		m_SubModels[i]->SetWorldTransform(m_WorldTransform);
+		m_subModels[i]->SetWorldTransform(m_WorldTransform);
 	}
 }

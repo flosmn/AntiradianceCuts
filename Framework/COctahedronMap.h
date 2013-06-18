@@ -3,6 +3,8 @@
 
 #include <glm/glm.hpp>
 
+#include <memory>
+
 class COGLTexture2D;
 
 typedef unsigned int uint;
@@ -10,18 +12,15 @@ typedef unsigned int uint;
 class COctahedronMap
 {
 public:
-	COctahedronMap();
+	COctahedronMap(uint dimension);
 	~COctahedronMap();
-
-	bool Init(uint dimension);
-	void Release();
 
 	void FillWithDebugData();
 
-	COGLTexture2D* GetTexture();
+	COGLTexture2D* GetTexture() { return m_texture.get(); }
 
 private:
-	COGLTexture2D* m_pTexture;
+	std::unique_ptr<COGLTexture2D> m_texture;
 
 	glm::vec4* AccessMap(uint x, uint y, glm::vec4* pMap);
 

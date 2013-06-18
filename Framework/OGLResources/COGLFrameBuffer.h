@@ -13,11 +13,8 @@ class COGLFrameBuffer : public COGLResource
 	friend class COGLRenderTargetLock;
 
 public:
-	COGLFrameBuffer(std::string debugName);
+	COGLFrameBuffer(std::string const& debugName = "");
 	~COGLFrameBuffer();
-
-	virtual bool Init();
-	virtual void Release();
 
 	void AttachRenderBuffer(COGLRenderBuffer* renderBuffer, GLenum attachmentSlot);
 	void AttachTexture2D(COGLTexture2D* texture, GLenum attachmentSlot);

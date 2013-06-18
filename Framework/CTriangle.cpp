@@ -24,7 +24,7 @@ CTriangle::~CTriangle()
 
 }
 
-bool CTriangle::IntersectBBox(const Ray& ray)
+bool CTriangle::IntersectBBox(const Ray& ray) const
 {
 	Ray r = ray;
 
@@ -43,7 +43,7 @@ bool CTriangle::IntersectBBox(const Ray& ray)
 	return intersection;
 }
 
-bool CTriangle::Intersect(const Ray& ray, float *t, Intersection* pIntersection, IsectMode isectMode)
+bool CTriangle::Intersect(const Ray& ray, float *t, Intersection* pIntersection, IsectMode isectMode) const
 {
 	float epsilon = 0.0001f;
 
@@ -93,7 +93,7 @@ BBox CTriangle::GetBBox()
 	return m_BBox;
 }
 
-void CTriangle::Transform(CPrimitive* pPrimitive, const glm::mat4& transform) const
+void CTriangle::Transform(CTriangle* pPrimitive, const glm::mat4& transform) const
 {
 	glm::vec4 t_p0 = transform * glm::vec4(m_P0, 1.0f);
 	glm::vec4 t_p1 = transform * glm::vec4(m_P1, 1.0f);

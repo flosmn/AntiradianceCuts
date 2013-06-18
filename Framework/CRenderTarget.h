@@ -2,6 +2,7 @@
 #define _C_RENDER_TARGET_H_
 
 #include <vector>
+#include <memory>
 
 #include <GL/glew.h>
 #include <GL/gl.h>
@@ -16,33 +17,30 @@ class CRenderTarget
 	friend class CRenderTargetLock;
 
 public:
-	CRenderTarget();
+	CRenderTarget(uint width, uint height, uint numTargets, COGLTexture2D* pDepthBuffer = 0);
 	~CRenderTarget();
 	
-	bool Init(uint width, uint height, uint nBuffers, COGLTexture2D* pDepthBuffer);
-	void Release();
-		
-	COGLFrameBuffer* GetFrameBuffer() { return m_pFrameBuffer; }
+	COGLFrameBuffer* GetFrameBuffer() { return m_frameBuffer.get(); }
 
-	COGLTexture2D* GetBuffer(uint i);
+	COGLTexture2D* GetTarget(uint i);
 	COGLTexture2D* GetDepthBuffer();
 		
 private:
 	void Bind();
 	void Unbind();
 
-	std::vector<COGLTexture2D*> m_vTargetTextures;
-	COGLTexture2D* m_pDepthBuffer;
+	std::vector<std::unique_ptr<COGLTexture2D>> m_targetTextures;
+
+	std::unique_ptr<COGLTexture2D> m_depthBuffer;
+	COGLTexture2D* m_externalDepthBuffer;
 	
-	COGLFrameBuffer* m_pFrameBuffer;
+	std::unique_ptr<COGLFrameBuffer> m_frameBuffer;
 	
-	uint m_nBuffers;
-	GLenum* m_pBuffers;
+	uint m_numTargets;
+	std::vector<GLenum> m_targets;
 
 	uint m_Width;
 	uint m_Height;
-
-	bool m_ExternalDepthBuffer;
 };
 
 class CRenderTargetLock

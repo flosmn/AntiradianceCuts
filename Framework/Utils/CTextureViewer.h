@@ -14,16 +14,12 @@ public:
 	CTextureViewer();
 	~CTextureViewer();
 
-	bool Init();
-	void Release();
-
 	void DrawTexture(COGLTexture2D* pTexture, GLuint x, GLuint y, 
 		GLuint width, GLuint height);
 
 private:
-	CProgram* m_pProgram;
-	COGLSampler* m_pSampler;
-	CFullScreenQuad* m_pFullScreenQuad;
+	std::unique_ptr<CProgram> m_program;
+	std::unique_ptr<CFullScreenQuad> m_fullScreenQuad;
 };
 
 #endif // _C_TEXTURE_VIEWER_H_

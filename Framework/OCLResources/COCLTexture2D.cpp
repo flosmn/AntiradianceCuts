@@ -23,8 +23,6 @@ bool COCLTexture2D::Init(COGLTexture2D* pGLTexture)
 {
 	m_pGLTexture = pGLTexture;
 
-	V_RET_FOF(m_pGLTexture->CheckInitialized("COCLTexture2D::Init()"));
-
 	cl_int err;
 	m_Texture = clCreateFromGLTexture2D(*m_pContext->GetCLContext(), CL_MEM_READ_WRITE,
 		GL_TEXTURE_2D, 0, m_pGLTexture->GetResourceIdentifier(), &err);

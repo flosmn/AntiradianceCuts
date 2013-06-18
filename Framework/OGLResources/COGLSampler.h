@@ -6,11 +6,9 @@
 class COGLSampler : public COGLResource
 {
 public:
-	COGLSampler(std::string debugName);
+	COGLSampler(GLenum minFilter, GLenum magFilter, GLenum clampS, GLenum clampT, 
+		std::string const& debugName = "");
 	~COGLSampler();
-
-	bool Init(GLenum minFilter, GLenum magFilter, GLenum clampS, GLenum clampT);
-	void Release();
 
 private:
 	void Bind(COGLBindSlot slot) {}

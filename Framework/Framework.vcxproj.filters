@@ -43,13 +43,9 @@
     <ClCompile Include="CAccumulationBuffer.cpp" />
     <ClCompile Include="CGBuffer.cpp" />
     <ClCompile Include="CProgram.cpp" />
-    <ClCompile Include="CShadowMap.cpp" />
     <ClCompile Include="CRenderTarget.cpp" />
     <ClCompile Include="CPostprocess.cpp" />
     <ClCompile Include="AVPL.cpp" />
-    <ClCompile Include="MeshResources\CFullScreenQuad.cpp">
-      <Filter>MeshResources</Filter>
-    </ClCompile>
     <ClCompile Include="MeshResources\CMeshGeometry.cpp">
       <Filter>MeshResources</Filter>
     </ClCompile>
@@ -72,9 +68,6 @@
       <Filter>Utils</Filter>
     </ClCompile>
     <ClCompile Include="Utils\Util.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="Utils\CLightViewer.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
     <ClCompile Include="Utils\Rand.cpp">
@@ -165,7 +158,6 @@
     <ClCompile Include="guicon.cpp">
       <Filter>GUI&amp;Config</Filter>
     </ClCompile>
-    <ClCompile Include="CPointCloud.cpp" />
     <ClCompile Include="CClusterTree.cpp" />
     <ClCompile Include="CSimpleKdTree.cpp" />
     <ClCompile Include="CPriorityQueue.cpp" />
@@ -177,8 +169,6 @@
       <Filter>GUI&amp;Config</Filter>
     </ClCompile>
     <ClCompile Include="CCamera.cpp" />
-    <ClCompile Include="CAVPLImportanceSampling.cpp" />
-    <ClCompile Include="CBidirInstantRadiosity.cpp" />
     <ClCompile Include="Intersection.cpp">
       <Filter>RayTracingStuff</Filter>
     </ClCompile>
@@ -339,9 +329,6 @@
     <ClInclude Include="BBox.h">
       <Filter>RayTracingStuff</Filter>
     </ClInclude>
-    <ClInclude Include="CPrimitive.h">
-      <Filter>RayTracingStuff</Filter>
-    </ClInclude>
     <ClInclude Include="uniforms.h">
       <Filter>Misc</Filter>
     </ClInclude>
@@ -370,8 +357,6 @@
       <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="CCamera.h" />
-    <ClInclude Include="CAVPLImportanceSampling.h" />
-    <ClInclude Include="CBidirInstantRadiosity.h" />
     <ClInclude Include="OGLResources\COGLCubeMap.h">
       <Filter>OGLResources</Filter>
     </ClInclude>

@@ -13,20 +13,9 @@ GLenum cube[6] = {
 	GL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
 };
 
-COGLCubeMap::COGLCubeMap(const char* debugName)
+COGLCubeMap::COGLCubeMap(unsigned int width, unsigned int height, GLenum internalFormat, unsigned int nMipMapLevels, std::string const& debugName)
 	: COGLResource(COGL_CUBE_MAP, debugName)
 {
-}
-
-COGLCubeMap::~COGLCubeMap()
-{
-	COGLResource::~COGLResource();
-}
-
-bool COGLCubeMap::Init(unsigned int width, unsigned int height, GLenum internalFormat, unsigned int nMipMapLevels)
-{
-	V_RET_FOF(COGLResource::Init());
-
 	glGenTextures(1, &m_Resource);
 
 	m_Width = width;
@@ -42,14 +31,10 @@ bool COGLCubeMap::Init(unsigned int width, unsigned int height, GLenum internalF
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, nMipMapLevels);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_GENERATE_MIPMAP, true);
-	
-	return true;
 }
 
-void COGLCubeMap::Release()
+COGLCubeMap::~COGLCubeMap()
 {
-	COGLResource::Release();
-	
 	glDeleteTextures(1, &m_Resource);
 }
 
@@ -58,9 +43,6 @@ void COGLCubeMap::LoadCubeMapFromFiles(
 	const char* pos_y, const char* neg_y,
 	const char* pos_z, const char* neg_z)
 {
-	CheckInitialized("COGLCubeMap::LoadCubeMapFromFiles()");
-	CheckResourceNotNull("COGLCubeMap::LoadCubeMapFromFiles()");
-		
 	const char* paths[6] = { pos_x, neg_x, pos_y, neg_y, pos_z, neg_z };
 	
 	COGLBindLock lock(this, COGL_TEXTURE0_SLOT);
@@ -115,8 +97,5 @@ void COGLCubeMap::Unbind()
 
 GLuint COGLCubeMap::GetResourceIdentifier()
 {
-	CheckInitialized("COGLCubeMap::GetResourceIdentifier");
-	CheckResourceNotNull("COGLCubeMap::GetResourceIdentifier");
-
 	return m_Resource;
 }

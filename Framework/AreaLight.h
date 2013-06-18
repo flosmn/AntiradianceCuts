@@ -7,6 +7,7 @@
 #include "Defines.h"
 
 #include <vector>
+#include <memory>
 
 typedef unsigned int uint;
 
@@ -23,9 +24,6 @@ public:
 	AreaLight(float _width, float _height, glm::vec3 _centerPosition, 
 		glm::vec3 _frontDirection, glm::vec3 _upDirection, CMaterialBuffer* pMaterialBuffer);
 	~AreaLight();
-
-	bool Init();
-	void Release();
 
 	void Draw(CCamera* camera, COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBAreaLight);
 	void Draw(CCamera* camera, COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBAreaLight, glm::vec3 color);
@@ -51,7 +49,7 @@ public:
 	void SetIntensity(glm::vec3 _intensity);
 	void SetRadiance(glm::vec3 _radiance);
 
-	void GetTrianglesWS(std::vector<CTriangle*>& triangles);
+	void GetTrianglesWS(std::vector<CTriangle>& triangles);
 
 	uint GetMaterialIndex() { return m_MaterialIndex; }
 
@@ -60,7 +58,7 @@ public:
 private:
 	void UpdateWorldTransform();
 
-	CModel* m_pAreaLightModel;
+	std::unique_ptr<CModel> m_areaLightModel;
 	float width;
 	float height;
 	float area;
@@ -70,9 +68,6 @@ private:
 	glm::vec3 intensity;
 	glm::vec3 radiance;
 	glm::vec3 flux;
-
-	float* m_pPlaneHammersleyNumbers;
-	int m_PlaneHammersleyIndex;
 
 	CMaterialBuffer* m_pMaterialBuffer;
 	uint m_MaterialIndex;

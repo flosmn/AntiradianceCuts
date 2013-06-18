@@ -6,22 +6,10 @@
 
 #include <assert.h>
 
-COGLTexture2D::COGLTexture2D(std::string debugName)
+COGLTexture2D::COGLTexture2D(GLuint width, GLuint height, GLenum internalFormat,
+		GLenum format, GLenum type, GLuint nMipMaps, bool genMipMaps, std::string const& debugName)
 	: COGLResource(COGL_TEXTURE_2D, debugName)
 {
-
-}
-
-COGLTexture2D::~COGLTexture2D()
-{
-
-}
-
-bool COGLTexture2D::Init(GLuint width, GLuint height, GLenum internalFormat,
-		GLenum format, GLenum type, GLuint nMipMaps, bool genMipMaps)
-{
-	V_RET_FOF(COGLResource::Init());
-
 	m_Width = width;
 	m_Height = height;
 	m_nMipMaps = nMipMaps;
@@ -32,7 +20,7 @@ bool COGLTexture2D::Init(GLuint width, GLuint height, GLenum internalFormat,
 	
 	glGenTextures(1, &m_Resource);
 
-	V_RET_FOT(CheckGLError(m_DebugName, "COGLTexture2D::Init()"));
+	CheckGLError(m_DebugName, "COGLTexture2D::COGLTexture2D()");
 	
 	{
 		COGLBindLock lock(this, COGL_TEXTURE0_SLOT);
@@ -43,18 +31,14 @@ bool COGLTexture2D::Init(GLuint width, GLuint height, GLenum internalFormat,
 			0, m_Format, m_Type, NULL);
 	}
 
-	V_RET_FOT(CheckGLError(m_DebugName, "COGLTexture2D::Init()"));
-	
-	return true;
+	CheckGLError(m_DebugName, "COGLTexture2D::COGLTexture2D()");
 }
 
-void COGLTexture2D::Release()
+COGLTexture2D::~COGLTexture2D()
 {
-	COGLResource::Release();
-
 	glDeleteTextures(1, &m_Resource);
 
-	CheckGLError(m_DebugName, "COGLTexture2D::Release()");
+	CheckGLError(m_DebugName, "COGLTexture2D::~COGLTexture2D()");
 }
 
 void COGLTexture2D::GenerateMipMaps()
@@ -74,8 +58,6 @@ void COGLTexture2D::GenerateMipMaps()
 
 void COGLTexture2D::GetPixelData(void* pData)
 {
-	CheckInitialized("COGLTexture2D.GetPixelData()");
-
 	COGLBindLock lock(this, COGL_TEXTURE0_SLOT);
 
 	glGetTexImage(GL_TEXTURE_2D, 0, m_Format, m_Type, pData);
@@ -85,8 +67,6 @@ void COGLTexture2D::GetPixelData(void* pData)
 
 void COGLTexture2D::SetPixelData(void* pData)
 {
-	CheckInitialized("COGLTexture2D.SetPixelData()");
-
 	COGLBindLock lock(this, COGL_TEXTURE0_SLOT);
 
 	CheckGLError(m_DebugName, "COGLTexture2D::SetPixelData(), before glTexImage2D");
@@ -153,7 +133,6 @@ void COGLTexture2D::Unbind()
 
 void COGLTexture2D::Clear()
 {
-	CheckInitialized("COGLTexture2D::Clear()");
 	CheckNotBound("COGLTexture2D::Clear()");
 	
 	try{

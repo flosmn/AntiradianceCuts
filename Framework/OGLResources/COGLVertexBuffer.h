@@ -6,12 +6,9 @@
 class COGLVertexBuffer : public COGLResource
 {
 public:
-	COGLVertexBuffer(std::string debugName);
+	COGLVertexBuffer(std::string const& debugName = "");
 	~COGLVertexBuffer();
-
-	virtual bool Init();
-	virtual void Release();
-
+	
 	bool SetContent(GLuint size, void* data, GLenum usage);
 
 private:

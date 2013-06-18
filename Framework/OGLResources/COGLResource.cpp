@@ -5,88 +5,69 @@
 #include <iostream>
 #include <string>
 
-COGLResource::COGLResource(COGLResourceType resourceType, std::string debugName)
+COGLResource::COGLResource(COGLResourceType resourceType, std::string const& debugName)
 	: m_Resource(0), m_DebugName(debugName), 
 	  m_ResourceType(resourceType), m_IsBound(false), m_IsInitialized(false)
 {
-	if(m_DebugName == "") 
-	{
-		std::cout << "COGLResource: " 
-			<< " no valid debug name for a resource!!!"	<< std::endl;
-	}
 }
 
 COGLResource::~COGLResource()
-{
-	CheckNotInitialized("COGLResource::~COGLResource()");
+{	
 	CheckNotBound("COGLResource::~COGLResource()");
-}
-
-bool COGLResource::Init()
-{
-	CheckNotInitialized("COGLResource::Init()");
-	CheckNotBound("COGLResource::Init()");
-
-	m_IsInitialized = true;
-	return true;
-}
-
-void COGLResource::Release()
-{
-	CheckInitialized("COGLResource::Release()");
-	CheckNotBound("COGLResource::Release()");
-
-	m_IsInitialized = false;
 }
 
 void COGLResource::Bind(COGLBindSlot slot)
 {
-	CheckInitialized("COGLResource::Bind()");
 	CheckNotBound("COGLResource::Bind()");
 
 	m_Slot = slot;
 
-	std::map<COGLBindSlot, std::string>& mapSlotsToResources = 
-		GetMapForResourceType(m_ResourceType);
-
-	std::string resNameToBind = GetDebugName();
-	std::string resNameBound = mapSlotsToResources[slot];
-	
-	if(!(resNameBound == "" || resNameBound == resNameToBind)) 
+	if (GetDebugName() != "")
 	{
-		std::cout << "Warning! Trying to bind COGLResource: " << resNameToBind 
-			<< " to slot " << GetStringForBindSlot(m_Slot) << " but the COGLResource " 
-			<< resNameBound << " is still bound to this slot!!!" << std::endl;
+		std::map<COGLBindSlot, std::string>& mapSlotsToResources = 
+			GetMapForResourceType(m_ResourceType);
+
+		std::string resNameToBind = GetDebugName();
+		std::string resNameBound = mapSlotsToResources[slot];
+		
+		if(!(resNameBound == "" || resNameBound == resNameToBind)) 
+		{
+			std::cout << "Warning! Trying to bind COGLResource: " << resNameToBind 
+				<< " to slot " << GetStringForBindSlot(m_Slot) << " but the COGLResource " 
+				<< resNameBound << " is still bound to this slot!!!" << std::endl;
+		}
+		mapSlotsToResources[slot] = resNameToBind;
 	}
-	mapSlotsToResources[slot] = resNameToBind;
 
 	m_IsBound = true;
 }
 
 void COGLResource::Unbind()
 {
-	CheckInitialized("COGLResource::Unbind()");
 	CheckBound("COGLResource::Unbind()");
 
-	std::map<COGLBindSlot, std::string>& mapSlotsToResources = 
-		GetMapForResourceType(m_ResourceType);
+	if (GetDebugName() != "")
+	{
+		std::map<COGLBindSlot, std::string>& mapSlotsToResources = 
+			GetMapForResourceType(m_ResourceType);
 
-	std::string resNameToUnbind = GetDebugName();
-	std::string resNameBound = mapSlotsToResources[m_Slot];
-	if(resNameBound != resNameToUnbind) 
-	{
-		std::cout << "Warning! Trying to unbind COGLResource: " << resNameToUnbind 
-			<< " from slot " << GetStringForBindSlot(m_Slot) << " but the COGLResource " 
-			<< resNameBound << " is bound to this slot!!!" << std::endl;
+		std::string resNameToUnbind = GetDebugName();
+		std::string resNameBound = mapSlotsToResources[m_Slot];
+		if(resNameBound != resNameToUnbind) 
+		{
+			std::cout << "Warning! Trying to unbind COGLResource: " << resNameToUnbind 
+				<< " from slot " << GetStringForBindSlot(m_Slot) << " but the COGLResource " 
+				<< resNameBound << " is bound to this slot!!!" << std::endl;
+		}
+		if(resNameBound == "") 
+		{
+			std::cout << "Warning! Trying to unbind COGLResource: " << resNameToUnbind 
+				<< " from slot " << GetStringForBindSlot(m_Slot) << " but there is nothing bound!!!" 
+				<< std::endl;
+		}
+		
+		mapSlotsToResources[m_Slot] = "";
 	}
-	if(resNameBound == "") 
-	{
-		std::cout << "Warning! Trying to unbind COGLResource: " << resNameToUnbind 
-			<< " from slot " << GetStringForBindSlot(m_Slot) << " but there is nothing bound!!!" 
-			<< std::endl;
-	}
-	
-	mapSlotsToResources[m_Slot] = "";
 
 	m_IsBound = false;
 }
@@ -94,35 +75,7 @@ void COGLResource::Unbind()
 
 GLuint COGLResource::GetResourceIdentifier()
 { 
-	CheckInitialized("COGLResource::GetResourceIdentifier");
-
 	return m_Resource;
-}
-
-bool COGLResource::CheckInitialized(std::string checker)
-{
-	if (!m_IsInitialized)
-	{
-		std::cout << checker << ": "
-			<< "COGLResource " << m_DebugName 
-			<< " is not initialized!!!" << std::endl;
-		return false;
-	}
-
-	return CheckResourceNotNull(checker);
-}
-
-bool COGLResource::CheckNotInitialized(std::string checker)
-{
-	if (m_IsInitialized)
-	{
-		std::cout << checker << ": "
-			<< "COGLResource " << m_DebugName 
-			<< " is still initialized!!!" << std::endl;
-		return false;
-	}
-
-	return true;
 }
 
 bool COGLResource::CheckBound(std::string checker)
@@ -145,19 +98,6 @@ bool COGLResource::CheckNotBound(std::string checker)
 		std::cout << checker << ": "
 			<< "COGLResource " << m_DebugName 
 			<< " is still bound!!!" << std::endl;
-		return false;
-	}
-
-	return true;
-}
-
-bool COGLResource::CheckResourceNotNull(std::string checker)
-{
-	if (m_Resource == 0)
-	{
-		std::cout << checker << ": "
-			<< "COGLResource " << m_DebugName 
-			<< " is null!!!" << std::endl;
 		return false;
 	}
 

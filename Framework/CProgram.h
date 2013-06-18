@@ -13,21 +13,17 @@ class COGLSampler;
 class CProgram
 {
 public:
-	CProgram(const std::string debugName, const std::string VS, const std::string FS);
-	CProgram(const std::string debugName, const std::string VS, const std::string GS, const std::string FS);
-	CProgram(const std::string debugName, const std::string VS, const std::string FS, std::vector<std::string> headerFiles);
+	CProgram(std::string const& VS, std::string const& FS, std::string const& debugName = "");
+	CProgram(std::string const& VS, std::string const& FS, std::vector<std::string> headerFiles, std::string const& debugName = "");
 	~CProgram();
-
-	bool Init();
-	void Release();
-
+	
 	void BindUniformBuffer(COGLUniformBuffer* pGLUniformBuffer, std::string strUniformBlockNam);
 	void BindSampler(uint samplerSlot, COGLSampler* pGLSampler);
 
 	COGLProgram* GetGLProgram();
 
 private:
-	COGLProgram* m_pGLProgram;
+	std::unique_ptr<COGLProgram> m_program;
 };
 
 #endif // _C_PROGRAM_H_

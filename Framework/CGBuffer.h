@@ -1,6 +1,8 @@
 #ifndef GBUFFER_H
 #define GBUFFER_H
 
+#include <memory>
+
 typedef unsigned int uint;
 
 class Scene;
@@ -17,28 +19,25 @@ class CShadowMap;
 class CGBuffer
 {
 public:
-	CGBuffer();
+	CGBuffer(uint width, uint height, COGLTexture2D* pDepthBuffer);
 	~CGBuffer();
 
-	bool Init(uint width, uint height, COGLTexture2D* pDepthBuffer);
-	void Release();
-
-	COGLTexture2D* GetPositionTextureWS() { return m_pGLTTexturePositionWS; }
-	COGLTexture2D* GetNormalTexture() { return m_pGLTTextureNormalWS; }
-	COGLTexture2D* GetMaterialTexture() { return m_pGLTTextureMaterials; }
-	COGLFrameBuffer* GetRenderTarget() { return m_pGLFBRenderTarget; }
+	COGLTexture2D* GetPositionTextureWS() { return m_positionWS.get(); }
+	COGLTexture2D* GetNormalTexture() { return m_normalWS.get(); }
+	COGLTexture2D* GetMaterialTexture() { return m_materials.get(); }
+	COGLFrameBuffer* GetRenderTarget() { return m_renderTarget.get(); }
 
 private:
 	uint m_Width;
 	uint m_Height;
 
-	COGLFrameBuffer* m_pGLFBRenderTarget;
-	COGLTexture2D* m_pGLTTexturePositionWS;
-	COGLTexture2D* m_pGLTTextureNormalWS;
-	COGLTexture2D* m_pGLTTextureMaterials;
-	COGLSampler* m_pGLPointSampler;
+	std::unique_ptr<COGLFrameBuffer> m_renderTarget;
+	std::unique_ptr<COGLTexture2D> m_positionWS;
+	std::unique_ptr<COGLTexture2D> m_normalWS;
+	std::unique_ptr<COGLTexture2D> m_materials;
+	std::unique_ptr<COGLSampler> m_pointSampler;
 
-	CProgram* m_pCreateGBufferProgram;
+	std::unique_ptr<CProgram> m_program;
 };
 
 #endif

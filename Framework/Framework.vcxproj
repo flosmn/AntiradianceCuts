@@ -151,8 +151,6 @@ xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
   <ItemGroup>
     <ClCompile Include="AreaLight.cpp" />
     <ClCompile Include="CAccumulationBuffer.cpp" />
-    <ClCompile Include="CAVPLImportanceSampling.cpp" />
-    <ClCompile Include="CBidirInstantRadiosity.cpp" />
     <ClCompile Include="CCamera.cpp" />
     <ClCompile Include="CClusterTree.cpp" />
     <ClCompile Include="CConfigManager.cpp" />
@@ -169,12 +167,10 @@ xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
     <ClCompile Include="COctahedronMap.cpp" />
     <ClCompile Include="CPathTracingIntegrator.cpp" />
     <ClCompile Include="CPbrtKdTreeAccelerator.cpp" />
-    <ClCompile Include="CPointCloud.cpp" />
     <ClCompile Include="CPriorityQueue.cpp" />
     <ClCompile Include="CProgram.cpp" />
     <ClCompile Include="CReferenceImage.cpp" />
     <ClCompile Include="CRenderTarget.cpp" />
-    <ClCompile Include="CShadowMap.cpp" />
     <ClCompile Include="CSimpleKdTree.cpp" />
     <ClCompile Include="CTestFramework.cpp" />
     <ClCompile Include="CTimer.cpp" />
@@ -185,7 +181,6 @@ xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
     <ClCompile Include="LightTreeTypes.cpp" />
     <ClCompile Include="OCLResources\COCLTexture2D.cpp" />
     <ClCompile Include="CPostprocess.cpp" />
-    <ClCompile Include="MeshResources\CFullScreenQuad.cpp" />
     <ClCompile Include="MeshResources\CMeshGeometry.cpp" />
     <ClCompile Include="MeshResources\CModel.cpp" />
     <ClCompile Include="MeshResources\CObjFileLoader.cpp" />
@@ -211,7 +206,6 @@ xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
     <ClCompile Include="Render.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Utils\CExport.cpp" />
-    <ClCompile Include="Utils\CLightViewer.cpp" />
     <ClCompile Include="Utils\CTextureViewer.cpp" />
     <ClCompile Include="Utils\GLErrorUtil.cpp" />
     <ClCompile Include="Utils\mtrand.cpp" />
@@ -221,10 +215,8 @@ xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AreaLight.h" />
-    <ClInclude Include="CAVPLImportanceSampling.h" />
     <ClInclude Include="BBox.h" />
     <ClInclude Include="CAccumulationBuffer.h" />
-    <ClInclude Include="CBidirInstantRadiosity.h" />
     <ClInclude Include="CCamera.h" />
     <ClInclude Include="CClusterTree.h" />
     <ClInclude Include="CConfigManager.h" />
@@ -288,7 +280,6 @@ xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
     <ClInclude Include="OGLResources\COGLUniformBuffer.h" />
     <ClInclude Include="OGLResources\COGLVertexArray.h" />
     <ClInclude Include="OGLResources\COGLVertexBuffer.h" />
-    <ClInclude Include="CPrimitive.h" />
     <ClInclude Include="Ray.h" />
     <ClInclude Include="Render.h" />
     <ClInclude Include="Scene.h" />

@@ -7,98 +7,66 @@
 
 #include <sstream>
 
-CRenderTarget::CRenderTarget()
-	: m_pFrameBuffer(0), m_Width(0), m_Height(0), m_ExternalDepthBuffer(false)
+CRenderTarget::CRenderTarget(uint width, uint height, uint numTargets, COGLTexture2D* pDepthBuffer)
+	: m_Width(width), m_Height(height), m_numTargets(numTargets), m_externalDepthBuffer(pDepthBuffer)
 {
-	m_pFrameBuffer = new COGLFrameBuffer("CRenderTarget.m_pFrameBuffer");
+	m_frameBuffer.reset(new COGLFrameBuffer("CRenderTarget.m_pFrameBuffer"));
+
+	m_targets.resize(m_numTargets);
+	
+	if(m_externalDepthBuffer == 0) {
+		m_depthBuffer.reset(new COGLTexture2D(m_Width, m_Height, GL_DEPTH_COMPONENT32F, 
+			GL_DEPTH_COMPONENT, GL_FLOAT, 1, false, "CAccumulationBuffer.m_pDepthBuffer"));
+		m_frameBuffer->AttachTexture2D(m_depthBuffer.get(), GL_DEPTH_ATTACHMENT);
+	} else {
+		m_frameBuffer->AttachTexture2D(m_externalDepthBuffer, GL_DEPTH_ATTACHMENT);
+	}
+
+	for(uint i = 0; i < m_numTargets; ++i)
+	{
+		m_targetTextures.emplace_back(std::unique_ptr<COGLTexture2D>(new COGLTexture2D(
+			m_Width, m_Height, GL_RGBA32F, GL_RGBA, GL_FLOAT, 1, false)));
+		m_frameBuffer->AttachTexture2D(m_targetTextures.back().get(), GL_COLOR_ATTACHMENT0 + i);
+		m_targets[i] = GL_COLOR_ATTACHMENT0 + i;
+	}
+	
+	m_frameBuffer->CheckFrameBufferComplete();
 }
 
 CRenderTarget::~CRenderTarget()
 {
-	SAFE_DELETE(m_pFrameBuffer);
-}
-	
-
-bool CRenderTarget::Init(uint width, uint height, uint nBuffers, COGLTexture2D* pDepthBuffer)
-{
-	if(pDepthBuffer != 0)
-	{
-		m_ExternalDepthBuffer = true;
-		m_pDepthBuffer = pDepthBuffer;
-	}
-	else
-	{
-		m_pDepthBuffer = new COGLTexture2D("CAccumulationBuffer.m_pDepthBuffer");
-		V_RET_FOF(m_pDepthBuffer->Init(width, height, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, 1, false));
-
-	}
-
-	m_nBuffers = nBuffers;
-	m_pBuffers = new GLenum[nBuffers];
-	
-	m_Width = width;
-	m_Height = height;
-	
-	V_RET_FOF(m_pFrameBuffer->Init());
-	m_pFrameBuffer->AttachTexture2D(m_pDepthBuffer, GL_DEPTH_ATTACHMENT);
-
-	for(uint i = 0; i < m_nBuffers; ++i)
-	{
-		std::stringstream ss;
-		ss << "CRenderTarget.buffer" << i;
-		COGLTexture2D* buffer = new COGLTexture2D(ss.str());
-		V_RET_FOF(buffer->Init(m_Width, m_Height, GL_RGBA32F, GL_RGBA, GL_FLOAT, 1, false));
-		m_vTargetTextures.push_back(buffer);
-		m_pFrameBuffer->AttachTexture2D(buffer, GL_COLOR_ATTACHMENT0 + i);
-		m_pBuffers[i] = GL_COLOR_ATTACHMENT0 + i;
-	}
-	
-	V_RET_FOF(m_pFrameBuffer->CheckFrameBufferComplete());
-
-	return true;
 }
 
-
-void CRenderTarget::Release()
+COGLTexture2D* CRenderTarget::GetDepthBuffer()
 {
-	if(!m_ExternalDepthBuffer)
-	{
-		m_pDepthBuffer->Release();
-		SAFE_DELETE(m_pDepthBuffer);
+	if (m_externalDepthBuffer == 0) {
+		return m_depthBuffer.get();
+	} else {
+		return m_externalDepthBuffer;
 	}
-	
-	for(uint i = 0; i < m_nBuffers; ++i)
-	{
-		m_vTargetTextures[i]->Release();
-		SAFE_DELETE(m_vTargetTextures[i]);
-	}
-
-	m_pFrameBuffer->Release();
-
-	delete [] m_pBuffers;
 }
 
-COGLTexture2D* CRenderTarget::GetBuffer(uint i)
+COGLTexture2D* CRenderTarget::GetTarget(uint i)
 {
-	if(i >= m_nBuffers)
+	if(i >= m_targetTextures.size())
 	{
-		std::cout << "CRenderTarget.GetBuffer(): index to large" << std::endl;
+		std::cout << "CRenderTarget.GetTargets(): index to large" << std::endl;
 		return 0;
 	}
 
-	return m_vTargetTextures[i];
+	return m_targetTextures[i].get();
 }
 
 void CRenderTarget::Bind()
 {
-	m_pFrameBuffer->Bind(COGL_FRAMEBUFFER_SLOT);
+	m_frameBuffer->Bind(COGL_FRAMEBUFFER_SLOT);
 
-	glDrawBuffers(m_nBuffers, m_pBuffers);
+	glDrawBuffers(m_numTargets, m_targets.data());
 }
 
 void CRenderTarget::Unbind()
 {
-	m_pFrameBuffer->Unbind();
+	m_frameBuffer->Unbind();
 
 	glDrawBuffer(GL_BACK);
 }

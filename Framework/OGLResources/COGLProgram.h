@@ -11,11 +11,9 @@ class COGLSampler;
 class COGLProgram : public COGLResource
 {
 public:
-	COGLProgram(const std::string debugName, const std::string strVS, const std::string strGS, const std::string strFS, std::vector<std::string> headerFiles);
+	COGLProgram(const std::string strVS, const std::string strGS, const std::string strFS, 
+		std::vector<std::string> headerFiles, std::string const& debugName = "");
 	~COGLProgram();
-
-	virtual bool Init();
-	virtual void Release();
 
 	void BindUniformBuffer(COGLUniformBuffer* pGLUniformBuffer, const std::string strUniformBlockName);
 	void BindSampler(GLuint samplerSlot, COGLSampler* pGLSampler);

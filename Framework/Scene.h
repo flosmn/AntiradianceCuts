@@ -7,12 +7,13 @@ typedef unsigned int uint;
 
 #include "Ray.h"
 #include "Intersection.h"
-#include "CPrimitive.h"
+#include "CTriangle.h"
 #include "Material.h"
 
 #include "Utils\mtrand.h"
 
 #include <vector>
+#include <memory>
 
 class CCamera;
 class AVPL;
@@ -31,21 +32,18 @@ class CModel;
 class Scene
 {
 public:
-	Scene(CCamera* pCamera, CConfigManager* pConfManager, COCLContext* pOCLContext);
+	Scene(CCamera* camera, CConfigManager* confManager, COCLContext* clContext);
 	~Scene();
-	
-	bool Init();
-	void Release();
 	
 	void ClearScene();
 	
-	void DrawScene(COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBMaterial);
-	void DrawScene(COGLUniformBuffer* pUBTransform);
+	void DrawScene(COGLUniformBuffer* ubTransform, COGLUniformBuffer* ubMaterial);
+	void DrawScene(COGLUniformBuffer* ubTransform);
 
-	void DrawScene(const glm::mat4& mView, const glm::mat4& mProj, COGLUniformBuffer* pUBTransform);
+	void DrawScene(const glm::mat4& mView, const glm::mat4& mProj, COGLUniformBuffer* ubTransform);
 
-	void DrawAreaLight(COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBAreaLight);
-	void DrawAreaLight(COGLUniformBuffer* pUBTransform, COGLUniformBuffer* pUBAreaLight, glm::vec3 color);
+	void DrawAreaLight(COGLUniformBuffer* ubTransform, COGLUniformBuffer* ubAreaLight);
+	void DrawAreaLight(COGLUniformBuffer* ubTransform, COGLUniformBuffer* ubAreaLight, glm::vec3 color);
 
 	void UpdateAreaLights();
 
@@ -62,13 +60,12 @@ public:
 
 	bool HasLightSource() { return m_HasLightSource; }
 
-	bool IntersectRayScene(const Ray& ray, float* t, Intersection *pIntersection, CPrimitive::IsectMode isectMode);
-	bool IntersectRaySceneSimple(const Ray& ray, float* t, Intersection *pIntersection, CPrimitive::IsectMode isectMode);
+	bool IntersectRayScene(const Ray& ray, float* t, Intersection *pIntersection, CTriangle::IsectMode isectMode);
+	bool IntersectRaySceneSimple(const Ray& ray, float* t, Intersection *pIntersection, CTriangle::IsectMode isectMode);
 
-	CCamera* GetCamera() { return m_Camera; }
+	CCamera* GetCamera() { return m_camera; }
 
 	void ClearLighting();
-	void SetAVPLImportanceSampling(CAVPLImportanceSampling *pAVPLIS) { m_pAVPLImportanceSampling = pAVPLIS; }
 
 	int GetNumberOfLightPaths() { return m_NumLightPaths; }
 				
@@ -79,48 +76,41 @@ public:
 	bool CreatePrimaryAVPL(AVPL* newAVPL);
 
 	uint GetNumCreatedAVPLs() { return m_NumCreatedAVPLs; }
-	uint GetNumAVPLsAfterIS() { return m_NumAVPLsAfterIS; }
 
-	bool ImportanceSampling(AVPL& avpl, float* scale);
+	CMaterialBuffer* GetMaterialBuffer() { return m_materialBuffer.get(); }
 	bool Visible(const SceneSample& ss1, const SceneSample& ss2);
-	void SampleLightSource(SceneSample& ss);
+	void SampleLightSource(SceneSample& ss);	MATERIAL* GetMaterial(const SceneSample& ss);
 
-	CMaterialBuffer* GetMaterialBuffer() { return m_pMaterialBuffer; }
-	MATERIAL* GetMaterial(const SceneSample& ss);
-
-	CReferenceImage* GetReferenceImage() { return m_pReferenceImage; }
+	CReferenceImage* GetReferenceImage() { return m_referenceImage.get(); }
 
 private:
 	void ClearPath();
 		
 	void InitKdTree();
 	void ReleaseKdTree();
-
 	
 	bool ContinueAVPLPath(AVPL* pred, AVPL* newAVPL, glm::vec3 direction, float pdf);
 	void CreateAVPLs(AVPL* pred, std::vector<AVPL>& path, int nAVPLs);
 	
-	std::vector<CModel*> m_Models;
-		
+private:
+	std::vector<std::unique_ptr<CModel>> m_models;
+	std::vector<CTriangle> m_primitives;
+
+	CCamera* m_camera;		
+	CConfigManager* m_confManager;
+
+	std::unique_ptr<AreaLight> m_areaLight;
+	std::unique_ptr<CKdTreeAccelerator> m_kdTreeAccelerator;
+
+	std::unique_ptr<CMaterialBuffer> m_materialBuffer;
+	std::unique_ptr<CReferenceImage> m_referenceImage;
+
+	uint m_NumCreatedAVPLs;
+
 	int m_CurrentBounce;
 	int m_NumLightPaths;
 
-	CCamera* m_Camera;		
-	AreaLight* m_AreaLight;
-
-	CKdTreeAccelerator* m_pKdTreeAccelerator;
-	std::vector<CPrimitive*> m_Primitives;
-
-	uint m_NumCreatedAVPLs;
-	uint m_NumAVPLsAfterIS;
-
-	CConfigManager* m_pConfManager;
-	CAVPLImportanceSampling* m_pAVPLImportanceSampling;
-
 	bool m_HasLightSource;
-
-	CMaterialBuffer* m_pMaterialBuffer;
-	CReferenceImage* m_pReferenceImage;
 };
 
 #endif SCENE_H

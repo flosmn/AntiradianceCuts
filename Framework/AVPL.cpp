@@ -16,7 +16,7 @@ AVPL::AVPL(glm::vec3 p, glm::vec3 n, glm::vec3 L,
 	glm::vec3 A, glm::vec3 w, float coneAngle, 
 	int bounce, int materialIndex, 
 	CMaterialBuffer* pMaterialBuffer, CConfigManager* pConfManager)
-	: m_pMaterialBuffer(pMaterialBuffer), m_pConfManager(pConfManager)
+	: m_pMaterialBuffer(pMaterialBuffer), m_confManager(pConfManager)
 {
 	m_Position = p;
 	m_Orientation = n;
@@ -128,15 +128,15 @@ glm::vec3 AVPL::GetAntiradiance(const glm::vec3& direction, const float angleFac
 	{
 		res = m_Antiradiance;
 
-		if(m_pConfManager->GetConfVars()->AntiradFilterMode == 1)
+		if(m_confManager->GetConfVars()->AntiradFilterMode == 1)
 		{
-			res = - 2.f * res * m_pConfManager->GetConfVars()->AntiradFilterK * (angleFactor / PI * theta - 1);
+			res = - 2.f * res * m_confManager->GetConfVars()->AntiradFilterK * (angleFactor / PI * theta - 1);
 		}
-		if(m_pConfManager->GetConfVars()->AntiradFilterMode == 2)
+		if(m_confManager->GetConfVars()->AntiradFilterMode == 2)
 		{
-			const float M = m_pConfManager->GetConfVars()->AntiradFilterGaussFactor;
+			const float M = m_confManager->GetConfVars()->AntiradFilterGaussFactor;
 			const float s = PI / (M * angleFactor);
-			res = m_pConfManager->GetConfVars()->AntiradFilterK * ( exp(-(theta*theta)/(s*s)) - exp(-(M*M)) ) * res;
+			res = m_confManager->GetConfVars()->AntiradFilterK * ( exp(-(theta*theta)/(s*s)) - exp(-(M*M)) ) * res;
 		}
 	}
 

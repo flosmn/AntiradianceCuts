@@ -37,11 +37,11 @@ int window_width = 512;
 int window_height = 512;
 bool fullScreen = false;
 
-CCamera* g_pCamera;
-Renderer* g_pRenderer;
-CConfigManager* g_pConfigManager;
-CGUI* g_pGUI;
-COGLContext* g_pOGLContext;
+std::unique_ptr<CCamera> g_camera;
+std::unique_ptr<Renderer> g_renderer;
+std::unique_ptr<CConfigManager> g_configManager;
+std::unique_ptr<CGUI> g_gui;
+std::unique_ptr<COGLContext> g_glContext;
 
 uint g_MousePosX = 0;
 uint g_MousePosY = 0;
@@ -55,14 +55,13 @@ float CalcFPS();
 
 void Render()
 {
-	if(g_pConfigManager->GetConfVars()->UsePathTracing)
-		g_pRenderer->RenderPathTracingReference();
-	else
-	{
-		g_pRenderer->Render();
+	if(g_configManager->GetConfVars()->UsePathTracing) {
+		g_renderer->RenderPathTracingReference();
+	} else {
+		g_renderer->Render();
 	}
 
-	g_pGUI->Render(CalcFPS());
+	g_gui->Render(CalcFPS());
 
 	SwapBuffers(g_HDC);
 }
@@ -84,34 +83,16 @@ bool Init()
 	std::cout << "OpenGL version: " << glGetString(GL_VERSION) << std::endl;
 	std::cout << "GLSL version: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
 	
-	g_pCamera = new CCamera(window_width, window_height, 0.1f, 5000.0f);
-	g_pRenderer = new Renderer(g_pCamera);
-	g_pConfigManager = new CConfigManager(g_pRenderer);
-	g_pGUI = new CGUI(g_pConfigManager);
+	g_camera		.reset(new CCamera(window_width, window_height, 0.1f, 5000.0f));
+	g_configManager	.reset(new CConfigManager());
+	g_renderer		.reset(new Renderer(g_camera.get(), g_glContext.get(), g_configManager.get()));
+	g_gui			.reset(new CGUI(g_configManager.get()));
 
-	g_pRenderer->SetConfigManager(g_pConfigManager);
-	g_pRenderer->SetOGLContext(g_pOGLContext);
-	g_pConfigManager->Update();
-
-	if(!g_pRenderer->Init())
-	{
-		std::cout << "Renderer initialization failed." << std::endl;
-	}
-		
-	g_pGUI->Init(window_width, window_height);
+	g_configManager->setRenderer(g_renderer.get());
+	g_configManager->Update();
+	g_gui->Init(window_width, window_height);
 	
 	return true;
-}
-
-void Release()
-{
-	g_pRenderer->Release();
-	g_pGUI->Release();
-
-	delete g_pConfigManager;
-	delete g_pRenderer;
-	delete g_pCamera;
-	delete g_pGUI;
 }
 
 void SetupPixelFormat(HDC hDC)
@@ -148,11 +129,11 @@ void SetupPixelFormat(HDC hDC)
 */
 LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	if(g_pGUI != 0)
+	if(g_gui != 0)
 	{
-		if(g_pGUI->HandleEvent(hwnd, message, wParam, lParam))
+		if(g_gui->HandleEvent(hwnd, message, wParam, lParam))
 		{
-			g_pConfigManager->Update();
+			g_configManager->Update();
 			return 0;
 		}
 	}
@@ -171,19 +152,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		/*      Create rendering context and make it current
 		*/
-		g_pOGLContext = new COGLContext(wglCreateContext(hDC));
-		wglMakeCurrent(hDC, g_pOGLContext->GetGLContext());
+		g_glContext.reset(new COGLContext(wglCreateContext(hDC)));
+		wglMakeCurrent(hDC, g_glContext->GetGLContext());
 
 		return 0;
 		break;
 
 	case WM_CLOSE:  //window is closing
-
-		Release();
-
-		/* Deselect rendering context and delete it*/
-		wglMakeCurrent(hDC, NULL);
-		wglDeleteContext(g_pOGLContext->GetGLContext());
 
 		/* Send quit message to queue*/
 		PostQuitMessage(0);
@@ -213,7 +188,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	
 		if(HandleKeyEvent(wParam))
 		{
-			g_pConfigManager->Update();
+			g_configManager->Update();
 			return 0;
 		}
 
@@ -223,7 +198,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		if(HandleMouseMoveEvent(wParam, lParam))
 		{
-			g_pConfigManager->Update();
+			g_configManager->Update();
 			return 0;
 		}
 
@@ -384,6 +359,11 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 		}
 	}
 
+	/* Deselect rendering context and delete it*/
+	wglMakeCurrent(g_HDC, NULL);
+	wglDeleteContext(g_glContext->GetGLContext());
+
+
 #ifdef WAIT_ON_EXIT
 	int i = 0;
 	std::cin >> i;
@@ -414,14 +394,14 @@ bool HandleMouseMoveEvent(WPARAM wParam, LPARAM lParam)
 	uint rightButtonDown = wParam & MK_RBUTTON;
 		
 	if(leftButtonDown) {
-		g_pCamera->RotLeft((float)deltaX/window_width);
-		g_pCamera->RotUp((float)deltaY/window_height);
-		g_pRenderer->IssueClearAccumulationBuffer();
+		g_camera->RotLeft((float)deltaX/window_width);
+		g_camera->RotUp((float)deltaY/window_height);
+		g_renderer->IssueClearAccumulationBuffer();
 		return true;
 	}
 	else if(rightButtonDown) {
-		g_pCamera->ZoomIn((float)deltaY/window_height);
-		g_pRenderer->IssueClearAccumulationBuffer();
+		g_camera->ZoomIn((float)deltaY/window_height);
+		g_renderer->IssueClearAccumulationBuffer();
 		return true;
 	}
 
@@ -434,129 +414,99 @@ bool HandleKeyEvent(WPARAM wParam)
     {
 		case 'E':
 
-			g_pRenderer->Export();
+			g_renderer->Export();
 			return true; break;
 
 		case 'T':
 
-			g_pConfigManager->GetConfVarsGUI()->DrawDebugTextures = !g_pConfigManager->GetConfVars()->DrawDebugTextures;
+			g_configManager->GetConfVarsGUI()->DrawDebugTextures = !g_configManager->GetConfVars()->DrawDebugTextures;
 			return true; break;
 
 		case 'X':
 
-			g_pConfigManager->GetConfVarsGUI()->UseToneMapping = !g_pConfigManager->GetConfVars()->UseToneMapping;
+			g_configManager->GetConfVarsGUI()->UseToneMapping = !g_configManager->GetConfVars()->UseToneMapping;
 			return true; break;
 
 		case 'C':
 
-			g_pRenderer->IssueClearLighting();
+			g_renderer->IssueClearLighting();
 			return true; break;
 
 		case 'V':
 
-			g_pRenderer->NewDebugLights();
+			g_renderer->NewDebugLights();
 			return true; break;
 
 		case 'M':
 
-			g_pCamera->ZoomIn(0.5f);
-			g_pRenderer->IssueClearLighting();
+			g_camera->ZoomIn(0.5f);
+			g_renderer->IssueClearLighting();
 			return true; break;
 
 		case 'N':
 
-			g_pCamera->ZoomOut(0.5f);
-			g_pRenderer->IssueClearLighting();
+			g_camera->ZoomOut(0.5f);
+			g_renderer->IssueClearLighting();
 			return true; break;
 
 		case 'K':
 
-			g_pCamera->PrintConfig();
+			g_camera->PrintConfig();
 			return true; break;
 		
 		case 'P':
 
-			g_pRenderer->ProfileFrame();
+			g_renderer->ProfileFrame();
 			return true; break;
 
 		case 'B':
 
-			g_pRenderer->CancelRender();
+			g_renderer->CancelRender();
 			return true; break;
 
 		case 'W':
 
-			g_pCamera->MoveForward(0.5f);
-			g_pRenderer->IssueClearLighting();
+			g_camera->MoveForward(0.5f);
+			g_renderer->IssueClearLighting();
 			return true; break;
 
 		case 'A':
 
-			g_pCamera->MoveLeft(0.5f);
-			g_pRenderer->IssueClearLighting();
+			g_camera->MoveLeft(0.5f);
+			g_renderer->IssueClearLighting();
 			return true; break;
 
 		case 'S':
 
-			g_pCamera->MoveBackward(0.5f);
-			g_pRenderer->IssueClearLighting();
+			g_camera->MoveBackward(0.5f);
+			g_renderer->IssueClearLighting();
 			return true; break;
 
 		case 'D':
 
-			g_pCamera->MoveRight(0.5f);
-			g_pRenderer->IssueClearLighting();
-			return true; break;
-
-		case 'Z':
-
-			std::cout << "start collecting avpls" << std::endl;
-			g_pRenderer->StartCollectingAVPLs();
-			return true; break;
-
-		case 'U':
-
-			std::cout << "stop collecting avpls" << std::endl;
-			g_pRenderer->EndCollectingAVPLs();
-			return true; break;
-
-		case 'H':
-
-			std::cout << "start collecting importance sampled avpls" << std::endl;
-			g_pRenderer->StartCollectingISAVPLs();
-			return true; break;
-
-		case 'J':
-
-			std::cout << "stop collecting importance sampled avpls" << std::endl;
-			g_pRenderer->EndCollectingISAVPLs();
-			return true; break;
-
-		case 'I':
-
-			std::cout << "clear collected avpls" << std::endl;
-			g_pRenderer->ClearCollectedAVPLs();
+			g_camera->MoveRight(0.5f);
+			g_renderer->IssueClearLighting();
 			return true; break;
 
 		case '1':
 
 			std::cout << "Use Camera Config 0" << std::endl;
-			g_pCamera->UseCameraConfig(0);
-			g_pRenderer->IssueClearLighting();
+			g_camera->UseCameraConfig(0);
+			g_renderer->IssueClearLighting();
 			return true; break;
 
 		case '2':
 
 			std::cout << "Use Camera Config 1" << std::endl;
-			g_pCamera->UseCameraConfig(1);
-			g_pRenderer->IssueClearLighting();
+			g_camera->UseCameraConfig(1);
+			g_renderer->IssueClearLighting();
 			return true; break;
 
 		case '3':
 
 			std::cout << "Use Camera Config 2" << std::endl;
-			g_pCamera->UseCameraConfig(2);
-			g_pRenderer->IssueClearLighting();
+			g_camera->UseCameraConfig(2);
+			g_renderer->IssueClearLighting();
 			return true; break;
 
 		default: break;

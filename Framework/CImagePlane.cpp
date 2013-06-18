@@ -11,46 +11,41 @@
 
 #include <algorithm>
 
-CImagePlane::CImagePlane()
-{
-	m_pData = 0;
-	m_pNumSamples = 0;
-	m_pOGLTexture = new COGLTexture2D("CImagePlane.m_pOGLTexture");
-}
-
-CImagePlane::~CImagePlane()
-{
-	SAFE_DELETE(m_pOGLTexture);
-	SAFE_DELETE_ARRAY(m_pData);
-	SAFE_DELETE_ARRAY(m_pNumSamples);
-}
-
-bool CImagePlane::Init(CCamera* pCamera)
+CImagePlane::CImagePlane(CCamera* pCamera)
 {
 	m_Width = pCamera->GetWidth();
 	m_Height = pCamera->GetHeight();
 
-	V_RET_FOF(m_pOGLTexture->Init(m_Width, m_Height, GL_RGBA32F, GL_RGBA, GL_FLOAT, 1, false));
+	m_texture.reset(new COGLTexture2D(m_Width, m_Height, GL_RGBA32F, GL_RGBA, 
+		GL_FLOAT, 1, false, "CImagePlane.m_pOGLTexture"));
 
-	m_pNumSamples = new uint[m_Width * m_Height];
-	memset(m_pNumSamples, 0, m_Width * m_Height * sizeof(uint));
+	m_data.resize(m_Width * m_Height);
+	m_numSamples.resize(m_Width * m_Height);
 
-	m_pData = new glm::vec4[m_Width * m_Height];
-	memset(m_pData, 0, m_Width * m_Height * sizeof(glm::vec4));
+	for (size_t i = 0; i < m_data.size(); ++i) {
+		m_data[i] = glm::vec4(0);
+	}
+	for (size_t i = 0; i < m_numSamples.size(); ++i) {
+		m_numSamples[i] = 0;
+	}
 
-	return true;
-}
-
-void CImagePlane::Release()
-{
-	m_pOGLTexture->Release();
+	m_CurrentPixelSample = glm::vec2(0.f, 0.f);
 }
 
 void CImagePlane::Clear()
 {
-	m_pOGLTexture->Clear();
-	memset(m_pNumSamples, 0, m_Width * m_Height * sizeof(uint));
-	memset(m_pData, 0, m_Width * m_Height * sizeof(glm::vec4));
+	m_data.clear();
+	m_numSamples.clear();
+	m_data.resize(m_Width * m_Height);
+	m_numSamples.resize(m_Width * m_Height);
+
+	for (size_t i = 0; i < m_data.size(); ++i) {
+		m_data[i] = glm::vec4(0);
+	}
+	for (size_t i = 0; i < m_numSamples.size(); ++i) {
+		m_numSamples[i] = 0;
+	}
+
 	m_CurrentPixelSample = glm::vec2(0.f, 0.f);
 }
 
@@ -76,15 +71,15 @@ void CImagePlane::AddSample(glm::vec2 pixelSample, glm::vec4 sample)
 	}
 
 	int index = PixelToIndex(pixelSample);
-	int n = m_pNumSamples[index];
-	m_pData[index] = 1.f/float(n+1) * (float(n) * m_pData[index] + sample);
-	m_pNumSamples[index]++;
+	int n = m_numSamples[index];
+	m_data[index] = 1.f/float(n+1) * (float(n) * m_data[index] + sample);
+	m_numSamples[index]++;
 }
 
 COGLTexture2D* CImagePlane::GetOGLTexture()
 {
-	m_pOGLTexture->SetPixelData(m_pData);
-	return m_pOGLTexture;
+	m_texture->SetPixelData(m_data.data());
+	return m_texture.get();
 }
 
 uint CImagePlane::PixelToIndex(glm::vec2 pixel)

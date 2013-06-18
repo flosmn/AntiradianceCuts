@@ -9,26 +9,20 @@
 class COGLTextureBuffer : public COGLResource
 {
 public:
-	COGLTextureBuffer(std::string debugName);
+	COGLTextureBuffer(GLenum type, std::string const& debugName = "");
 	~COGLTextureBuffer();
 
-	virtual bool Init(size_t size, GLenum usage, GLenum type);
-	virtual void Release();
-	
-	void SetContent(void* content, size_t size);
+	void SetContent(size_t size, GLenum usage, void* content);
 
-	size_t GetSize();
+	size_t GetSize() { return m_size; }
 
 private:
 	virtual void Bind(COGLBindSlot slot);
 	virtual void Unbind();
 
-	GLenum m_Usage;
+	size_t m_size;
 	GLenum m_Type;
-	GLenum m_InternalFormat;
 	GLuint m_TextureBufferTexture;
-
-	size_t m_Size;
 };
 
 #endif // _C_GL_TEXTURE_BUFFER_H_

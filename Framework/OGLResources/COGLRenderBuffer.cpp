@@ -7,21 +7,10 @@
 #include <assert.h>
 
 
-COGLRenderBuffer::COGLRenderBuffer(std::string debugName)
+COGLRenderBuffer::COGLRenderBuffer(GLuint width, GLuint height, 
+	GLenum internalFormat, std::string const& debugName)
 	: COGLResource(COGL_RENDERBUFFER, debugName)
 {
-
-}
-
-COGLRenderBuffer::~COGLRenderBuffer()
-{
-	COGLResource::~COGLResource();
-}
-
-bool COGLRenderBuffer::Init(GLuint width, GLuint height, GLenum internalFormat)
-{
-	V_RET_FOF(COGLResource::Init());
-
 	m_Width = width;
 	m_Height = height;
 	m_InternalFormat = internalFormat;
@@ -32,18 +21,14 @@ bool COGLRenderBuffer::Init(GLuint width, GLuint height, GLenum internalFormat)
 		glRenderbufferStorage(GL_RENDERBUFFER, m_InternalFormat, m_Width, m_Height);
 	}
 
-	V_RET_FOT(CheckGLError(m_DebugName, "COGLRenderBuffer::Init()"));
-	
-	return true;
+	CheckGLError(m_DebugName, "COGLRenderBuffer::COGLRenderBuffer()");
 }
 
-void COGLRenderBuffer::Release()
+COGLRenderBuffer::~COGLRenderBuffer()
 {
-	COGLResource::Release();
-
 	glDeleteRenderbuffers(1, &m_Resource);
 
-	CheckGLError(m_DebugName, "COGLRenderBuffer::Release()");
+	CheckGLError(m_DebugName, "COGLRenderBuffer::~COGLRenderBuffer()");
 }
 
 void COGLRenderBuffer::Bind(COGLBindSlot slot)

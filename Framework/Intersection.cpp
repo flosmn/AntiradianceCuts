@@ -1,6 +1,6 @@
 #include "Intersection.h"
 
-#include "CPrimitive.h"
+#include "CTriangle.h"
 
 glm::vec3 Intersection::GetNormal() const {
 	return m_pPrimitive->GetNormal(); 
