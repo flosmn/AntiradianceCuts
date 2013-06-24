@@ -1,5 +1,7 @@
 #include "cudaGather.h"
+
 #include "CudaResources/cudaUtil.hpp"
+#include "CudaResources/cudaTimer.hpp"
 
 #include "Utils/stream.h"
 
@@ -153,6 +155,8 @@ void CudaGather::run(std::vector<AVPL> const& avpls, glm::vec3 const& cameraPosi
 
 	m_avpls.reset(new CudaBuffer<NEW_AVPL>(new_avpls));
 
+	CudaTimer timer;
+	timer.start();
 	// Invoke kernel
 	dim3 dimBlock(32, 32);
 	dim3 dimGrid((m_width  + dimBlock.x - 1) / dimBlock.x,
@@ -168,6 +172,7 @@ void CudaGather::run(std::vector<AVPL> const& avpls, glm::vec3 const& cameraPosi
 			make_float3(cameraPosition),
 			m_width, m_height);
 
-	//std::cout << "avpl.L: " << avpls[0].m_Radiance << std::endl;
+	timer.stop();
+	std::cout << "kernel execution time: " << timer.getTime() << std::endl;
 }
 
