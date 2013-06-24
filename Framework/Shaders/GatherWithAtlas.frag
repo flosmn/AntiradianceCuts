@@ -3,7 +3,7 @@
 layout(std140) uniform;
 
 #define ONE_OVER_PI 0.3183
-#define PI 3.14159
+#define M_PI 3.14159
 
 #define SIZE_LIGHT 6
 #define SIZE_MATERIAL 4

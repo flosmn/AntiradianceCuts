@@ -105,7 +105,7 @@ void AreaLight::SetFlux(glm::vec3 _flux)
 {
 	flux = flux;
 
-	intensity = flux / PI;
+	intensity = flux / M_PI;
 	radiance = intensity / area;
 	Update();
 }
@@ -114,7 +114,7 @@ void AreaLight::SetIntensity(glm::vec3 _intensity)
 {
 	intensity = _intensity;
 
-	flux = intensity * PI;
+	flux = intensity * M_PI;
 	radiance = intensity / area;
 	Update();
 }
@@ -124,7 +124,7 @@ void AreaLight::SetRadiance(glm::vec3 _radiance)
 	radiance = _radiance;
 
 	intensity = radiance * area;
-	flux = intensity * PI;	
+	flux = intensity * M_PI;	
 	Update();
 }
 
@@ -142,7 +142,7 @@ void AreaLight::SetFrontDirection(glm::vec3 dir)
 
 void AreaLight::UpdateWorldTransform()
 {
-	glm::mat4 scale = glm::scale(width/2.f, height/2.f, 1.0f);
+	glm::mat4 scale = glm::scale(glm::vec3(width/2.f, height/2.f, 1.0f));
 	
 	glm::mat4 position = glm::lookAt(centerPosition + 1.f * glm::normalize(frontDirection), centerPosition - frontDirection, upDirection);
 

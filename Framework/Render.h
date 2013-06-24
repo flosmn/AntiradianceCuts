@@ -5,12 +5,13 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
-#include "CSimpleKdTree.h"
-#include "CClusterTree.h"
 #include "AVPL.h"
 
 #include <vector>
 #include <string>
+
+#include "CudaResources/CudaContext.hpp"
+
 
 class Scene;
 class CCamera;
@@ -19,6 +20,8 @@ class CShadowMap;
 class CPostprocess;
 class CImagePlane;
 class CPathTracingIntegrator;
+
+class CudaGather;
 
 class CAccumulationBuffer;
 class CGBuffer;
@@ -94,6 +97,7 @@ private:
 	void Normalize(CRenderTarget* pTarget, CRenderTarget* source, int normFactor);
 	void Shade(CRenderTarget* target, CRenderTarget* source);	
 	void Add(CRenderTarget* target, CRenderTarget* source1, CRenderTarget* source2);
+	void Add(CRenderTarget* target, CRenderTarget* source);
 
 	void SetTranformToCamera();
 
@@ -177,6 +181,9 @@ private:
 	std::unique_ptr<CRenderTarget> m_shadeAntiradianceRenderTarget;
 	std::unique_ptr<CRenderTarget> m_lightDebugRenderTarget;
 	std::unique_ptr<CRenderTarget> m_postProcessRenderTarget;
+	std::unique_ptr<CRenderTarget> m_cudaRenderTarget;
+	std::unique_ptr<CRenderTarget> m_cudaRenderTargetSum;
+	std::unique_ptr<CRenderTarget> m_cudaRenderTargetNormalized;
 		
 	std::unique_ptr<CProgram> m_gatherProgram;
 	std::unique_ptr<CProgram> m_gatherWithAtlas;
@@ -214,6 +221,10 @@ private:
 	
 	std::unique_ptr<COGLTexture2D> m_depthBuffer;
 	std::unique_ptr<COGLTexture2D> m_testTexture;
+	
+	std::unique_ptr<COGLTexture2D> m_cudaTargetTexture;
+	std::unique_ptr<cuda::CudaContext> m_cudaContext;
+	std::unique_ptr<CudaGather> m_cudaGather;
 
 	std::unique_ptr<COGLCubeMap> m_cubeMap;
 
@@ -236,6 +247,7 @@ private:
 
 	int m_Frame;
 	int m_CurrentPathShadowmap;
+	int m_numPathsAntiradiance;
 	int m_CurrentPathAntiradiance;
 	int m_MaxNumAVPLs;
 	int m_NumPathsDebug;

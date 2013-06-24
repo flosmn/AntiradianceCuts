@@ -9,6 +9,8 @@ CConfigManager::CConfigManager()
 	m_pConfVars = new CONF_VARS[1];
 	m_pConfVarsGUI = new CONF_VARS[1];
 
+	m_pConfVars->gatherWithCuda = m_pConfVarsGUI->gatherWithCuda = 1;
+	
 	m_pConfVars->UseAntiradiance = m_pConfVarsGUI->UseAntiradiance = 1;
 	m_pConfVars->SeparateDirectIndirectLighting = m_pConfVarsGUI->SeparateDirectIndirectLighting = 1;
 	m_pConfVars->LightingMode = m_pConfVarsGUI->LightingMode = 2;
@@ -19,7 +21,7 @@ CConfigManager::CConfigManager()
 	m_pConfVars->GeoTermLimitAntiradiance = m_pConfVarsGUI->GeoTermLimitAntiradiance = 0.0001f;
 	m_pConfVars->ClampGeoTerm = m_pConfVarsGUI->ClampGeoTerm = 0;
 	m_pConfVars->ClampConeMode = m_pConfVarsGUI->ClampConeMode = 0;
-	m_pConfVars->NumAVPLsPerFrame = m_pConfVarsGUI->NumAVPLsPerFrame = 1000;
+	m_pConfVars->NumAVPLsPerFrame = m_pConfVarsGUI->NumAVPLsPerFrame = 1;
 	m_pConfVars->NumAdditionalAVPLs = m_pConfVarsGUI->NumAdditionalAVPLs = 0;
 	m_pConfVars->NumVPLsDirectLight = m_pConfVarsGUI->NumVPLsDirectLight = 500;
 	m_pConfVars->NumVPLsDirectLightPerFrame = m_pConfVarsGUI->NumVPLsDirectLightPerFrame = 5;
@@ -94,6 +96,14 @@ void CConfigManager::Update()
 	bool clearAccumBuffer = false;
 	bool updateAreaLight = false;
 
+	if(m_pConfVarsGUI->gatherWithCuda != m_pConfVars->gatherWithCuda)
+	{
+		m_pConfVars->gatherWithCuda = m_pConfVarsGUI->gatherWithCuda;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+	
 	if(m_pConfVarsGUI->GeoTermLimitRadiance != m_pConfVars->GeoTermLimitRadiance)
 	{
 		m_pConfVars->GeoTermLimitRadiance = m_pConfVarsGUI->GeoTermLimitRadiance;

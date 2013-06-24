@@ -5,6 +5,8 @@ class Renderer;
 
 struct CONF_VARS
 {
+	int gatherWithCuda;
+
 	int DrawError;
 	int DrawReference;
 

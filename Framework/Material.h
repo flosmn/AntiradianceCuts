@@ -32,4 +32,4 @@ struct MATERIAL
 	float padd2;
 };
 
-#endif _MATERIAL_H_
+#endif // _MATERIAL_H_

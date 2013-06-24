@@ -3,7 +3,7 @@
 layout(std140) uniform;
 
 #define ONE_OVER_PI 0.3183f
-#define PI 3.14159f
+#define M_PI 3.14159f
 #define ONE_OVER_THREE 0.333333f
 
 #define EPSILON 0.001f
@@ -239,17 +239,17 @@ void ProcessCluster(in int clusterId, in vec3 avpl_pos, in vec3 pos, in vec3 nor
 		const vec3 bbMin = texelFetch(samplerClusterBuffer, clusterId * SIZE_CLUSTER + 4).xyz;
 		const vec3 bbMax = texelFetch(samplerClusterBuffer, clusterId * SIZE_CLUSTER + 5).xyz;
 		const float radius = 0.5f * length(bbMin - bbMax);
-		const float area = PI * radius * radius;
+		const float area = M_PI * radius * radius;
 
 		if(!useAtlas)
 		{
 			antiradiance = vec4(0.f);
-			radiance = PI * brdf_pos * (cos_theta_avpl_to_pos * cos_theta_pos_to_avpl) / (area + PI * dist * dist) * brdf_avpl * rad;		
+			radiance = M_PI * brdf_pos * (cos_theta_avpl_to_pos * cos_theta_pos_to_avpl) / (area + M_PI * dist * dist) * brdf_avpl * rad;		
 		}
 		else
 		{
-			antiradiance = PI * brdf_pos * (cos_theta_avpl_to_pos * cos_theta_pos_to_avpl) / (area + PI * dist * dist) * antirad;
-			radiance = PI * brdf_pos * (cos_theta_pos_to_avpl) / (area + PI * dist * dist) * rad;
+			antiradiance = M_PI * brdf_pos * (cos_theta_avpl_to_pos * cos_theta_pos_to_avpl) / (area + M_PI * dist * dist) * antirad;
+			radiance = M_PI * brdf_pos * (cos_theta_pos_to_avpl) / (area + M_PI * dist * dist) * rad;
 		}
 	}
 }
@@ -273,7 +273,7 @@ bool Refine(in int cluster_id, in vec3 cluster_center, in vec3 position, in vec3
 	const float proj_A_y = A_y * dot(clusterToPoint, vec3(0.f, 1.f, 0.f));
 	const float proj_A_z = A_z * dot(clusterToPoint, vec3(0.f, 0.f, 1.f));
 
-	/*const*/ float solid_angle = map(clamp((A_x + A_y + A_z) * one_over_dist_squared, 0.f, PI), 0.f, PI, 0.f, 1.f);
+	/*const*/ float solid_angle = map(clamp((A_x + A_y + A_z) * one_over_dist_squared, 0.f, M_PI), 0.f, M_PI, 0.f, 1.f);
 	const vec4 diff = abs(radiance - antiradiance);
 	/*const*/ float rad = map(clamp(avg(diff), 0.f, uInfo.clusterRefinementMaxRadiance), 0.f, uInfo.clusterRefinementMaxRadiance, 0.f, 1.f);
 	const float alpha = uInfo.clusterRefinementWeight;
@@ -285,7 +285,7 @@ bool Refine(in int cluster_id, in vec3 cluster_center, in vec3 position, in vec3
 	const vec3 bbMin = texelFetch(samplerClusterBuffer, cluster_id * SIZE_CLUSTER + 4).xyz;
 	const vec3 bbMax = texelFetch(samplerClusterBuffer, cluster_id * SIZE_CLUSTER + 5).xyz;
 	const float radius = 0.5f * length(bbMin - bbMax);
-	const float area = PI * radius * radius;
+	const float area = M_PI * radius * radius;
 
 	const float dist = length(position - cluster_center);
 	const vec3 avpl_to_pos = normalize(position - cluster_center);
@@ -295,7 +295,7 @@ bool Refine(in int cluster_id, in vec3 cluster_center, in vec3 position, in vec3
 	const float cos_theta_avpl_to_pos = 1.f; //clamp(dot(avpl_norm, avpl_to_pos), 0.f, 1.f);
 
 	const float weight = /*(1.f - dist / (sqrt(radius * radius + dist * dist)));*/
-		area / (area + PI * dist * dist);
+		area / (area + M_PI * dist * dist);
 
 	if(weight >= uInfo.clusterRefinementThreshold)
 	{

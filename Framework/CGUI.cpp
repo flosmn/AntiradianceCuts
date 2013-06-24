@@ -26,6 +26,7 @@ bool CGUI::Init(uint window_width, uint window_height)
 
 	TwAddSeparator(m_pTwBar, "", "");
 		
+	TwAddVarRW(m_pTwBar, "Gather with cuda", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->gatherWithCuda), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Use Antiradiance", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->UseAntiradiance), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Gather With AVPL Clustering", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->GatherWithAVPLClustering), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Sep D/I Lighting", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->SeparateDirectIndirectLighting), " min=0 max=1 step=1 ");

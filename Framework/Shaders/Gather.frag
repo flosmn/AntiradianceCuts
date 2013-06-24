@@ -3,7 +3,7 @@
 //#extension GL_ARB_shading_language_include : require
 
 #define ONE_OVER_PI 0.3183
-#define PI 3.14159
+#define M_PI 3.14159
 
 #define SIZE_LIGHT 6
 #define SIZE_MATERIAL 4
@@ -163,18 +163,18 @@ vec4 GetAntiradiance(in vec4 A, in vec3 avpl_pos, in vec3 pos, in vec3 avpl_norm
 	//	return res;
 
 	const float theta = acos(dot(avpl_to_pos, w));
-	if(theta < PI / cone_factor)
+	if(theta < M_PI / cone_factor)
 	{
 		const float cos_theta_pos_to_avpl = dot(norm, -avpl_to_pos);
 		
 		if(uConfig.AntiradFilterMode == 1)
 		{
-			A = - 2 * A * uConfig.AntiradFilterK * (cone_factor / PI * theta - 1);
+			A = - 2 * A * uConfig.AntiradFilterK * (cone_factor / M_PI * theta - 1);
 		}
 		if(uConfig.AntiradFilterMode == 2)
 		{
 			const float M = uConfig.AntiradFilterGaussFactor;
-			const float s = PI / (M*cone_factor);
+			const float s = M_PI / (M*cone_factor);
 			A = uConfig.AntiradFilterK * ( exp(-(theta*theta)/(s*s)) - exp(-(M*M)) ) * A;
 		}
 		

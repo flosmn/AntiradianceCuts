@@ -24,7 +24,7 @@ glm::mat4 IdentityMatrix()
 }
 
 float Rad2Deg (float AngleFactor) {
-	static float ratio = 180.0f / PI;
+	static float ratio = 180.0f / M_PI;
 	return AngleFactor * ratio;
 }
 
@@ -74,7 +74,7 @@ glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, const float u1,
 	// cos-sampled point with orientation (0, 0, 1)
 	float power = 1.0f / ((float)order + 1.0f);
 	float theta = acos(pow(xi_1, power));
-	float phi = 2 * PI * xi_2;
+	float phi = 2 * M_PI * xi_2;
 
 	sampleDir = glm::normalize(glm::vec3(
 		sin(theta) * cos(phi),
@@ -82,7 +82,7 @@ glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, const float u1,
 		cos(theta)));
 		
 	const float cos_theta = glm::dot(sampleDir, glm::vec3(0.f, 0.f, 1.f));
-	pdf = ((float)order + 1) / (2 * PI) * std::powf(cos_theta, (float)order);
+	pdf = ((float)order + 1) / (2 * M_PI) * std::powf(cos_theta, (float)order);
 			
 	glm::vec3 direction = glm::normalize(TS_to_WS * sampleDir);
 
@@ -122,7 +122,7 @@ void GetRandomSampleDirectionProbability(glm::vec3 orientation, glm::vec3 direct
 	glm::vec3 directionTS = WS_to_TS * direction;
 	
 	const float cos_theta = glm::dot(directionTS, glm::vec3(0.f, 0.f, 1.f));
-	pdf = ((float)order + 1) / (2 * PI) * std::powf(cos_theta, (float)order);
+	pdf = ((float)order + 1) / (2 * M_PI) * std::powf(cos_theta, (float)order);
 }
 
 glm::vec2 ConcentricSampleDisk(float u1, float u2) {
@@ -162,7 +162,7 @@ glm::vec2 ConcentricSampleDisk(float u1, float u2) {
             theta = 6.0f + sx/r;
         }
     }
-    theta *= PI / 4.f;
+    theta *= M_PI / 4.f;
 
 	return glm::vec2(r * cosf(theta), r * sinf(theta));
 }
@@ -172,12 +172,12 @@ glm::vec3 SampleConeDirection(const glm::vec3& axis, const float& theta, const f
 	glm::vec3 direction = glm::vec3(0.f);
 
 	// create a uniform random sample on the disk with radius tan(theta)
-	// where theta = PI / N
+	// where theta = M_PI / N
 	const float r = tanf(theta);
 	glm::vec2 diskSample = ConcentricSampleDisk(u1, u2);
 	diskSample = r * diskSample;
 
-	*pdf = 1.f/(PI * r * r); // uniform pdf
+	*pdf = 1.f/(M_PI * r * r); // uniform pdf
 
 	// cone origin (0,0,0), diskSample (x,z,1)
 	glm::vec3 dirLocal = glm::normalize(glm::vec3(diskSample.x, diskSample.y, 1));

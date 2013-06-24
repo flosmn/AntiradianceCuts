@@ -49,7 +49,7 @@ public:
 	void SetColor(glm::vec3 c) { m_DebugColor = c; }
 	glm::vec3 GetColor() const { return m_DebugColor; }
 
-private:
+public:
 	glm::vec3 GetAntiradiance(const glm::vec3& w, const float angleFactor) const;
 
 	glm::vec3 m_Position;

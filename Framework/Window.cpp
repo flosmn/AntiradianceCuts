@@ -359,6 +359,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 		}
 	}
 
+	g_renderer.reset(nullptr);
 	/* Deselect rendering context and delete it*/
 	wglMakeCurrent(g_HDC, NULL);
 	wglDeleteContext(g_glContext->GetGLContext());

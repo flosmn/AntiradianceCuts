@@ -107,7 +107,7 @@ glm::vec3 AVPL::GetAntiirradiance(const SceneSample& ss) const
 glm::vec3 AVPL::SampleAntiradianceDirection()
 {
 	float pdf = 0.f;
-	glm::vec3 dir = SampleConeDirection(m_Direction, PI/m_ConeAngle, Rand01(), Rand01(), &pdf);
+	glm::vec3 dir = SampleConeDirection(m_Direction, M_PI/m_ConeAngle, Rand01(), Rand01(), &pdf);
 	return dir;
 }
 
@@ -124,18 +124,18 @@ glm::vec3 AVPL::GetAntiradiance(const glm::vec3& direction, const float angleFac
 	
 	const float theta = acos(clamp(glm::dot(direction, antiradDirection), 0, 1));
 
-	if(theta < PI/angleFactor)
+	if(theta < M_PI/angleFactor)
 	{
 		res = m_Antiradiance;
 
 		if(m_confManager->GetConfVars()->AntiradFilterMode == 1)
 		{
-			res = - 2.f * res * m_confManager->GetConfVars()->AntiradFilterK * (angleFactor / PI * theta - 1);
+			res = - 2.f * res * m_confManager->GetConfVars()->AntiradFilterK * (angleFactor / M_PI * theta - 1);
 		}
 		if(m_confManager->GetConfVars()->AntiradFilterMode == 2)
 		{
 			const float M = m_confManager->GetConfVars()->AntiradFilterGaussFactor;
-			const float s = PI / (M * angleFactor);
+			const float s = M_PI / (M * angleFactor);
 			res = m_confManager->GetConfVars()->AntiradFilterK * ( exp(-(theta*theta)/(s*s)) - exp(-(M*M)) ) * res;
 		}
 	}

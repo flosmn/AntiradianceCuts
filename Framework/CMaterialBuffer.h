@@ -34,6 +34,8 @@ public:
 
 	// returns the material with the index i
 	MATERIAL* GetMaterial(int i);
+
+	std::vector<MATERIAL> const& getMaterials() { return m_Materials; }
 	
 private:
 	std::unordered_map<std::string, int> m_MapMatNameToIndex;

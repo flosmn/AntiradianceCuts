@@ -194,11 +194,11 @@ bool Scene::ContinueAVPLPath(AVPL* pred, AVPL* newAVPL, glm::vec3 direction, flo
 		const int clamp_cone_mode = m_confManager->GetConfVars()->ClampConeMode;
 		if(m_confManager->GetConfVars()->ClampConeMode == 1)
 		{
-			const float cone_min = PI / (PI/2.f - acos(glm::dot(norm, -direction)));
+			const float cone_min = M_PI / (M_PI/2.f - acos(glm::dot(norm, -direction)));
 			coneFactor = std::max(cone_min, m_confManager->GetConfVars()->ConeFactor);
 		}
 		
-		const float area = 2 * PI * ( 1 - cos(PI/coneFactor) );
+		const float area = 2 * M_PI * ( 1 - cos(M_PI/coneFactor) );
 
 		glm::vec3 antiradiance = 1.f/float(m_confManager->GetConfVars()->NumAdditionalAVPLs + 1.f) * contrib / area;
 
@@ -404,7 +404,7 @@ void Scene::LoadCornellBox()
 	ClearScene();
 
 	m_models.emplace_back(std::unique_ptr<CModel>(
-		new CModel("cb-buddha-diffuse", "obj", m_materialBuffer.get())));
+		new CModel("cb-diffuse", "obj", m_materialBuffer.get())));
 	m_models.back()->SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
 
 	m_referenceImage.reset(new CReferenceImage(m_camera->GetWidth(), m_camera->GetHeight()));

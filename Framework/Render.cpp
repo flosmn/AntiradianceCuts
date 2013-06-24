@@ -1,5 +1,7 @@
 #include "Render.h"
 
+#include "CudaGather.h"
+
 #include "CL/cl.h"
 
 #include <glm/gtc/type_ptr.hpp>
@@ -25,13 +27,11 @@
 #include "CPostprocess.h"
 #include "CRenderTarget.h"
 #include "CClusterTree.h"
-#include "CPriorityQueue.h"
 #include "CImagePlane.h"
 #include "CPathTracingIntegrator.h"
 #include "CMaterialBuffer.h"
 #include "CReferenceImage.h"
 #include "CExperimentData.h"
-#include "CCubeShadowMap.h"
 #include "CImage.h"
 
 #include "LightTreeTypes.h"
@@ -69,6 +69,7 @@ Renderer::Renderer(CCamera* m_camera, COGLContext* glContext, CConfigManager* co
 	: m_camera(m_camera), m_glContext(glContext), m_confManager(confManager) 
 {
 	m_clContext			.reset(new COCLContext(m_glContext));
+	m_cudaContext		.reset(new cuda::CudaContext());
 	m_textureViewer 	.reset(new CTextureViewer());
 	m_postProcess		.reset(new CPostprocess(m_confManager));
 	m_fullScreenQuad	.reset(new CFullScreenQuad());
@@ -110,6 +111,9 @@ Renderer::Renderer(CCamera* m_camera, COGLContext* glContext, CConfigManager* co
 	m_shadeAntiradianceRenderTarget		.reset(new CRenderTarget(m_camera->GetWidth(), m_camera->GetHeight(), 1, m_depthBuffer.get()));
 	m_resultRenderTarget				.reset(new CRenderTarget(m_camera->GetWidth(), m_camera->GetHeight(), 1, m_depthBuffer.get()));
 	m_lightDebugRenderTarget			.reset(new CRenderTarget(m_camera->GetWidth(), m_camera->GetHeight(), 1, m_depthBuffer.get()));
+	m_cudaRenderTarget					.reset(new CRenderTarget(m_camera->GetWidth(), m_camera->GetHeight(), 4, 0));
+	m_cudaRenderTargetNormalized		.reset(new CRenderTarget(m_camera->GetWidth(), m_camera->GetHeight(), 4, 0));
+	m_cudaRenderTargetSum				.reset(new CRenderTarget(m_camera->GetWidth(), m_camera->GetHeight(), 4, 0));
 
 	m_gatherProgram					.reset(new CProgram("Shaders/Gather.vert"			, "Shaders/Gather.frag"					, "GatherProgram"				));
 	m_gatherWithAtlas				.reset(new CProgram("Shaders/Gather.vert"			, "Shaders/GatherWithAtlas.frag"		, "GatherProgram"				));
@@ -189,6 +193,19 @@ Renderer::Renderer(CCamera* m_camera, COGLContext* glContext, CConfigManager* co
 	
 	m_globalTimer->Start();
 
+	m_cudaTargetTexture.reset(new COGLTexture2D(m_camera->GetWidth(), m_camera->GetWidth(), GL_RGBA32F,
+		GL_RGBA, GL_FLOAT, 1, false, "m_cudaTarget"));
+	
+	m_cudaGather.reset(new CudaGather(m_camera->GetWidth(), m_camera->GetHeight(),
+		m_gbuffer->GetPositionTextureWS()->GetResourceIdentifier(),
+		m_gbuffer->GetNormalTexture()->GetResourceIdentifier(),
+		m_cudaRenderTarget->GetTarget(0)->GetResourceIdentifier(),
+		m_cudaRenderTarget->GetTarget(1)->GetResourceIdentifier(),
+		m_cudaRenderTarget->GetTarget(2)->GetResourceIdentifier(),
+		m_scene->GetMaterialBuffer()->getMaterials()
+	));
+
+	std::cout << "renderer construction success" << std::endl;
 }
 
 Renderer::~Renderer() 
@@ -353,7 +370,7 @@ void Renderer::Render()
 		m_glTimer->Start();
 		CreateGBuffer();
 	}
-	
+
 	std::vector<AVPL> avpls_shadowmap;
 	std::vector<AVPL> avpls_antiradiance;
 
@@ -363,6 +380,19 @@ void Renderer::Render()
 
 	if(m_ProfileFrame) timer.Stop("get avpls");
 	if(m_ProfileFrame) timer.Start();
+
+	if (m_confManager->GetConfVars()->gatherWithCuda) {
+		m_cudaGather->run(avpls_antiradiance, m_camera->GetPosition());
+
+		Add(m_cudaRenderTargetSum.get(), m_cudaRenderTarget.get());
+		Normalize(m_cudaRenderTargetNormalized.get(), m_cudaRenderTargetSum.get(), m_CurrentPathAntiradiance);
+		m_postProcess->Postprocess(m_cudaRenderTargetNormalized->GetTarget(0), m_postProcessRenderTarget.get());
+		m_textureViewer->DrawTexture(m_postProcessRenderTarget->GetTarget(0), 0, 0, m_camera->GetWidth(), m_camera->GetHeight());	
+		
+		if(m_ProfileFrame) timer.Stop("gather");
+
+		return;
+	}
 
 	if(m_confManager->GetConfVars()->GatherWithAVPLClustering)
 	{
@@ -439,6 +469,7 @@ void Renderer::Render()
 		
 	m_ProfileFrame = false;
 	m_FinishedDebug = true;
+
 }
 
 void Renderer::GetAVPLs(std::vector<AVPL>& avpls_shadowmap, std::vector<AVPL>& avpls_antiradiance)
@@ -519,6 +550,7 @@ void Renderer::SeparateAVPLs(const std::vector<AVPL> avpls,
 				avpls_antiradiance.push_back(avpl);
 		}
 		m_CurrentPathAntiradiance += numPaths;
+		m_numPathsAntiradiance = numPaths;
 		return;
 	}
 
@@ -538,6 +570,7 @@ void Renderer::SeparateAVPLs(const std::vector<AVPL> avpls,
 		}
 	}
 	m_CurrentPathAntiradiance += numPaths;
+	m_numPathsAntiradiance = numPaths;
 }
 
 void Renderer::Gather(std::vector<AVPL>& avpls_shadowmap, std::vector<AVPL>& avpls_antiradiance)
@@ -1197,6 +1230,26 @@ void Renderer::Add(CRenderTarget* target, CRenderTarget* source1, CRenderTarget*
 	glDepthMask(GL_TRUE);
 }
 
+void Renderer::Add(CRenderTarget* target, CRenderTarget* source)
+{
+	CRenderTargetLock lock(target);
+	
+	glDisable(GL_DEPTH_TEST);
+	glDepthMask(GL_FALSE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_ONE, GL_ONE);
+
+	COGLBindLock lockProgram(m_addProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
+
+	COGLBindLock lock0(source->GetTarget(0), COGL_TEXTURE0_SLOT);
+
+	m_fullScreenQuad->Draw();
+	
+	glEnable(GL_DEPTH_TEST);
+	glDepthMask(GL_TRUE);
+	glDisable(GL_BLEND);
+}
+
 void Renderer::DirectEnvMapLighting()
 {
 	CRenderTargetLock lock(m_normalizeShadowmapRenderTarget.get());
@@ -1277,6 +1330,11 @@ void Renderer::ClearAccumulationBuffer()
 
 	{
 		CRenderTargetLock lock(m_resultRenderTarget.get());
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	}
+	
+	{
+		CRenderTargetLock lock(m_cudaRenderTargetSum.get());
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 
@@ -1393,10 +1451,10 @@ float Renderer::GetAntiradFilterNormFactor()
 {
 	float coneFactor = m_confManager->GetConfVars()->ConeFactor;
 	float K = 0.f;
-	float a = 1-cos(PI/coneFactor);
+	float a = 1-cos(M_PI/coneFactor);
 	if(m_confManager->GetConfVars()->AntiradFilterMode == 1)
 	{		
-		float b = 2*(coneFactor/PI*sin(PI/coneFactor)-1);
+		float b = 2*(coneFactor/M_PI*sin(M_PI/coneFactor)-1);
 		K = - a / b;
 	}
 	else if(m_confManager->GetConfVars()->AntiradFilterMode == 2)
@@ -1414,9 +1472,9 @@ float Renderer::IntegrateGauss()
 {
 	const float coneFactor = float(m_confManager->GetConfVars()->ConeFactor);
 	const float M = float(m_confManager->GetConfVars()->AntiradFilterGaussFactor);
-	const float s = PI / (M*coneFactor);
+	const float s = M_PI / (M*coneFactor);
 	const int numSteps = 1000;
-	const float stepSize = PI / (numSteps * coneFactor);
+	const float stepSize = M_PI / (numSteps * coneFactor);
 	
 	float res = 0.f;
 	for(int i = 0; i < numSteps; ++i)

@@ -134,9 +134,6 @@
     <ClCompile Include="CKdTreeAccelerator.cpp">
       <Filter>RayTracingStuff</Filter>
     </ClCompile>
-    <ClCompile Include="CPbrtKdTreeAccelerator.cpp">
-      <Filter>RayTracingStuff</Filter>
-    </ClCompile>
     <ClCompile Include="CTriangle.cpp">
       <Filter>RayTracingStuff</Filter>
     </ClCompile>
@@ -159,12 +156,9 @@
       <Filter>GUI&amp;Config</Filter>
     </ClCompile>
     <ClCompile Include="CClusterTree.cpp" />
-    <ClCompile Include="CSimpleKdTree.cpp" />
-    <ClCompile Include="CPriorityQueue.cpp" />
     <ClCompile Include="CTimer.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
-    <ClCompile Include="CLightTree.cpp" />
     <ClCompile Include="LightTreeTypes.cpp">
       <Filter>GUI&amp;Config</Filter>
     </ClCompile>
@@ -181,7 +175,6 @@
     <ClCompile Include="CMaterialBuffer.cpp" />
     <ClCompile Include="CReferenceImage.cpp" />
     <ClCompile Include="CExperimentData.cpp" />
-    <ClCompile Include="CCubeShadowMap.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Render.h" />
@@ -299,9 +292,6 @@
     <ClInclude Include="CKdTreeAccelerator.h">
       <Filter>RayTracingStuff</Filter>
     </ClInclude>
-    <ClInclude Include="CPbrtKdTreeAccelerator.h">
-      <Filter>RayTracingStuff</Filter>
-    </ClInclude>
     <ClInclude Include="Ray.h">
       <Filter>RayTracingStuff</Filter>
     </ClInclude>
@@ -349,10 +339,7 @@
     </ClInclude>
     <ClInclude Include="CPointCloud.h" />
     <ClInclude Include="CClusterTree.h" />
-    <ClInclude Include="CLightTree.h" />
     <ClInclude Include="LightTreeTypes.h" />
-    <ClInclude Include="CSimpleKdTree.h" />
-    <ClInclude Include="CPriorityQueue.h" />
     <ClInclude Include="CTimer.h">
       <Filter>Utils</Filter>
     </ClInclude>
@@ -367,10 +354,10 @@
     <ClInclude Include="Material.h" />
     <ClInclude Include="CReferenceImage.h" />
     <ClInclude Include="CExperimentData.h" />
-    <ClInclude Include="CCubeShadowMap.h" />
     <ClInclude Include="CConfigManager.h">
       <Filter>GUI&amp;Config</Filter>
     </ClInclude>
+    <ClInclude Include="cudaGather.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">
@@ -463,5 +450,8 @@
     <None Include="Shaders\CreateCubeShadowMap.geom">
       <Filter>Shaders</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="cudaGather.cu" />
   </ItemGroup>
 </Project>

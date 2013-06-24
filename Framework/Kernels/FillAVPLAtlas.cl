@@ -1,4 +1,4 @@
-#define PI 3.14159265f
+#define M_PI 3.14159265f
 #define ONE_OVER_PI 0.31830988618f
 
 #define EPSILON 0.001f
@@ -10,7 +10,7 @@ struct AVPL_BUFFER
 	float4 pos;	// position
 	float4 norm;	// orientation;
 	float4 w;	// direction of antiradiance, incident light direction;
-	float angleFactor;	// PI/AngleFactor = Half opening angleFactor of AR cone
+	float angleFactor;	// M_PI/AngleFactor = Half opening angleFactor of AR cone
 	float materialIndex;
 	float padd0;
 	float padd1;
@@ -374,7 +374,7 @@ float3 GetAntiradiance(float3 w, struct AVPL_BUFFER avpl, struct MATERIAL mat, f
 
 	const float theta = acos(clamp(cos_theta, 0.f, 1.f));
 	
-	if(theta < PI/N)
+	if(theta < M_PI/N)
 	{
 		res = avpl.A.xyz;
 	}

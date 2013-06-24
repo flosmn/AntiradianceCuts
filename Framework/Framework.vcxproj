@@ -51,6 +51,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 5.0.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -84,7 +85,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>external/include;$(CUDA_INC_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(GLM_ROOT);$(GLEW_ROOT)/include;external/include;$(CUDA_INC_PATH);%(AdditionalIncludeDirectories);$(CUDA_INC_PATH)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_HAS_ITERATOR_DEBUGGING=0;_SECURE_SCL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ExceptionHandling>Sync</ExceptionHandling>
@@ -95,8 +96,8 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>external/lib;external/lib/assimp_debug_x64;%(AdditionalLibraryDirectories);$(CUDA_LIB_PATH)\x64;$(CUDA_LIB_PATH)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>assimp.lib;glew32.lib;glu32.lib;opengl32.lib;anttweakbar64.lib;opencl.lib;DevIL.lib;ILU.lib;ILUT.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(GLEW_ROOT)/lib;$(CUDA_LIB_PATH);external/lib;external/lib/assimp_debug_x64;%(AdditionalLibraryDirectories);$(CUDA_LIB_PATH)\x64;$(CUDA_LIB_PATH)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>assimp.lib;glew32.lib;glu32.lib;opengl32.lib;anttweakbar64.lib;opencl.lib;DevIL.lib;ILU.lib;ILUT.lib;cudart.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "external\dll\AntTweakBar64.dll" "$(Outdir)" /Y
@@ -128,16 +129,17 @@ xcopy "external\dll\DevIL.dll" "$(Outdir)" /Y</Command>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>$(CUDA_INC_PATH);external/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(GLM_ROOT);$(GLEW_ROOT)/include;$(CUDA_INC_PATH);external/include;%(AdditionalIncludeDirectories);$(CUDA_INC_PATH)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_HAS_ITERATOR_DEBUGGING=0;_SECURE_SCL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <OpenMPSupport>true</OpenMPSupport>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>external/lib/assimp_release_x64;C:\Program Files %28x86%29\AMD APP\lib\x86_64;external/lib;$(CUDA_LIB_PATH)\x64;%(AdditionalLibraryDirectories);$(CUDA_LIB_PATH)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>assimp.lib;glew32.lib;glu32.lib;opengl32.lib;anttweakbar64.lib;opencl.lib;DevIL.lib;ILU.lib;ILUT.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(GLEW_ROOT)/lib;$(CUDA_LIB_PATH);external/lib/assimp_release_x64;C:\Program Files %28x86%29\AMD APP\lib\x86_64;external/lib;$(CUDA_LIB_PATH)\x64;%(AdditionalLibraryDirectories);$(CUDA_LIB_PATH)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>assimp.lib;glew32.lib;glu32.lib;opengl32.lib;anttweakbar64.lib;opencl.lib;DevIL.lib;ILU.lib;ILUT.lib;cudart.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "external\dll\AntTweakBar64.dll" "$(Outdir)" /Y
@@ -154,24 +156,19 @@ xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
     <ClCompile Include="CCamera.cpp" />
     <ClCompile Include="CClusterTree.cpp" />
     <ClCompile Include="CConfigManager.cpp" />
-    <ClCompile Include="CCubeShadowMap.cpp" />
     <ClCompile Include="CExperimentData.cpp" />
     <ClCompile Include="CGBuffer.cpp" />
     <ClCompile Include="CGUI.cpp" />
     <ClCompile Include="CImage.cpp" />
     <ClCompile Include="CImagePlane.cpp" />
     <ClCompile Include="CKdTreeAccelerator.cpp" />
-    <ClCompile Include="CLightTree.cpp" />
     <ClCompile Include="CMaterialBuffer.cpp" />
     <ClCompile Include="COctahedronAtlas.cpp" />
     <ClCompile Include="COctahedronMap.cpp" />
     <ClCompile Include="CPathTracingIntegrator.cpp" />
-    <ClCompile Include="CPbrtKdTreeAccelerator.cpp" />
-    <ClCompile Include="CPriorityQueue.cpp" />
     <ClCompile Include="CProgram.cpp" />
     <ClCompile Include="CReferenceImage.cpp" />
     <ClCompile Include="CRenderTarget.cpp" />
-    <ClCompile Include="CSimpleKdTree.cpp" />
     <ClCompile Include="CTestFramework.cpp" />
     <ClCompile Include="CTimer.cpp" />
     <ClCompile Include="AVPL.cpp" />
@@ -220,29 +217,25 @@ xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
     <ClInclude Include="CCamera.h" />
     <ClInclude Include="CClusterTree.h" />
     <ClInclude Include="CConfigManager.h" />
-    <ClInclude Include="CCubeShadowMap.h" />
     <ClInclude Include="CExperimentData.h" />
     <ClInclude Include="CGBuffer.h" />
     <ClInclude Include="CGUI.h" />
     <ClInclude Include="CImage.h" />
     <ClInclude Include="CImagePlane.h" />
     <ClInclude Include="CKdTreeAccelerator.h" />
-    <ClInclude Include="CLightTree.h" />
     <ClInclude Include="CMaterialBuffer.h" />
     <ClInclude Include="COctahedronAtlas.h" />
     <ClInclude Include="COctahedronMap.h" />
     <ClInclude Include="CPathTracingIntegrator.h" />
-    <ClInclude Include="CPbrtKdTreeAccelerator.h" />
     <ClInclude Include="CPointCloud.h" />
-    <ClInclude Include="CPriorityQueue.h" />
     <ClInclude Include="CProgram.h" />
     <ClInclude Include="CReferenceImage.h" />
     <ClInclude Include="CRenderTarget.h" />
     <ClInclude Include="CShadowMap.h" />
-    <ClInclude Include="CSimpleKdTree.h" />
     <ClInclude Include="CTestFramework.h" />
     <ClInclude Include="CTimer.h" />
     <ClInclude Include="CTriangle.h" />
+    <ClInclude Include="cudaGather.h" />
     <ClInclude Include="Defines.h" />
     <ClInclude Include="guicon.h" />
     <ClInclude Include="Intersection.h" />
@@ -333,7 +326,15 @@ xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
     <None Include="Shaders\Shade.frag" />
     <None Include="Shaders\Util.glsl" />
   </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="cudaGather.cu">
+      <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">compute_30,sm_30</CodeGeneration>
+      <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Release|x64'">compute_30,sm_30</CodeGeneration>
+      <FastMath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</FastMath>
+    </CudaCompile>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 5.0.targets" />
   </ImportGroup>
 </Project>
