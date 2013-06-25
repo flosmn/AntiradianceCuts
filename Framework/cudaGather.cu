@@ -36,6 +36,7 @@ inline __device__ float4 f_r(float3 const& from, float3 const& over, float3 cons
 	return f_r(w_i, w_o, n, mat);
 }
 
+// TODO: shared memory
 __global__ void kernel(
 		cudaSurfaceObject_t outResult,
 		cudaSurfaceObject_t outRadiance,
@@ -48,8 +49,8 @@ __global__ void kernel(
 		float3 cameraPosition,
 		int width, int height)
 {
-	int x = blockIdx.x * blockDim.x + threadIdx.x;
-	int y = blockIdx.y * blockDim.y + threadIdx.y;
+	const int x = blockIdx.x * blockDim.x + threadIdx.x;
+	const int y = blockIdx.y * blockDim.y + threadIdx.y;
 
 	if (x >= width || y >= height) {
 		return;
@@ -57,48 +58,45 @@ __global__ void kernel(
 		
 	float4 data;
 	surf2Dread(&data, inPositions, x * sizeof(float4), y);
-	float3 position = make_float3(data);
+	const float3 position = make_float3(data);
 	surf2Dread(&data, inNormals, x * sizeof(float4), y);
-	float3 normal= make_float3(data);
-	int materialIndex = int(data.w);
+	const float3 normal= make_float3(data);
+	const int materialIndex = int(data.w);
 
-	MATERIAL const& mat = inMaterials[materialIndex];
+	MATERIAL mat = inMaterials[materialIndex];
 	
-	float4 outRes		= make_float4(0.f);
 	float4 outRad		= make_float4(0.f);
 	float4 outAntirad	= make_float4(0.f);
 		
 	for(int i = 0; i < numAvpls; ++i)
 	{		
-		NEW_AVPL& avpl = inAvpls[i];
-		MATERIAL& mat_avpl = inMaterials[avpl.materialIndex];
+		NEW_AVPL avpl = inAvpls[i];
+		MATERIAL mat_avpl = inMaterials[int(avpl.materialIndex)];
 
-		float4 rad = make_float4(0.0f, 0.f, 0.f, 0.f);
+		float4 rad = make_float4(0.0f);
 		float4 antirad = make_float4(0.f);
 	
-		float3 direction = normalize(position - make_float3(avpl.pos));
+		const float3 direction = normalize(position - avpl.pos);
 				
-		float4 brdf_light = f_r(make_float3(-avpl.w), direction, make_float3(avpl.norm), mat_avpl);
+		float4 brdf_light = f_r(-avpl.w, direction, avpl.norm, mat_avpl);
 
 		// check for light source AVPL
-		if(length(make_float3(avpl.w)) == 0.f)
+		if(length(avpl.w) == 0.f)
 			brdf_light = make_float4(1.f);
 			 
-		float4 brdf = f_r(make_float3(avpl.pos), position, cameraPosition, normal, mat);
+		const float4 brdf = f_r(avpl.pos, position, cameraPosition, normal, mat);
 
-		rad = make_float4(avpl.L) * brdf_light * G(position, normal, make_float3(avpl.pos), make_float3(avpl.norm)) * brdf;
+		rad = avpl.L * brdf_light * G(position, normal, avpl.pos, avpl.norm) * brdf;
 		//antirad = brdf * GetAntiradiance(A, p, vPositionWS, n, vNormalWS, w, coneFactor);
 		
-		outRes += rad - antirad;
 		outRad += rad;
 		outAntirad += antirad;
 	}
 	
-	outRes.w = 1.f;
 	outRad.w = 1.f;
 	outAntirad.w = 1.f;
 
-	surf2Dwrite(outRes, outResult, x * sizeof(float4), y);
+	surf2Dwrite(outRad - outAntirad, outResult, x * sizeof(float4), y);
 	//surf2Dwrite(outRad, outRadiance, x * sizeof(float4), y);
 	//surf2Dwrite(outAntirad, outAntiradiance, x * sizeof(float4), y);
 }
@@ -142,13 +140,13 @@ void CudaGather::run(std::vector<AVPL> const& avpls, glm::vec3 const& cameraPosi
 	for (int i = 0; i < avpls.size(); ++i)
 	{
 		NEW_AVPL newavpl;
-		newavpl.L = glm::vec4(avpls[i].m_Radiance, 1.f);
-		newavpl.A = glm::vec4(avpls[i].m_Antiradiance, 1.f);
-		newavpl.pos = avpls[i].m_Position;
+		newavpl.L = make_float4(glm::vec4(avpls[i].m_Radiance, 1.f));
+		newavpl.A = make_float4(glm::vec4(avpls[i].m_Antiradiance, 1.f));
+		newavpl.pos = make_float3(avpls[i].m_Position);
 		newavpl.materialIndex = avpls[i].m_MaterialIndex;
-		newavpl.norm = avpls[i].m_Orientation;
+		newavpl.norm = make_float3(avpls[i].m_Orientation);
 		newavpl.angleFactor = avpls[i].m_ConeAngle;
-		newavpl.w = avpls[i].m_Direction;
+		newavpl.w = make_float3(avpls[i].m_Direction);
 		newavpl.bounce = avpls[i].m_Bounce;
 		new_avpls[i] = newavpl;
 	}
@@ -173,6 +171,6 @@ void CudaGather::run(std::vector<AVPL> const& avpls, glm::vec3 const& cameraPosi
 			m_width, m_height);
 
 	timer.stop();
-	std::cout << "kernel execution time: " << timer.getTime() << std::endl;
+	//std::cout << "kernel execution time: " << timer.getTime() << std::endl;
 }
 

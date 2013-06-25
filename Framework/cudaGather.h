@@ -11,6 +11,21 @@
 #include <iostream>
 #include <memory>
 
+struct NEW_AVPL
+{
+	float4 L;			// radiance
+	float4 A;			// antiradiance;
+	
+	float3 pos;			// position
+	float materialIndex;		// Index in the material buffer
+	
+	float3 norm;			// orientation;
+	float angleFactor;	
+	
+	float3 w;			// direction of antiradiance, incident light direction;
+	float bounce;			// order of indiection
+};
+
 class CudaGather
 {
 public:

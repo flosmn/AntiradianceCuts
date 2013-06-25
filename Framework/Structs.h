@@ -47,21 +47,6 @@ struct AVPL_TRANSFORM
 	glm::mat4 ProjectionMatrix;
 };
 
-struct NEW_AVPL
-{
-	glm::vec4 L;			// radiance
-	glm::vec4 A;			// antiradiance;
-	
-	glm::vec3 pos;			// position
-	int materialIndex;		// Index in the material buffer
-	
-	glm::vec3 norm;			// orientation;
-	float angleFactor;	
-	
-	glm::vec3 w;			// direction of antiradiance, incident light direction;
-	float bounce;			// order of indiection
-};
-
 struct AVPL_DATA
 {
 	glm::vec4 L;			// radiance

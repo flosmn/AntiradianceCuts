@@ -1693,4 +1693,31 @@ inline __host__ __device__ float4 make_float4(const glm::vec4& v)
 	return res;
 }
 
+inline __host__ __device__ glm::vec2 make_vec2(const float2& v)
+{
+	glm::vec2 res;
+	res.x = v.x;
+	res.y = v.y;
+	return res;
+}
+
+inline __host__ __device__ glm::vec3 make_vec3(const float3& v)
+{
+	glm::vec3 res;
+	res.x = v.x;
+	res.y = v.y;
+	res.z = v.z;
+	return res;
+}
+
+inline __host__ __device__ glm::vec4 make_vec4(const float4& v)
+{
+	glm::vec4 res;
+	res.x = v.x;
+	res.y = v.y;
+	res.z = v.z;
+	res.w = v.w;
+	return res;
+}
+
 #endif // CUDA_UTIL_H_
