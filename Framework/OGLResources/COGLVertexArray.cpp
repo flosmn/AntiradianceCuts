@@ -12,10 +12,22 @@
 
 
 COGLVertexArray::COGLVertexArray(GLenum primitiveType, std::string const& debugName)
-	: COGLResource(COGL_VERTEXARRAY, debugName), m_HasIndexData(false)
+	: COGLResource(COGL_VERTEXARRAY, debugName), 
+	m_hasIndexData(false), 
+	m_primitiveType(primitiveType),
+	m_instanceCount(0)
 {
-	m_PrimitiveType = primitiveType;
+	glGenVertexArrays(1, &m_Resource);
 
+	CheckGLError(m_DebugName, "COGLVertexArray::COGLVertexArray()");
+}
+
+COGLVertexArray::COGLVertexArray(GLenum primitiveType, GLuint instanceCount, std::string const& debugName)
+	: COGLResource(COGL_VERTEXARRAY, debugName), 
+	m_hasIndexData(false), 
+	m_primitiveType(primitiveType),
+	m_instanceCount(instanceCount)
+{
 	glGenVertexArrays(1, &m_Resource);
 
 	CheckGLError(m_DebugName, "COGLVertexArray::COGLVertexArray()");
@@ -28,13 +40,14 @@ COGLVertexArray::~COGLVertexArray()
 	CheckGLError(m_DebugName, "COGLVertexArray::~COGLVertexArray()");
 }
 
-bool COGLVertexArray::AddVertexData(uint index, uint elements, uint size, void* pData)
+bool COGLVertexArray::AddVertexData(uint index, uint elements, uint size, void* pData, GLuint divisor)
 {
 	CheckNotBound("COGLVertexArray::AddVertexDataChannel()");
 
 	CHANNEL_INFO info;
 	info.index = index;
 	info.elements = elements;
+	info.divisor = divisor;
 	
 	m_VertexDataChannelInfo.push_back(info);
 	m_VertexDataChannels.emplace_back(std::unique_ptr<COGLVertexBuffer>(new COGLVertexBuffer()));
@@ -53,7 +66,7 @@ bool COGLVertexArray::AddIndexData(GLuint size, void* pData)
 
 	CheckGLError(m_DebugName, "COGLVertexArray::AddIndexData()");
 	
-	m_HasIndexData = true;
+	m_hasIndexData = true;
 
 	return true;
 }
@@ -62,7 +75,7 @@ void COGLVertexArray::Finish()
 {
 	CheckNotBound("COGLVertexArray::Finish()");
 	
-	if(!m_HasIndexData)
+	if(!m_hasIndexData)
 	{
 		std::cout << "COGLVertexArray: " << m_DebugName 
 			<< " has no index data!!!"	<< std::endl;
@@ -77,6 +90,7 @@ void COGLVertexArray::Finish()
 		COGLBindLock lock(m_VertexDataChannels[i].get(), COGL_ARRAY_BUFFER_SLOT);
 		glEnableVertexAttribArray(info.index);
 		glVertexAttribPointer(info.index, info.elements, GL_FLOAT, GL_FALSE, 0, 0);
+		glVertexAttribDivisor(info.index, info.divisor);
 	}
 
 	COGLBindLock lockIndexData(m_IndexData.get(), COGL_ELEMENT_ARRAY_BUFFER_SLOT);
@@ -94,7 +108,11 @@ void COGLVertexArray::Draw(GLuint count)
 
 	COGLBindLock lock(this, COGL_VERTEX_ARRAY_SLOT);
 
-	glDrawElements(m_PrimitiveType, count, GL_UNSIGNED_INT, 0);
+	if (m_instanceCount > 0) {
+		glDrawElementsInstanced(m_primitiveType, count, GL_UNSIGNED_INT, 0, m_instanceCount);
+	} else {
+		glDrawElements(m_primitiveType, count, GL_UNSIGNED_INT, 0);
+	}
 
 	CheckGLError(m_DebugName, "COGLVertexArray::Draw() after glDrawElements");
 }

@@ -5,6 +5,7 @@ typedef unsigned int uint;
 
 #include <string>
 #include <vector>
+#include <memory>
 
 class COGLProgram;
 class COGLUniformBuffer;

@@ -1,11 +1,11 @@
 #version 420
 
+in vec3 instancePosition;
+in vec3 instanceColor;
+
 out vec4 outputColor;
 
-smooth in vec4 color;
-
-void main()
-{
-	outputColor = color;
-	outputColor.w = 1.f;
+void main() {
+	outputColor = vec4(instanceColor, 1.f);
 }
+

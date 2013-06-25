@@ -9,9 +9,9 @@
 
 #include <vector>
 #include <string>
+#include <memory>
 
 #include "CudaResources/CudaContext.hpp"
-
 
 class Scene;
 class CCamera;
@@ -21,6 +21,8 @@ class CPostprocess;
 class CImagePlane;
 class CPathTracingIntegrator;
 
+class PointCloud;
+
 class CudaGather;
 
 class CAccumulationBuffer;
@@ -29,7 +31,6 @@ class CProgram;
 class CLightViewer;
 class CTextureViewer;
 class CFullScreenQuad;
-class CPointCloud;
 class CExport;
 class CRenderTarget;
 class COctahedronMap;
@@ -95,7 +96,6 @@ private:
 	void GatherWithAtlas(const std::vector<AVPL>& path, CRenderTarget* pRenderTarget);
 	void GatherWithClustering(const std::vector<AVPL>& path, CRenderTarget* pRenderTarget);
 	void Normalize(CRenderTarget* pTarget, CRenderTarget* source, int normFactor);
-	void Shade(CRenderTarget* target, CRenderTarget* source);	
 	void Add(CRenderTarget* target, CRenderTarget* source1, CRenderTarget* source2);
 	void Add(CRenderTarget* target, CRenderTarget* source);
 
@@ -105,9 +105,6 @@ private:
 	void SeparateAVPLs(const std::vector<AVPL> avpls, std::vector<AVPL>& avpls_shadowmap, std::vector<AVPL>& avpls_antiradiance, int numPaths);
 	
 	void Gather(std::vector<AVPL>& avpls_shadowmap, std::vector<AVPL>& avpls_antiradiance);
-	void Normalize();
-	void Shade();
-	void Finalize();
 	void CalculateError();
 	void DrawDebug();
 	void CheckExport();
@@ -142,7 +139,7 @@ private:
 	void DrawSceneSamples(CRenderTarget* target);
 	void DrawBidirSceneSamples(CRenderTarget* target);
 		
-	void DrawPointCloud(CPointCloud* pointCloud, CRenderTarget* target);
+	void DrawPointCloud(PointCloud* pointCloud, CRenderTarget* target);
 
 	glm::vec4 ColorForLight(const AVPL& light);
 	
@@ -161,7 +158,6 @@ private:
 	std::unique_ptr<CShadowMap> m_shadowMap;
 	std::unique_ptr<CGBuffer> m_gbuffer;
 	std::unique_ptr<CPostprocess> m_postProcess;
-	std::unique_ptr<CPointCloud> m_pointCloud;
 	std::unique_ptr<CExport> m_export;
 	std::unique_ptr<CTextureViewer> m_textureViewer;
 	std::unique_ptr<CFullScreenQuad> m_fullScreenQuad;
@@ -177,19 +173,15 @@ private:
 	std::unique_ptr<CRenderTarget> m_gatherAntiradianceRenderTarget;
 	std::unique_ptr<CRenderTarget> m_normalizeShadowmapRenderTarget;
 	std::unique_ptr<CRenderTarget> m_normalizeAntiradianceRenderTarget;
-	std::unique_ptr<CRenderTarget> m_shadeShadowmapRenderTarget;
-	std::unique_ptr<CRenderTarget> m_shadeAntiradianceRenderTarget;
 	std::unique_ptr<CRenderTarget> m_lightDebugRenderTarget;
 	std::unique_ptr<CRenderTarget> m_postProcessRenderTarget;
 	std::unique_ptr<CRenderTarget> m_cudaRenderTarget;
 	std::unique_ptr<CRenderTarget> m_cudaRenderTargetSum;
-	std::unique_ptr<CRenderTarget> m_cudaRenderTargetNormalized;
 		
 	std::unique_ptr<CProgram> m_gatherProgram;
 	std::unique_ptr<CProgram> m_gatherWithAtlas;
 	std::unique_ptr<CProgram> m_gatherWithClustering;
 	std::unique_ptr<CProgram> m_normalizeProgram;
-	std::unique_ptr<CProgram> m_shadeProgram;
 	std::unique_ptr<CProgram> m_addProgram;
 	std::unique_ptr<CProgram> m_directEnvmapLighting;
 	std::unique_ptr<CProgram> m_createGBufferProgram;
@@ -200,6 +192,7 @@ private:
 	std::unique_ptr<CProgram> m_drawOctahedronProgram;
 	std::unique_ptr<CProgram> m_errorProgram;
 	std::unique_ptr<CProgram> m_skyboxProgram;
+	std::unique_ptr<CProgram> m_drawSphere;
 
 	std::unique_ptr<COGLTextureBuffer> m_lightBuffer;
 	std::unique_ptr<COGLTextureBuffer> m_clusterBuffer;

@@ -358,6 +358,7 @@
       <Filter>GUI&amp;Config</Filter>
     </ClInclude>
     <ClInclude Include="cudaGather.h" />
+    <ClInclude Include="bvh.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">
@@ -453,5 +454,6 @@
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="cudaGather.cu" />
+    <CudaCompile Include="bvh.cu" />
   </ItemGroup>
 </Project>

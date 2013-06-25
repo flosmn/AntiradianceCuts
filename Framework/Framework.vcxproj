@@ -85,7 +85,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(GLM_ROOT);$(GLEW_ROOT)/include;external/include;$(CUDA_INC_PATH);%(AdditionalIncludeDirectories);$(CUDA_INC_PATH)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>external/glue/include;$(GLM_ROOT);$(GLEW_ROOT)/include;external/include;$(CUDA_INC_PATH);%(AdditionalIncludeDirectories);$(CUDA_INC_PATH)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_HAS_ITERATOR_DEBUGGING=0;_SECURE_SCL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ExceptionHandling>Sync</ExceptionHandling>
@@ -109,6 +109,9 @@ xcopy "external\dll\DevIL.dll" "$(Outdir)" /Y</Command>
     <ProjectReference>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
+    <CudaCompile>
+      <CodeGeneration>compute_30,sm_30</CodeGeneration>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -129,10 +132,12 @@ xcopy "external\dll\DevIL.dll" "$(Outdir)" /Y</Command>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>$(GLM_ROOT);$(GLEW_ROOT)/include;$(CUDA_INC_PATH);external/include;%(AdditionalIncludeDirectories);$(CUDA_INC_PATH)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>external/glue/include;$(GLM_ROOT);$(GLEW_ROOT)/include;$(CUDA_INC_PATH);external/include;%(AdditionalIncludeDirectories);$(CUDA_INC_PATH)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_HAS_ITERATOR_DEBUGGING=0;_SECURE_SCL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <OpenMPSupport>true</OpenMPSupport>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -149,9 +154,16 @@ xcopy "external\dll\ILU.dll" "$(Outdir)" /Y
 xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
 </Command>
     </PostBuildEvent>
+    <CudaCompile>
+      <CodeGeneration>compute_30,sm_30</CodeGeneration>
+      <FastMath>true</FastMath>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AreaLight.cpp" />
+    <CudaCompile Include="bvh.cu">
+      <FileType>CppCode</FileType>
+    </CudaCompile>
     <ClCompile Include="CAccumulationBuffer.cpp" />
     <ClCompile Include="CCamera.cpp" />
     <ClCompile Include="CClusterTree.cpp" />
@@ -213,6 +225,7 @@ xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
   <ItemGroup>
     <ClInclude Include="AreaLight.h" />
     <ClInclude Include="BBox.h" />
+    <ClInclude Include="bvh.h" />
     <ClInclude Include="CAccumulationBuffer.h" />
     <ClInclude Include="CCamera.h" />
     <ClInclude Include="CClusterTree.h" />
@@ -331,6 +344,10 @@ xcopy "external\dll\ILUT.dll" "$(Outdir)" /Y
       <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">compute_30,sm_30</CodeGeneration>
       <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Release|x64'">compute_30,sm_30</CodeGeneration>
       <FastMath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</FastMath>
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">O2</Optimization>
+      <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
+      <FastMath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</FastMath>
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">O2</Optimization>
     </CudaCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
