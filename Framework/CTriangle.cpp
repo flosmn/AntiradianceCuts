@@ -123,7 +123,9 @@ void CTriangle::SetPoints(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2)
 
 void CTriangle::CalcNormal()
 {
-	m_Normal = glm::normalize(glm::cross(m_P2 - m_P0, m_P1 - m_P0));
+	glm::vec3 temp = glm::cross(m_P2 - m_P0, m_P1 - m_P0);
+	if (glm::length(temp) > 0.f) temp = glm::normalize(temp);
+	m_Normal = temp;
 }
 
 void CTriangle::CalcBBox()

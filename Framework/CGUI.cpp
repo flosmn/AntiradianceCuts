@@ -54,8 +54,9 @@ bool CGUI::Init(uint window_width, uint window_height)
 
 	TwAddSeparator(m_pTwBar, "", "");
 		
-	TwAddVarRW(m_pTwBar, "#AVPLs debug", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumAVPLsDebug), " min=1 max=10000 step=1 ");
+	TwAddVarRW(m_pTwBar, "#AVPLs debug", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumAVPLsDebug), " min=1 max=100000 step=1 ");
 	TwAddVarRW(m_pTwBar, "Use Debug Mode", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->UseDebugMode), "min=0 max=1 step=1");
+	TwAddVarRW(m_pTwBar, "Use Debug Textures", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawDebugTextures), "min=0 max=1 step=1");
 	
 	TwAddSeparator(m_pTwBar, "", "");
 
@@ -68,6 +69,9 @@ bool CGUI::Init(uint window_width, uint window_height)
 	TwAddVarRW(m_pTwBar, "Draw AVPL atlas", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawAVPLAtlas), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Draw AVPL cluster atlas", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawAVPLClusterAtlas), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Draw Lights", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawLights), " min=0 max=1 step=1 ");
+	TwAddVarRW(m_pTwBar, "Draw AABBs", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawAABBs), " min=0 max=1 step=1 ");
+	TwAddVarRW(m_pTwBar, "BVH level", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->bvhLevel), " min=0 max=100 step=1 ");
+	TwAddVarRW(m_pTwBar, "Consider Normals", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->considerNormals), " min=0 max=1 step=1 ");
 		
 	TwAddSeparator(m_pTwBar, "", "");
 

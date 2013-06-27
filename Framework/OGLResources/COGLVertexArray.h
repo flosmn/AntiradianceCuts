@@ -4,6 +4,7 @@
 #include "COGLResource.h"
 
 #include <vector>
+#include <memory>
 
 typedef unsigned int uint;
 

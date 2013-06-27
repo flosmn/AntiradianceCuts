@@ -12,6 +12,7 @@ public:
 	~COGLUniformBuffer();
 
 	void UpdateData(void* data);
+	void GetData(void* data, size_t size);
 	uint GetGlobalBindingPoint();
 
 private:

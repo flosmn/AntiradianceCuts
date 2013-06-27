@@ -19,7 +19,7 @@ out vec3 instanceColor;
 
 void main()
 {
-	gl_Position = uTransform.MVP * vec4(in_instancePosition + 0.1f * in_position, 1.f);
+	gl_Position = uTransform.MVP * vec4(in_instancePosition + 5.f * in_position, 1.f);
 	instancePosition = in_instancePosition;
 	instanceColor = in_instanceColor;
 }

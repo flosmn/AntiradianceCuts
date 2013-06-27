@@ -22,6 +22,8 @@ class CImagePlane;
 class CPathTracingIntegrator;
 
 class PointCloud;
+class AABBCloud;
+class BVH;
 
 class CudaGather;
 
@@ -87,6 +89,8 @@ public:
 
 	void TestClusteringSpeed();
 
+	void UpdateBVHDebug();
+	void RebuildBVH();
 private:
 	// functions of the render phase
 	void SetUpRender();
@@ -99,7 +103,7 @@ private:
 	void Add(CRenderTarget* target, CRenderTarget* source1, CRenderTarget* source2);
 	void Add(CRenderTarget* target, CRenderTarget* source);
 
-	void SetTranformToCamera();
+	void SetTransformToCamera();
 
 	void GetAVPLs(std::vector<AVPL>& avpls_shadowmap, std::vector<AVPL>& avpls_antiradiance);
 	void SeparateAVPLs(const std::vector<AVPL> avpls, std::vector<AVPL>& avpls_shadowmap, std::vector<AVPL>& avpls_antiradiance, int numPaths);
@@ -139,8 +143,6 @@ private:
 	void DrawSceneSamples(CRenderTarget* target);
 	void DrawBidirSceneSamples(CRenderTarget* target);
 		
-	void DrawPointCloud(PointCloud* pointCloud, CRenderTarget* target);
-
 	glm::vec4 ColorForLight(const AVPL& light);
 	
 	void ExportPartialResult();
@@ -166,6 +168,9 @@ private:
 	std::unique_ptr<CImagePlane> m_imagePlane;
 	std::unique_ptr<CPathTracingIntegrator> m_pathTracingIntegrator;
 	std::unique_ptr<CExperimentData> m_experimentData;
+	std::unique_ptr<PointCloud> m_pointCloud;
+	std::unique_ptr<AABBCloud> m_aabbCloud;
+	std::unique_ptr<BVH> m_bvh;
 		
 	std::unique_ptr<CRenderTarget> m_resultRenderTarget;
 	std::unique_ptr<CRenderTarget> m_errorRenderTarget;
@@ -187,7 +192,6 @@ private:
 	std::unique_ptr<CProgram> m_createGBufferProgram;
 	std::unique_ptr<CProgram> m_createSMProgram;
 	std::unique_ptr<CProgram> m_gatherRadianceWithSMProgram;
-	std::unique_ptr<CProgram> m_pointCloudProgram;
 	std::unique_ptr<CProgram> m_areaLightProgram;
 	std::unique_ptr<CProgram> m_drawOctahedronProgram;
 	std::unique_ptr<CProgram> m_errorProgram;

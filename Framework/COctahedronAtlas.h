@@ -22,6 +22,7 @@ class AVPL;
 #include "Structs.h"
 
 #include <vector>
+#include <memory>
 
 class COctahedronAtlas
 {

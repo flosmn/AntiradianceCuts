@@ -10,6 +10,9 @@ CConfigManager::CConfigManager()
 	m_pConfVarsGUI = new CONF_VARS[1];
 
 	m_pConfVars->gatherWithCuda = m_pConfVarsGUI->gatherWithCuda = 1;
+	m_pConfVars->bvhLevel = m_pConfVarsGUI->bvhLevel = 0;
+	m_pConfVars->DrawAABBs = m_pConfVarsGUI->DrawAABBs = 0;
+	m_pConfVars->considerNormals = m_pConfVarsGUI->considerNormals = 1;
 	
 	m_pConfVars->UseAntiradiance = m_pConfVarsGUI->UseAntiradiance = 1;
 	m_pConfVars->SeparateDirectIndirectLighting = m_pConfVarsGUI->SeparateDirectIndirectLighting = 1;
@@ -95,6 +98,29 @@ void CConfigManager::Update()
 	bool clearLighting = false;
 	bool clearAccumBuffer = false;
 	bool updateAreaLight = false;
+
+	if(m_pConfVarsGUI->bvhLevel != m_pConfVars->bvhLevel)
+	{
+		m_pConfVars->bvhLevel = m_pConfVarsGUI->bvhLevel;
+		m_renderer->UpdateBVHDebug();
+		bool clearLighting = false;
+		bool clearAccumBuffer = false;
+	}
+	
+	if(m_pConfVarsGUI->considerNormals != m_pConfVars->considerNormals)
+	{
+		m_pConfVars->considerNormals = m_pConfVarsGUI->considerNormals;
+		m_renderer->RebuildBVH();
+		bool clearLighting = false;
+		bool clearAccumBuffer = false;
+	}
+	
+	if(m_pConfVarsGUI->DrawAABBs != m_pConfVars->DrawAABBs)
+	{
+		m_pConfVars->DrawAABBs = m_pConfVarsGUI->DrawAABBs;
+		bool clearLighting = false;
+		bool clearAccumBuffer = false;
+	}
 
 	if(m_pConfVarsGUI->gatherWithCuda != m_pConfVars->gatherWithCuda)
 	{

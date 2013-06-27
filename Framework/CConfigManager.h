@@ -6,6 +6,10 @@ class Renderer;
 struct CONF_VARS
 {
 	int gatherWithCuda;
+	int bvhLevel;
+	int considerNormals;
+	int DrawLights;
+	int DrawAABBs;
 
 	int DrawError;
 	int DrawReference;
@@ -17,7 +21,6 @@ struct CONF_VARS
 	int GatherWithAVPLAtlas;
 	int GatherWithAVPLClustering;
 	int DrawDebugTextures;
-	int DrawLights;
 	int DrawCutSizes;
 	int FilterAvplAtlasLinear;
 	int FillAvplAltasOnGPU;

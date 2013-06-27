@@ -48,6 +48,22 @@ void COGLUniformBuffer::UpdateData(void* data)
 	CheckGLError("COGLUniformBuffer", "UpdateData() 2");
 }
 
+void COGLUniformBuffer::GetData(void* data, size_t size)
+{
+	CheckNotBound("COGLUniformBuffer::GetData()");
+	
+	COGLBindLock lock(this, COGL_UNIFORM_BUFFER_SLOT);
+	
+	CheckGLError("COGLUniformBuffer", "GetData() 1");
+
+	void* ptr = glMapBuffer(GL_UNIFORM_BUFFER, GL_READ_ONLY);
+	memcpy(data, ptr, size);
+
+	glUnmapBuffer(GL_UNIFORM_BUFFER);
+
+	CheckGLError("COGLUniformBuffer", "GetData() 2");
+}
+
 uint COGLUniformBuffer::GetGlobalBindingPoint()
 {
 	return m_GlobalBindingPoint;

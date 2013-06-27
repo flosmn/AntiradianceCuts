@@ -1,6 +1,7 @@
 #include "Render.h"
 
-#include "pointcloud.h"
+#include "ObjectClouds.h"
+#include "Utils/stream.h"
 
 #include "CudaGather.h"
 #include "bvh.h"
@@ -124,7 +125,6 @@ Renderer::Renderer(CCamera* m_camera, COGLContext* glContext, CConfigManager* co
 	m_createGBufferProgram			.reset(new CProgram("Shaders/CreateGBuffer.vert"	, "Shaders/CreateGBuffer.frag"			, "CreateGBufferProgram"		));
 	m_createSMProgram				.reset(new CProgram("Shaders/CreateSM.vert"			, "Shaders/CreateSM.frag"				, "CreateSMProgram"				));
 	m_gatherRadianceWithSMProgram	.reset(new CProgram("Shaders/Gather.vert"			, "Shaders/GatherRadianceWithSM.frag"	, "GatherRadianceWithSMProgram"	));
-	m_pointCloudProgram				.reset(new CProgram("Shaders/PointCloud.vert"		, "Shaders/PointCloud.frag"				, "PointCloudProgram"			));
 	m_areaLightProgram				.reset(new CProgram("Shaders/DrawAreaLight.vert"	, "Shaders/DrawAreaLight.frag"			, "AreaLightProgram"			));
 	m_drawOctahedronProgram 		.reset(new CProgram("Shaders/DrawOctahedron.vert"	, "Shaders/DrawOctahedron.frag"			, "DrawOctahedronProgram"		));
 	m_drawSphere			 		.reset(new CProgram("Shaders/DrawSphere.vert"		, "Shaders/DrawSphere.frag"				, "DrawSphere"					));
@@ -203,14 +203,6 @@ Renderer::Renderer(CCamera* m_camera, COGLContext* glContext, CConfigManager* co
 		m_cudaRenderTarget->GetTarget(2)->GetResourceIdentifier(),
 		m_scene->GetMaterialBuffer()->getMaterials()
 	));
-
-	std::cout << "renderer construction success" << std::endl;
-
-	std::vector<glm::vec3> positions;
-	for (int i = 0; i < 4; ++i) {
-		positions.push_back(glm::vec3(rand(), rand(), rand()));
-	}
-	BVH bvh(positions);
 }
 
 Renderer::~Renderer() 
@@ -239,7 +231,6 @@ void Renderer::BindSamplers()
 	m_gatherProgram->BindUniformBuffer(m_ubCamera.get(), "camera");
 	
 	m_drawSphere->BindUniformBuffer(m_ubTransform.get(), "transform");
-	m_pointCloudProgram->BindUniformBuffer(m_ubTransform.get(), "transform");
 
 	m_gatherRadianceWithSMProgram->BindUniformBuffer(m_ubCamera.get(), "camera");
 	m_gatherRadianceWithSMProgram->BindUniformBuffer(m_ubConfig.get(), "config");	
@@ -344,32 +335,6 @@ void Renderer::Render()
 	if(m_ClearAccumulationBuffer)
 		ClearAccumulationBuffer();
 	
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
-	glEnable(GL_DEPTH_TEST);
-
-	std::vector<glm::vec3> positions;
-	std::vector<glm::vec3> colors;
-	for (int i = 0; i < 100; i++) {
-		positions.push_back(3.f * (glm::vec3(Rand01(), Rand01(), 0.f) - glm::vec3(0.5f, 0.5f, 0.f)));
-		colors.push_back(glm::normalize(glm::vec3(Rand01(), Rand01(), Rand01())));
-	}
-
-	{
-		PointCloud pointCloud(positions, colors);
-
-		COGLBindLock lockProgram(m_pointCloudProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
-		
-		TRANSFORM transform;
-		transform.M = IdentityMatrix();
-		transform.V = glm::lookAt(glm::vec3(0.f, 0.f, 5.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
-		transform.itM = IdentityMatrix();
-		transform.MVP = glm::perspective(45.f, 1.f, 0.001f, 100.f) * transform.V * transform.M;
-		m_ubTransform->UpdateData(&transform);
-
-		pointCloud.Draw();
-	}
-	return;
-
 	CTimer frameTimer(CTimer::OGL);
 	CTimer timer(CTimer::OGL);
 
@@ -388,7 +353,7 @@ void Renderer::Render()
 	if(m_ProfileFrame) timer.Start();
 
 	UpdateUniformBuffers();
-	
+
 	if(m_ProfileFrame) timer.Stop("update ubs");
 	
 	if(m_CurrentPathAntiradiance == 0 && m_CurrentPathShadowmap == 0)
@@ -402,6 +367,7 @@ void Renderer::Render()
 		CreateGBuffer();
 	}
 
+	
 	std::vector<AVPL> avpls_shadowmap;
 	std::vector<AVPL> avpls_antiradiance;
 
@@ -450,7 +416,7 @@ void Renderer::Render()
 	
 	Normalize(m_normalizeShadowmapRenderTarget.get(), m_gatherShadowmapRenderTarget.get(), m_CurrentPathShadowmap);
 	Normalize(m_normalizeAntiradianceRenderTarget.get(), m_gatherAntiradianceRenderTarget.get(), m_CurrentPathAntiradiance);
-
+	
 	if(m_ProfileFrame) timer.Stop("normalize");
 	if(m_ProfileFrame) timer.Start();
 
@@ -466,12 +432,20 @@ void Renderer::Render()
 	
 	DrawAreaLight(m_normalizeAntiradianceRenderTarget.get(), glm::vec3(0.f, 0.f, 0.f)); 
 	
+	SetTransformToCamera();
+
 	Add(m_resultRenderTarget.get(), m_normalizeAntiradianceRenderTarget.get(), m_normalizeShadowmapRenderTarget.get());
 
-	
 	if (m_confManager->GetConfVars()->UseDebugMode)
 	{
-		DrawLights(m_DebugAVPLs, m_resultRenderTarget.get());
+		if (m_confManager->GetConfVars()->DrawLights) {
+			CRenderTargetLock lock(m_resultRenderTarget.get());
+			m_pointCloud->Draw();
+		}
+		if (m_confManager->GetConfVars()->DrawAABBs) {
+			CRenderTargetLock lock(m_resultRenderTarget.get());
+			m_aabbCloud->Draw();
+		}
 	}
 	DrawDebug();
 
@@ -668,7 +642,7 @@ void Renderer::DrawDebug()
 		m_textureViewer->DrawTexture(m_gbuffer->GetNormalTexture(),  border, border, width, height);
 		m_textureViewer->DrawTexture(m_gbuffer->GetPositionTextureWS(),  3 * border + width, border, width, height);
 		m_textureViewer->DrawTexture(m_normalizeAntiradianceRenderTarget->GetTarget(2),  border, 3 * border + height, width, height);
-		m_textureViewer->DrawTexture(m_gbuffer->GetMaterialTexture(),  3 * border + width, 3 * border + height, width, height);
+		m_textureViewer->DrawTexture(m_depthBuffer.get(),  3 * border + width, 3 * border + height, width, height);
 	}
 }
 
@@ -942,7 +916,8 @@ void Renderer::Normalize(CRenderTarget* pTarget, CRenderTarget* source, int norm
 
 	CRenderTargetLock lock(pTarget);
 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glDisable(GL_DEPTH_TEST);
+	glClear(GL_COLOR_BUFFER_BIT);
 
 	COGLBindLock lockProgram(m_normalizeProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
 
@@ -951,6 +926,8 @@ void Renderer::Normalize(CRenderTarget* pTarget, CRenderTarget* source, int norm
 	COGLBindLock lock2(source->GetTarget(2), COGL_TEXTURE2_SLOT);
 
 	m_fullScreenQuad->Draw();
+	
+	glEnable(GL_DEPTH_TEST);
 }
 
 void Renderer::FillLightBuffer(const std::vector<AVPL>& avpls)
@@ -1094,10 +1071,10 @@ void Renderer::UpdateUniformBuffers()
 	conf.AntiradFilterGaussFactor = m_confManager->GetConfVars()->AntiradFilterGaussFactor;
 	m_ubConfig->UpdateData(&conf);
 
-	SetTranformToCamera();
+	SetTransformToCamera();
 }
 
-void Renderer::SetTranformToCamera()
+void Renderer::SetTransformToCamera()
 {
 	TRANSFORM transform;
 	transform.M = IdentityMatrix();
@@ -1139,10 +1116,6 @@ void Renderer::DrawAreaLight(CRenderTarget* pTarget, glm::vec3 color)
 	CRenderTargetLock lockRT(pTarget);
 
 	COGLBindLock lock(m_areaLightProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
-	
-	// TODO: fix necessary depth test deaktivation
-
-	glDisable(GL_DEPTH_TEST);
 
 	// avoid z-fighting
 	glEnable(GL_POLYGON_OFFSET_FILL);
@@ -1151,8 +1124,6 @@ void Renderer::DrawAreaLight(CRenderTarget* pTarget, glm::vec3 color)
 
 	m_scene->DrawAreaLight(m_ubTransform.get(), m_ubAreaLight.get(), color);
 	glDisable(GL_POLYGON_OFFSET_FILL);
-
-	glEnable(GL_DEPTH_TEST);
 }
 
 void Renderer::DrawLights(const std::vector<AVPL>& avpls, CRenderTarget* target)
@@ -1166,26 +1137,10 @@ void Renderer::DrawLights(const std::vector<AVPL>& avpls, CRenderTarget* target)
 		positions[i] = avpls[i].GetPosition();
 		colors[i] = glm::vec3(1.f, 0.f, 1.f);
 	}
-	std::shared_ptr<PointCloud> pointCloud = std::make_shared<PointCloud>(positions, colors);
+	std::shared_ptr<PointCloud> pointCloud = std::make_shared<PointCloud>(positions, colors, m_ubTransform.get());
 
-	DrawPointCloud(pointCloud.get(), target);
-}
-
-void Renderer::DrawPointCloud(PointCloud* pointCloud, CRenderTarget* target)
-{
 	CRenderTargetLock lock(target);
-	COGLBindLock lockProgram(m_pointCloudProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
-	
-	SetTranformToCamera();
-
-	glEnable(GL_DEPTH_TEST);
-	glDepthMask(GL_FALSE);
-	
-	glDisable(GL_DEPTH_TEST);
 	pointCloud->Draw();
-	glEnable(GL_DEPTH_TEST);
-	
-	glDepthMask(GL_TRUE);
 }
 
 void Renderer::Add(CRenderTarget* target, CRenderTarget* source1, CRenderTarget* source2)
@@ -1399,13 +1354,48 @@ void Renderer::InitDebugLights()
 	
 	std::cout << "Number of AVPLs: " << m_DebugAVPLs.size() << std::endl;
 	m_cpuTimer->Stop("CreatePaths");
+	
+	RebuildBVH();
+}
 
-	/*
-	m_ClusterTestAVPLs.clear();
-	CreateRandomAVPLs(m_ClusterTestAVPLs, m_confManager->GetConfVars()->NumAVPLsDebug);
-	m_clusterTree->BuildTree(m_ClusterTestAVPLs);
-	m_clusterTree->Color(m_ClusterTestAVPLs, m_confManager->GetConfVars()->ClusterDepth);
-	*/
+void Renderer::UpdateBVHDebug()
+{
+	std::vector<glm::vec3> positions;
+	std::vector<glm::vec3> normals;
+	for (int i = 0; i < m_DebugAVPLs.size(); ++i)
+	{
+		if (m_DebugAVPLs[i].GetBounce() > 0) {
+			positions.push_back(m_DebugAVPLs[i].GetPosition());
+			normals.push_back(m_DebugAVPLs[i].GetOrientation());
+		}
+	}
+
+	if (positions.size() > 1) {
+		m_bvh->generateDebugInfo(m_confManager->GetConfVars()->bvhLevel);
+	}
+	m_pointCloud.reset(new PointCloud(positions, m_bvh->getColors(), m_ubTransform.get()));
+	m_aabbCloud.reset(new AABBCloud(m_bvh->getBBMins(), m_bvh->getBBMaxs(), m_ubTransform.get()));
+}
+
+void Renderer::RebuildBVH()
+{
+	std::vector<glm::vec3> positions;
+	std::vector<glm::vec3> normals;
+	for (int i = 0; i < m_DebugAVPLs.size(); ++i)
+	{
+		if (m_DebugAVPLs[i].GetBounce() > 0) {
+			positions.push_back(m_DebugAVPLs[i].GetPosition());
+			normals.push_back(m_DebugAVPLs[i].GetOrientation());
+		}
+	}
+
+	if (positions.size() > 1) 
+	{
+		m_bvh.reset(new BVH(positions, normals, m_confManager->GetConfVars()->considerNormals));
+		m_bvh->generateDebugInfo(m_confManager->GetConfVars()->bvhLevel);
+	}
+
+	UpdateBVHDebug();
 }
 
 void Renderer::UpdateAreaLights()
