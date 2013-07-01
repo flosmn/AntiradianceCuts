@@ -34,16 +34,6 @@ struct Normalize {
 	float3 m_min, m_max;
 };
 
-inline __device__ int delta(int i, int j, uint32_t* morton, int numNodes)
-{
-	if (j < 0 || j > numNodes) {
-		return -1;
-	}
-	const int d = __clz(morton[i] ^ morton[j]); 
-	if (d==0) return __clz(i ^ j);
-	return d;
-}
-
 inline __device__ int delta(int i, int j, uint64_t* morton, int numNodes)
 {
 	if (j < 0 || j > numNodes) {
@@ -60,79 +50,6 @@ inline __device__ int sign(int i)
 }
 
 // TODO: shared memory
-__global__ void kernel_buildRadixTree(uint32_t* morton, Node* nodes, int* parents, int numNodes)
-{
-	const int i = blockIdx.x * blockDim.x + threadIdx.x;
-
-	// needed to fill parent info:
-	// first numLeafs=numNodes+1 element in parents are
-	// for leaf nodes. The root index is numLeafs
-	const int rootIndex = (numNodes + 1);
-	
-	if (i >= numNodes) {
-		return;
-	}
-	int t = 0; // while-loop variable
-
-	// determine direction of range
-	const int d = sign(delta(i, i+1, morton, numNodes) - delta(i, i-1, morton, numNodes));
-
-	// compute upper bound for the lenght of the range	
-	const int delta_min = delta(i, i - d, morton, numNodes);
-	int l_max = 128;
-	while (delta(i, i+l_max*d, morton, numNodes) > delta_min) {
-		l_max *= 4;
-	}
-
-	// find the other end with binary search
-	int l = 0;
-	t = l_max/2;
-	do {
-		if (delta(i, i+(l+t)*d, morton, numNodes) > delta_min) {
-			l += t;
-		}
-		t /= 2;
-	} while (t > 0);
-	const int j = i + l*d;
-	
-	// find split position with binary search
-	const int delta_node = delta(i, j, morton, numNodes);
-	int s = 0;
-	int k = 2;
-	t = (l+k-1)/k;
-	do {
-		if (delta(i, i + (s+t)*d, morton, numNodes) > delta_node) {
-			s += t;
-		}
-		k *= 2;
-		t = (l+k-1)/k;
-	} while (t > 0);
-	const int split = i + s*d + min(d, 0);
-
-	// output child pointers
-	Node node;
-	node.visited = 0;
-	node.left	= min(i, j) == split	? split		: -split;
-	node.right	= max(i, j) == split+1	? (split+1)	: -(split+1);
-
-	if (node.left >= 0) {
-		parents[node.left] = i;
-	} else {
-		parents[rootIndex - node.left] = i;
-	}
-	if (node.right >= 0) {
-		parents[node.right] = i;
-	} else {
-		parents[rootIndex - node.right] = i;
-	}
-
-	nodes[i] = node;
-
-	if (i == 0) {
-		parents[rootIndex] = -1;
-	}
-}
-
 __global__ void kernel_buildRadixTree(uint64_t* morton, Node* nodes, int* parents, int numNodes)
 {
 	const int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -251,8 +168,7 @@ BVH::BVH(std::vector<glm::vec3> const& positions, std::vector<glm::vec3> const& 
 	const int numLeafs = positions.size();
 	const int numNodes = numLeafs - 1;
 	m_data.positions.resize(numLeafs);
-	m_data.morton32.resize(numLeafs);
-	m_data.morton64.resize(numLeafs);
+	m_data.morton.resize(numLeafs);
 	m_data.ids.resize(numLeafs);
 	m_data.parents.resize(numLeafs + numNodes);
 
@@ -289,10 +205,10 @@ BVH::BVH(std::vector<glm::vec3> const& positions, std::vector<glm::vec3> const& 
 	
 	if (considerNormals) {
 		thrust::transform(normalizedPositions.begin(), normalizedPositions.end(), 
-			normalizedNormals.begin(), m_data.morton64.begin(), MortonCode6D());
+			normalizedNormals.begin(), m_data.morton.begin(), MortonCode6D());
 	} else {
 		thrust::transform(normalizedPositions.begin(), normalizedPositions.end(), 
-			m_data.morton32.begin(), MortonCode3D());
+			m_data.morton.begin(), MortonCode3D());
 	}
 
 	cuda::CudaTimer timerSort;
@@ -300,11 +216,7 @@ BVH::BVH(std::vector<glm::vec3> const& positions, std::vector<glm::vec3> const& 
 	thrust::counting_iterator<int> iter(0);
 	thrust::copy(iter, iter + m_data.ids.size(), m_data.ids.begin());
 	
-	if (considerNormals) {
-		thrust::sort_by_key(m_data.morton64.begin(), m_data.morton64.end(), m_data.ids.begin());
-	} else {
-		thrust::sort_by_key(m_data.morton32.begin(), m_data.morton32.end(), m_data.ids.begin());
-	}
+	thrust::sort_by_key(m_data.morton.begin(), m_data.morton.end(), m_data.ids.begin());
 	
 	timerSort.stop();
 
@@ -312,19 +224,11 @@ BVH::BVH(std::vector<glm::vec3> const& positions, std::vector<glm::vec3> const& 
 
 	cuda::CudaTimer timerBuildRadixTree;
 	timerBuildRadixTree.start();
-	if (considerNormals){
+	{
 		dim3 dimBlock(128);
 		dim3 dimGrid((numNodes + dimBlock.x - 1) / dimBlock.x);
 		kernel_buildRadixTree<<<dimGrid, dimBlock>>>(
-			thrust::raw_pointer_cast(&m_data.morton64[0]),
-			thrust::raw_pointer_cast(&m_nodes[0]),
-			thrust::raw_pointer_cast(&m_data.parents[0]),
-			numNodes);
-	} else {
-		dim3 dimBlock(128);
-		dim3 dimGrid((numNodes + dimBlock.x - 1) / dimBlock.x);
-		kernel_buildRadixTree<<<dimGrid, dimBlock>>>(
-			thrust::raw_pointer_cast(&m_data.morton32[0]),
+			thrust::raw_pointer_cast(&m_data.morton[0]),
 			thrust::raw_pointer_cast(&m_nodes[0]),
 			thrust::raw_pointer_cast(&m_data.parents[0]),
 			numNodes);

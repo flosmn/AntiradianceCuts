@@ -22,8 +22,7 @@ struct Node
 struct BVH_DATA
 {
 	thrust::device_vector<float3> positions;
-	thrust::device_vector<uint32_t> morton32;
-	thrust::device_vector<uint64_t> morton64;
+	thrust::device_vector<uint64_t> morton;
 	thrust::device_vector<int> ids;
 	thrust::device_vector<int> parents;
 };
