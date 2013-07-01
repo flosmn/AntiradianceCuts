@@ -15,7 +15,7 @@
 #include "CMeshGeometry.h"
 #include "CObjFileLoader.h"
 
-#include "..\CTriangle.h"
+#include "..\Triangle.h"
 #include "..\CMaterialBuffer.h"
 
 #include "..\CTimer.h"

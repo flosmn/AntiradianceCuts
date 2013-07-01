@@ -16,7 +16,7 @@ class CMeshGeometry;
 class CMeshMaterial;
 class COGLUniformBuffer;
 class COGLVertexArray;
-class CTriangle;
+class Triangle;
 class CMaterialBuffer;
 
 class CModel 

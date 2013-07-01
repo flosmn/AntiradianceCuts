@@ -131,12 +131,6 @@
     <ClCompile Include="OCLResources\COCLContext.cpp">
       <Filter>OCLResources</Filter>
     </ClCompile>
-    <ClCompile Include="CKdTreeAccelerator.cpp">
-      <Filter>RayTracingStuff</Filter>
-    </ClCompile>
-    <ClCompile Include="CTriangle.cpp">
-      <Filter>RayTracingStuff</Filter>
-    </ClCompile>
     <ClCompile Include="CConfigManager.cpp">
       <Filter>GUI&amp;Config</Filter>
     </ClCompile>
@@ -163,9 +157,6 @@
       <Filter>GUI&amp;Config</Filter>
     </ClCompile>
     <ClCompile Include="CCamera.cpp" />
-    <ClCompile Include="Intersection.cpp">
-      <Filter>RayTracingStuff</Filter>
-    </ClCompile>
     <ClCompile Include="OGLResources\COGLCubeMap.cpp">
       <Filter>OGLResources</Filter>
     </ClCompile>
@@ -175,6 +166,9 @@
     <ClCompile Include="CMaterialBuffer.cpp" />
     <ClCompile Include="CReferenceImage.cpp" />
     <ClCompile Include="CExperimentData.cpp" />
+    <ClCompile Include="KdTreeAccelerator.cpp">
+      <Filter>RayTracingStuff</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Render.h" />
@@ -289,18 +283,6 @@
     <ClInclude Include="MeshResources\CMesh.h">
       <Filter>MeshResources</Filter>
     </ClInclude>
-    <ClInclude Include="CKdTreeAccelerator.h">
-      <Filter>RayTracingStuff</Filter>
-    </ClInclude>
-    <ClInclude Include="Ray.h">
-      <Filter>RayTracingStuff</Filter>
-    </ClInclude>
-    <ClInclude Include="Intersection.h">
-      <Filter>RayTracingStuff</Filter>
-    </ClInclude>
-    <ClInclude Include="CTriangle.h">
-      <Filter>RayTracingStuff</Filter>
-    </ClInclude>
     <ClInclude Include="CGUI.h">
       <Filter>GUI&amp;Config</Filter>
     </ClInclude>
@@ -315,9 +297,6 @@
     </ClInclude>
     <ClInclude Include="CTestFramework.h">
       <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="BBox.h">
-      <Filter>RayTracingStuff</Filter>
     </ClInclude>
     <ClInclude Include="uniforms.h">
       <Filter>Misc</Filter>
@@ -359,6 +338,21 @@
     </ClInclude>
     <ClInclude Include="cudaGather.h" />
     <ClInclude Include="bvh.h" />
+    <ClInclude Include="Triangle.h">
+      <Filter>RayTracingStuff</Filter>
+    </ClInclude>
+    <ClInclude Include="Ray.h">
+      <Filter>RayTracingStuff</Filter>
+    </ClInclude>
+    <ClInclude Include="KdTreeAccelerator.h">
+      <Filter>RayTracingStuff</Filter>
+    </ClInclude>
+    <ClInclude Include="Intersection.h">
+      <Filter>RayTracingStuff</Filter>
+    </ClInclude>
+    <ClInclude Include="BBox.h">
+      <Filter>RayTracingStuff</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">

@@ -1,45 +1,42 @@
 #ifndef INTERSECTION_H
 #define INTERSECTION_H
 
-typedef unsigned int uint;
-
 #include "glm/glm.hpp"
 
-class CTriangle;
-class CModel;
+class Triangle;
 
 class Intersection
 {
 public:
-	Intersection() { m_Position = glm::vec3(0.f); m_pPrimitive = 0; }
-	Intersection(const glm::vec3& position, CTriangle* pPrimitive) { m_Position = position; m_pPrimitive = pPrimitive; }
+	Intersection() : m_position(glm::vec3(0.f)), m_triangle(nullptr)
+	{ }
+
+	Intersection(glm::vec3 const& position, Triangle const* triangle) : 
+		m_position(position),
+		m_triangle(triangle)
+	{ }
+	
 	~Intersection() {}	
 
-	CTriangle const* GetPrimitive() const { return m_pPrimitive; }
-	glm::vec3 GetPosition() const { return m_Position; }
+	inline Triangle const* getTriangle() const { 
+		return m_triangle; 
+	}
 	
-	glm::vec3 GetNormal() const;
-	uint GetMaterialIndex () const;
+	inline glm::vec3 const& getPosition() const { 
+		return m_position; 
+	}
 
-	void SetPrimitive(CTriangle const* const pPrimitive) { m_pPrimitive = pPrimitive; }
-	void SetPosition(const glm::vec3& position) { m_Position = position; }
+	inline void setPrimitive(Triangle const* const triangle) {
+		m_triangle = triangle; 
+	}
+	
+	inline void setPosition(const glm::vec3& position) { 
+		m_position = position; 
+	}
 
 private:
-	CTriangle const* m_pPrimitive;
-	glm::vec3 m_Position;
-};
-
-struct SceneSample
-{
-	SceneSample() {}
-	SceneSample(const Intersection& i)
-		: position(i.GetPosition()), normal(i.GetNormal()), materialIndex(i.GetMaterialIndex())
-	{}
-
-	glm::vec3 position;
-	glm::vec3 normal;
-	uint materialIndex;
-	float pdf;
+	Triangle const* m_triangle;
+	glm::vec3 m_position;
 };
 
 #endif

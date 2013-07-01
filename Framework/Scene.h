@@ -7,7 +7,8 @@ typedef unsigned int uint;
 
 #include "Ray.h"
 #include "Intersection.h"
-#include "CTriangle.h"
+#include "SceneSample.h"
+#include "Triangle.h"
 #include "Material.h"
 
 #include "Utils\mtrand.h"
@@ -18,7 +19,7 @@ typedef unsigned int uint;
 class CCamera;
 class AVPL;
 class AreaLight;
-class CKdTreeAccelerator;
+class KdTreeAccelerator;
 class CConfigManager;
 class CAVPLImportanceSampling;
 class CMaterialBuffer;
@@ -60,8 +61,8 @@ public:
 
 	bool HasLightSource() { return m_HasLightSource; }
 
-	bool IntersectRayScene(const Ray& ray, float* t, Intersection *pIntersection, CTriangle::IsectMode isectMode);
-	bool IntersectRaySceneSimple(const Ray& ray, float* t, Intersection *pIntersection, CTriangle::IsectMode isectMode);
+	bool IntersectRayScene(const Ray& ray, float* t, Intersection *pIntersection, Triangle::IsectMode isectMode);
+	bool IntersectRaySceneSimple(const Ray& ray, float* t, Intersection *pIntersection, Triangle::IsectMode isectMode);
 
 	CCamera* GetCamera() { return m_camera; }
 
@@ -94,13 +95,13 @@ private:
 	
 private:
 	std::vector<std::unique_ptr<CModel>> m_models;
-	std::vector<CTriangle> m_primitives;
+	std::vector<Triangle> m_primitives;
 
 	CCamera* m_camera;		
 	CConfigManager* m_confManager;
 
 	std::unique_ptr<AreaLight> m_areaLight;
-	std::unique_ptr<CKdTreeAccelerator> m_kdTreeAccelerator;
+	std::unique_ptr<KdTreeAccelerator> m_kdTreeAccelerator;
 
 	std::unique_ptr<CMaterialBuffer> m_materialBuffer;
 	std::unique_ptr<CReferenceImage> m_referenceImage;

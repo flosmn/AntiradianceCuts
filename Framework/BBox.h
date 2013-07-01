@@ -5,55 +5,52 @@
 
 #include <glm/glm.hpp>
 
-struct BBox
+class BBox
 {
 public:
-	BBox(float min_x, float min_y, float min_z, float max_x, float max_y, float max_z)
-	{
-		pMin = glm::vec3(min_x, min_y, min_z);
-		pMax = glm::vec3(max_x, max_y, max_z);
+	BBox(float min_x, float min_y, float min_z, 
+		 float max_x, float max_y, float max_z) :
+		m_min(glm::vec3(min_x, min_y, min_z)),
+		m_max(glm::vec3(max_x, max_y, max_z))
+	{ }
+
+	BBox(glm::vec3 const& min, glm::vec3 const& max) :
+		m_min(min), m_max(max)
+	{ }
+
+	BBox() : 
+		m_max(glm::vec3(std::numeric_limits<float>::min())),
+		m_min(glm::vec3(std::numeric_limits<float>::max()))
+	{ }
+
+	inline static BBox Union(BBox const& box0, BBox const& box1) {
+		return BBox(glm::min(box0.getMin(), box1.getMin()),
+			glm::max(box0.getMax(), box1.getMax()));
 	}
 
-	BBox(glm::vec3 min, glm::vec3 max)
-	{
-		pMin = min;
-		pMax = max;
-	}
-
-	BBox() {}
-
-	static BBox Union(const BBox& box0, const BBox& box1)
-	{
-		glm::vec3 min = glm::min(box0.pMin, box1.pMin);
-		glm::vec3 max = glm::max(box0.pMax, box1.pMax);
-		BBox res(min, max);
-		return res;
-	}
-
-	float Distance(glm::vec3 p) const {
+	inline float getDistance(glm::vec3 const& p) const {
 		glm::vec3 cp; // closest point on bbox to p
-		cp.x = (p.x < pMin.x) ? pMin.x : (p.x > pMax.x) ? pMax.x : p.x;
-		cp.y = (p.y < pMin.y) ? pMin.y : (p.y > pMax.y) ? pMax.y : p.y;
-		cp.z = (p.z < pMin.z) ? pMin.z : (p.z > pMax.z) ? pMax.z : p.z;
+		cp.x = (p.x < m_min.x) ? m_min.x : (p.x > m_max.x) ? m_max.x : p.x;
+		cp.y = (p.y < m_min.y) ? m_min.y : (p.y > m_max.y) ? m_max.y : p.y;
+		cp.z = (p.z < m_min.z) ? m_min.z : (p.z > m_max.z) ? m_max.z : p.z;
 		return glm::length(p - cp);
 	}
 
-	float SurfaceArea() const {
-		glm::vec3 d = pMax - pMin;
+	inline float getSurfaceArea() const {
+		const glm::vec3 d = m_max - m_min;
         return 2.f * (d.x * d.y + d.x * d.z + d.y * d.z);
     }
 
-	bool Intersects(const BBox &other) const {
+	inline bool intersects(BBox const& other) const {
       return 
-        (pMin.x < other.pMax.x) && (pMax.x > other.pMin.x) &&
-        (pMin.y < other.pMax.y) && (pMax.y > other.pMin.y) &&
-        (pMin.z < other.pMax.z) && (pMax.z > other.pMin.z);
+        (m_min.x < other.m_max.x) && (m_max.x > other.m_min.x) &&
+        (m_min.y < other.m_max.y) && (m_max.y > other.m_min.y) &&
+        (m_min.z < other.m_max.z) && (m_max.z > other.m_min.z);
     }
 
 	// Returns the axis with the maximum extend (0 = x, 1=y, 2 = z axis)
-	int MaximumExtent() const 
-	{
-        glm::vec3 diag = pMax - pMin;
+	inline int getAxisMaximumExtent() const {
+        const glm::vec3 diag = m_max - m_min;
         if (diag.x > diag.y && diag.x > diag.z)
             return 0;
         else if (diag.y > diag.z)
@@ -62,14 +59,17 @@ public:
             return 2;
     }
 
-	bool IntersectP(const Ray &ray, float *hitt0, float *hitt1) const 
+	inline bool intersect(Ray const& ray, float *t_min, float *t_max) const 
 	{
-		float t0 = ray.min_t, t1 = ray.max_t;
+		assert(t_min != nullptr);
+		assert(t_max != nullptr);
+		
+		float t0 = ray.getMin(), t1 = ray.getMax();
 		for (int i = 0; i < 3; ++i) {
 			// Update interval for i-th bounding box slab
-			float invRayDir = 1.f / ray.d[i];
-			float tNear = (pMin[i] - ray.o[i]) * invRayDir;
-			float tFar  = (pMax[i] - ray.o[i]) * invRayDir;
+			const float invRayDir = 1.f / ray.getDirection()[i];
+			float tNear = (m_min[i] - ray.getOrigin()[i]) * invRayDir;
+			float tFar  = (m_max[i] - ray.getOrigin()[i]) * invRayDir;
 
 			// Update parametric interval from slab intersection
 			if (tNear > tFar)
@@ -82,14 +82,30 @@ public:
 			t1 = tFar  < t1 ? tFar  : t1;
 			if (t0 > t1) return false;
 		}
-		if (hitt0) *hitt0 = t0;
-		if (hitt1) *hitt1 = t1;
+		*t_min = t0;
+		*t_max = t1;
 		return true;
 	}
 
-	glm::vec3 pMin;
-	glm::vec3 pMax;
+	inline glm::vec3 getMin() const {
+		return m_min; 
+	}
 	
+	inline glm::vec3 getMax() const {
+		return m_max; 
+	}
+	
+	inline void setMin(glm::vec3 const& min) {
+		m_min = min; 
+	}
+	
+	inline void setMax(glm::vec3 const& max) {
+		m_max = max; 
+	}
+
+private:
+	glm::vec3 m_min;
+	glm::vec3 m_max;
 };
 
 #endif // _BBOX_H_

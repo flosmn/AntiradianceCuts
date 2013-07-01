@@ -6,6 +6,7 @@
 #include "Structs.h"
 
 #include "Intersection.h"
+#include "SceneSample.h"
 
 class CConfigManager;
 class CMaterialBuffer;

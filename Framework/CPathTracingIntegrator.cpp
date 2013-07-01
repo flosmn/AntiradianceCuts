@@ -41,7 +41,7 @@ void CPathTracingIntegrator::Integrate(uint numPaths, bool MIS)
 
 		float t = 0;
 		Intersection intersection;
-		if(m_scene->IntersectRayScene(r, &t, &intersection, CTriangle::FRONT_FACE))
+		if(m_scene->IntersectRayScene(r, &t, &intersection, Triangle::FRONT_FACE))
 		{
 			SceneSample ss(intersection);
 
@@ -140,7 +140,7 @@ void CPathTracingIntegrator::Integrate(uint numPaths, bool MIS)
 				
 				Ray ray(y[i].position, direction);
 
-				if(m_scene->IntersectRayScene(ray, &t, &intersection, CTriangle::FRONT_FACE) && pdf > 0.f)
+				if(m_scene->IntersectRayScene(ray, &t, &intersection, Triangle::FRONT_FACE) && pdf > 0.f)
 				{
 					SceneSample ss(intersection);
 					y[i+1] = ss;

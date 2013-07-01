@@ -175,7 +175,6 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <ClCompile Include="CGUI.cpp" />
     <ClCompile Include="CImage.cpp" />
     <ClCompile Include="CImagePlane.cpp" />
-    <ClCompile Include="CKdTreeAccelerator.cpp" />
     <ClCompile Include="CMaterialBuffer.cpp" />
     <ClCompile Include="COctahedronAtlas.cpp" />
     <ClCompile Include="COctahedronMap.cpp" />
@@ -186,9 +185,8 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <ClCompile Include="CTestFramework.cpp" />
     <ClCompile Include="CTimer.cpp" />
     <ClCompile Include="AVPL.cpp" />
-    <ClCompile Include="CTriangle.cpp" />
     <ClCompile Include="guicon.cpp" />
-    <ClCompile Include="Intersection.cpp" />
+    <ClCompile Include="KdTreeAccelerator.cpp" />
     <ClCompile Include="LightTreeTypes.cpp" />
     <ClCompile Include="OCLResources\COCLTexture2D.cpp" />
     <ClCompile Include="CPostprocess.cpp" />
@@ -237,7 +235,6 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <ClInclude Include="CGUI.h" />
     <ClInclude Include="CImage.h" />
     <ClInclude Include="CImagePlane.h" />
-    <ClInclude Include="CKdTreeAccelerator.h" />
     <ClInclude Include="CMaterialBuffer.h" />
     <ClInclude Include="COctahedronAtlas.h" />
     <ClInclude Include="COctahedronMap.h" />
@@ -249,12 +246,12 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <ClInclude Include="CShadowMap.h" />
     <ClInclude Include="CTestFramework.h" />
     <ClInclude Include="CTimer.h" />
-    <ClInclude Include="CTriangle.h" />
     <ClInclude Include="cudaGather.h" />
     <ClInclude Include="Defines.h" />
     <ClInclude Include="guicon.h" />
-    <ClInclude Include="Intersection.h" />
     <ClInclude Include="AVPL.h" />
+    <ClInclude Include="Intersection.h" />
+    <ClInclude Include="KdTreeAccelerator.h" />
     <ClInclude Include="LightTreeTypes.h" />
     <ClInclude Include="Macros.h" />
     <ClInclude Include="CPostprocess.h" />
@@ -292,6 +289,7 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <ClInclude Include="Render.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="Structs.h" />
+    <ClInclude Include="Triangle.h" />
     <ClInclude Include="uniforms.h" />
     <ClInclude Include="Utils\CExport.h" />
     <ClInclude Include="Utils\CLightViewer.h" />

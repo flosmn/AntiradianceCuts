@@ -2,7 +2,7 @@
 
 #include "..\Macros.h"
 #include "..\Utils\Util.h"
-#include "..\CTriangle.h"
+#include "..\Triangle.h"
 
 #include <iostream>
 #include <set>

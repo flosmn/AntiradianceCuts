@@ -10,7 +10,7 @@ typedef unsigned int uint;
 
 #include "..\Utils\Util.h"
 
-#include "..\CTriangle.h"
+#include "..\Triangle.h"
 
 #include <vector>
 
@@ -27,7 +27,7 @@ public:
 	const glm::vec3* GetVertexTexCoords() { return m_pVertexTexCoords; }
 	const uint* GetIndexData() { return m_pIndexData; }
 
-	void FillWithTriangleData(std::vector<CTriangle*>& triangles)
+	void FillWithTriangleData(std::vector<Triangle*>& triangles)
 	{
 		for(uint i = 0; i < numberOfTriangles; i++)
 		{
@@ -40,7 +40,7 @@ public:
 
 			glm::vec3 normal = glm::normalize(glm::cross(p3-p1, p2-p1));
 
-			CTriangle* triangle = new CTriangle(p1, p2, p3);
+			Triangle* triangle = new Triangle(p1, p2, p3);
 			triangles.push_back(triangle);																	 
 		}
 	}
@@ -53,7 +53,7 @@ protected:
 	uint numberOfVertices;
 	uint numberOfTriangles;
 
-	std::vector<CTriangle*> triangles;
+	std::vector<Triangle*> triangles;
 };
 
 class CFullScreenQuadMesh : public CMesh 

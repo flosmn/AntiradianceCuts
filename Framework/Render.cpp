@@ -203,6 +203,22 @@ Renderer::Renderer(CCamera* m_camera, COGLContext* glContext, CConfigManager* co
 		m_cudaRenderTarget->GetTarget(2)->GetResourceIdentifier(),
 		m_scene->GetMaterialBuffer()->getMaterials()
 	));
+
+	/*
+	std::vector<glm::vec3> positions;
+	std::vector<glm::vec3> normals;
+	for (int i = 0; i < 200000; ++i)
+	{
+		positions.push_back(glm::vec3(Rand01(), Rand01(), Rand01()));
+		positions.push_back(glm::normalize(glm::vec3(Rand01(), Rand01(), Rand01())));
+	}
+
+	BVH bvh(positions, normalize, true);
+	*/
+	glm::vec3 normal = glm::vec3(0.f, 1.f, 0.f);
+	float pdf;
+	glm::vec3 dir = GetRandomSampleDirectionCosCone(normal, 0.8f, 0.2f, pdf, 0);
+
 }
 
 Renderer::~Renderer() 

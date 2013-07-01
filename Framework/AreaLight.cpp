@@ -7,7 +7,7 @@
 #include "Utils\ShaderUtil.h"
 #include "Utils\Util.h"
 
-#include "CTriangle.h"
+#include "Triangle.h"
 #include "CMaterialBuffer.h"
 
 #include "MeshResources\CMesh.h"
@@ -150,17 +150,17 @@ void AreaLight::UpdateWorldTransform()
 	m_areaLightModel->SetWorldTransform(position * scale);
 }
 
- void AreaLight::GetTrianglesWS(std::vector<CTriangle>& triangles)
+ void AreaLight::GetTrianglesWS(std::vector<Triangle>& triangles)
 {
 	std::vector<CSubModel*> subModels = m_areaLightModel->GetSubModels();
 	std::vector<CSubModel*>::iterator it_subModels;
 	for (it_subModels = subModels.begin(); it_subModels < subModels.end(); it_subModels++ )
 	{
 		CSubModel* subModel = *it_subModels;
-		std::vector<CTriangle>& t = subModel->GetTrianglesWS();
+		std::vector<Triangle>& t = subModel->GetTrianglesWS();
 		for(uint i = 0; i < t.size(); ++i)
 		{
-			t[i].SetMaterialIndex(m_MaterialIndex);
+			t[i].setMaterialIndex(m_MaterialIndex);
 			triangles.push_back(t[i]);
 		}
 	}

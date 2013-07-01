@@ -77,12 +77,12 @@ void CSubModel::Draw()
 	m_vertexArray->Draw(3 * m_nTriangles);
 }
 
-std::vector<CTriangle>& CSubModel::GetTrianglesOS()
+std::vector<Triangle>& CSubModel::GetTrianglesOS()
 {
 	return m_trianglesOS;
 }
 
-std::vector<CTriangle>& CSubModel::GetTrianglesWS()
+std::vector<Triangle>& CSubModel::GetTrianglesWS()
 {
 	return m_trianglesWS;
 }
@@ -94,12 +94,12 @@ void CSubModel::SetWorldTransform(const glm::mat4& transform)
 	
 	for(uint i = 0; i < m_trianglesOS.size(); ++i)
 	{
-		const CTriangle& triangleOS = m_trianglesOS[i];
-		CTriangle triangleWS(
+		const Triangle& triangleOS = m_trianglesOS[i];
+		Triangle triangleWS(
 			glm::vec3(m_worldTransform * glm::vec4(triangleOS.P0(), 1.f)),
 			glm::vec3(m_worldTransform * glm::vec4(triangleOS.P1(), 1.f)),
 			glm::vec3(m_worldTransform * glm::vec4(triangleOS.P2(), 1.f)));
-		triangleWS.SetMaterialIndex(m_MaterialIndex);
+		triangleWS.setMaterialIndex(m_MaterialIndex);
 		m_trianglesWS.push_back(triangleWS);
 	}	
 }
@@ -120,7 +120,7 @@ void CSubModel::CreateTriangleData(uint nFaces, const uint* pIndexData,
 		glm::vec3 p2 = glm::vec3(pPositionData[i2]);
 		glm::vec3 p3 = glm::vec3(pPositionData[i3]);
 
-		m_trianglesOS.push_back(CTriangle(p1, p2, p3));
-		m_trianglesOS.back().SetMaterialIndex(m_MaterialIndex);
+		m_trianglesOS.push_back(Triangle(p1, p2, p3));
+		m_trianglesOS.back().setMaterialIndex(m_MaterialIndex);
 	}
 } 

@@ -235,7 +235,7 @@ float map(float x, float x0, float x1, float y0, float y1) {
 	return y1 - (x1 - x) * (y1 - y0) / (x1 - x0);
 }
 
-bool IntersectWithBB(const CTriangle& triangle, const Ray& ray)
+bool IntersectWithBB(const Triangle& triangle, const Ray& ray)
 {
 	glm::vec3 p1 = triangle.P0();
 	glm::vec3 p2 = triangle.P1();
@@ -257,10 +257,10 @@ bool IntersectWithBB(const CTriangle& triangle, const Ray& ray)
 
 bool IntersectRayBox(const Ray& ray, glm::vec3 boxMin, glm::vec3 boxMax) 
 {
-	glm::vec3 rayDirInv = 1.0f / ray.d;
+	glm::vec3 rayDirInv = 1.0f / ray.getDirection();
 
-	glm::vec3 slabMin = (boxMin - ray.o) * rayDirInv;
-	glm::vec3 slabMax = (boxMax - ray.o) * rayDirInv;
+	glm::vec3 slabMin = (boxMin - ray.getOrigin()) * rayDirInv;
+	glm::vec3 slabMax = (boxMax - ray.getOrigin()) * rayDirInv;
 
 	glm::vec3 absMin = glm::min(slabMin, slabMax);
 	glm::vec3 absMax = glm::max(slabMin, slabMax);
@@ -280,13 +280,13 @@ bool IntersectRayTriangle(const Ray& ray, glm::vec3 v0, glm::vec3 v1, glm::vec3 
 	glm::vec3 e1 = v2 - v0;
 	glm::vec3 e2 = v1 - v0;
 
-	vec_p = glm::cross(ray.d, e2);
+	vec_p = glm::cross(ray.getDirection(), e2);
 
 	float det = glm::dot(e1, vec_p);
 
 	if(det < epsilon && det > -epsilon) return false;
 	
-	vec_t = ray.o - v0;
+	vec_t = ray.getOrigin() - v0;
 
 	float u = glm::dot(vec_t, vec_p);
 
@@ -294,7 +294,7 @@ bool IntersectRayTriangle(const Ray& ray, glm::vec3 v0, glm::vec3 v1, glm::vec3 
 
 	vec_q = glm::cross(vec_t, e1);
 
-	float v = glm::dot(ray.d, vec_q);
+	float v = glm::dot(ray.getDirection(), vec_q);
 
 	if(v < 0.0f || u + v > det) return false;
 

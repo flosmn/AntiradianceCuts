@@ -1,5 +1,7 @@
 #include "AVPL.h"
 
+#include <iostream>
+
 #include <glm/gtx/transform.hpp>
 
 #include "CConfigManager.h"
@@ -27,6 +29,9 @@ AVPL::AVPL(glm::vec3 p, glm::vec3 n, glm::vec3 L,
 	m_Bounce = bounce;
 	m_MaterialIndex = materialIndex;
 	m_DebugColor = glm::vec3(0.2f, 0.2f, 0.2f);
+
+	if (glm::dot(m_Orientation, -m_Direction) < 0.f)
+		std::cout << "wrong" << std::endl;
 }
 
 glm::mat4 AVPL::GetViewMatrix() const 

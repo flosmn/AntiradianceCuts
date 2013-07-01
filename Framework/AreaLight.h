@@ -11,7 +11,7 @@
 
 typedef unsigned int uint;
 
-class CTriangle;
+class Triangle;
 class CModel;
 class CCamera;
 class Light;
@@ -49,7 +49,7 @@ public:
 	void SetIntensity(glm::vec3 _intensity);
 	void SetRadiance(glm::vec3 _radiance);
 
-	void GetTrianglesWS(std::vector<CTriangle>& triangles);
+	void GetTrianglesWS(std::vector<Triangle>& triangles);
 
 	uint GetMaterialIndex() { return m_MaterialIndex; }
 

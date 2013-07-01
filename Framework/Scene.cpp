@@ -8,8 +8,8 @@ typedef unsigned int uint;
 #include "AVPL.h"
 #include "AreaLight.h"
 #include "CCamera.h"
-#include "CKdTreeAccelerator.h"
-#include "CTriangle.h"
+#include "KdTreeAccelerator.h"
+#include "Triangle.h"
 #include "CConfigManager.h"
 #include "CTimer.h"
 #include "CMaterialBuffer.h"
@@ -163,7 +163,7 @@ bool Scene::ContinueAVPLPath(AVPL* pred, AVPL* newAVPL, glm::vec3 direction, flo
 		
 	Intersection intersection_kd, intersection_simple;
 	float t_kd = 0.f, t_simple = 0.f;
-	bool inter_kd = IntersectRayScene(ray, &t_kd, &intersection_kd, CTriangle::FRONT_FACE);
+	bool inter_kd = IntersectRayScene(ray, &t_kd, &intersection_kd, Triangle::FRONT_FACE);
 		
 	/*
 	bool inter_simple = IntersectRaySceneSimple(ray, &t_simple, &intersection_simple, isect_bfc);
@@ -178,9 +178,9 @@ bool Scene::ContinueAVPLPath(AVPL* pred, AVPL* newAVPL, glm::vec3 direction, flo
 	if(inter_kd)
 	{
 		// gather information for the new VPL
-		glm::vec3 norm = intersection.GetPrimitive()->GetNormal();
-		glm::vec3 pos = intersection.GetPosition() - 0.1f * norm;
-		uint index = intersection.GetPrimitive()->GetMaterialIndex();
+		glm::vec3 norm = intersection.getTriangle()->getNormal();
+		glm::vec3 pos = intersection.getPosition() - 0.1f * norm;
+		uint index = intersection.getTriangle()->getMaterialIndex();
 		if(index > 100)
 			std::cout << "material index uob" << std::endl;
 		
@@ -203,7 +203,7 @@ bool Scene::ContinueAVPLPath(AVPL* pred, AVPL* newAVPL, glm::vec3 direction, flo
 		glm::vec3 antiradiance = 1.f/float(m_confManager->GetConfVars()->NumAdditionalAVPLs + 1.f) * contrib / area;
 
 		AVPL avpl(pos, norm, contrib, antiradiance, direction, coneFactor, pred->GetBounce() + 1,
-			intersection.GetMaterialIndex(), m_materialBuffer.get(), m_confManager);
+			intersection.getTriangle()->getMaterialIndex(), m_materialBuffer.get(), m_confManager);
 		*newAVPL = avpl;
 		return true;
 	}
@@ -329,7 +329,7 @@ void Scene::CreatePrimaryVpls(std::vector<AVPL>& avpls, int numVpls)
 	}
 }
 
-bool Scene::IntersectRaySceneSimple(const Ray& ray, float* t, Intersection *pIntersection,  CTriangle::IsectMode isectMode)
+bool Scene::IntersectRaySceneSimple(const Ray& ray, float* t, Intersection *pIntersection,  Triangle::IsectMode isectMode)
 {	
 	float t_best = std::numeric_limits<float>::max();
 	Intersection isect_best;
@@ -339,7 +339,7 @@ bool Scene::IntersectRaySceneSimple(const Ray& ray, float* t, Intersection *pInt
 	{
 		float t_temp = 0.f;
 		Intersection isect_temp;
-		if(m_primitives[i].Intersect(ray, &t_temp, &isect_temp, isectMode))
+		if(m_primitives[i].intersect(ray, &t_temp, &isect_temp, isectMode))
 		{
 			if(t_temp < t_best && t_temp > 0) {
 				t_best = t_temp;
@@ -354,7 +354,7 @@ bool Scene::IntersectRaySceneSimple(const Ray& ray, float* t, Intersection *pInt
 		
 	// no intersections on light sources
 	if(hasIntersection) {
-		if(glm::length(GetMaterialBuffer()->GetMaterial(pIntersection->GetMaterialIndex())->emissive) > 0.f) {
+		if(glm::length(GetMaterialBuffer()->GetMaterial(pIntersection->getTriangle()->getMaterialIndex())->emissive) > 0.f) {
 			hasIntersection =  false;
 		}
 	}
@@ -362,13 +362,13 @@ bool Scene::IntersectRaySceneSimple(const Ray& ray, float* t, Intersection *pInt
 	return hasIntersection;
 }
 
-bool Scene::IntersectRayScene(const Ray& ray, float* t, Intersection *pIntersection,  CTriangle::IsectMode isectMode)
+bool Scene::IntersectRayScene(const Ray& ray, float* t, Intersection *pIntersection,  Triangle::IsectMode isectMode)
 {	
-	bool intersect = m_kdTreeAccelerator->Intersect(ray, t, pIntersection, isectMode);
+	bool intersect = m_kdTreeAccelerator->intersect(ray, t, pIntersection, isectMode);
 
 	// no intersections on light sources
 	if(intersect) {
-		if(glm::length(GetMaterialBuffer()->GetMaterial(pIntersection->GetMaterialIndex())->emissive) > 0.f) {
+		if(glm::length(GetMaterialBuffer()->GetMaterial(pIntersection->getTriangle()->getMaterialIndex())->emissive) > 0.f) {
 			intersect =  false;
 		}
 	}
@@ -716,7 +716,7 @@ void Scene::InitKdTree()
 		for (it_subModels = subModels.begin(); it_subModels < subModels.end(); it_subModels++ )
 		{
 			CSubModel* subModel = *it_subModels;
-			std::vector<CTriangle> triangles = subModel->GetTrianglesWS();
+			std::vector<Triangle> triangles = subModel->GetTrianglesWS();
 			for(uint i = 0; i < triangles.size(); ++i)
 			{
 				m_primitives.push_back(triangles[i]);
@@ -725,17 +725,17 @@ void Scene::InitKdTree()
 	}
 
 	// add area light source
-	std::vector<CTriangle> triangles;
+	std::vector<Triangle> triangles;
 	m_areaLight->GetTrianglesWS(triangles);
 	for(uint i = 0; i < triangles.size(); ++i)
 	{
 		m_primitives.push_back(triangles[i]);
 	}
 	
-	m_kdTreeAccelerator.reset(new CKdTreeAccelerator(m_primitives, 80, 1, 5, 0));
+	m_kdTreeAccelerator.reset(new KdTreeAccelerator(m_primitives, 80, 1, 5, 0));
 	CTimer timer(CTimer::CPU);
 	timer.Start();
-	m_kdTreeAccelerator->BuildTree();
+	m_kdTreeAccelerator->buildTree();
 	timer.Stop("BuildAccelerationTree");
 }
 
@@ -778,7 +778,7 @@ bool Scene::Visible(const SceneSample& ss1, const SceneSample& ss2)
 
 	float t = 0.f;
 	Intersection intersection;
-	bool isect = IntersectRaySceneSimple(r, &t, &intersection,  CTriangle::FRONT_FACE);
+	bool isect = IntersectRaySceneSimple(r, &t, &intersection,  Triangle::FRONT_FACE);
 			
 	const float big = std::max(dist, t);
 	const float small = std::min(dist, t);

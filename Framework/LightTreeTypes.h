@@ -45,8 +45,8 @@ struct CLUSTER
 		buffer->mean = mean;
 		buffer->normal = normal;
 		buffer->size = float(size);
-		buffer->pMin = bbox.pMin;
-		buffer->pMax = bbox.pMax;
+		buffer->pMin = bbox.getMin();
+		buffer->pMax = bbox.getMax();
 		buffer->materialIndex = materialIndex;
 		buffer->incomingDirection = incomingDirection;
 
@@ -94,7 +94,7 @@ struct CLUSTER
 
 		//const float I = glm::length(intensity + c1->intensity);
 		const BBox b = BBox::Union(bbox, c1->bbox);
-		const float A = glm::length(b.pMax - b.pMin);
+		const float A = glm::length(b.getMax() - b.getMin());
 		//const float B = glm::dot(c1->normal, normal);
 
 		const float dist = A; //I * ( A * A + weightNormals * weightNormals * (1 - B) * (1 - B));
@@ -104,14 +104,14 @@ struct CLUSTER
 	BBox UpperBound(const CLUSTER* c)
 	{
 		BBox temp = BBox::Union(bbox, c->bbox);
-		const float alpha = glm::length(temp.pMax - temp.pMin);
-		const glm::vec3 diag = bbox.pMax - bbox.pMin;
+		const float alpha = glm::length(temp.getMax() - temp.getMin());
+		const glm::vec3 diag = bbox.getMax() - bbox.getMin();
 		const float u = sqrtf(alpha*alpha-(diag.y*diag.y)-(diag.z-diag.z));
 		const float v = sqrtf(alpha*alpha-(diag.z*diag.z)-(diag.x-diag.x));
 		const float w = sqrtf(alpha*alpha-(diag.x*diag.x)-(diag.y-diag.y));
 		const glm::vec3 d(u,v,w);
-		temp.pMin = bbox.pMax - d;
-		temp.pMax = bbox.pMin + d;
+		temp.setMin(bbox.getMax() - d);
+		temp.setMax(bbox.getMin() + d);
 		return temp;
 	}
 };

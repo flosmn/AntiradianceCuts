@@ -7,7 +7,7 @@ typedef unsigned int uint;
 
 #include <vector>
 
-class CTriangle;
+class Triangle;
 
 class CMeshVertex
 {
@@ -101,7 +101,7 @@ public:
 	void SetNumberOfVertices(uint nVertices) { m_nVertices = nVertices; }
 	void SetNumberOfFaces(uint nFaces) { m_nFaces = nFaces; }
 		
-	void FillWithTriangleData(std::vector<CTriangle*>& triangles);
+	void FillWithTriangleData(std::vector<Triangle*>& triangles);
 
 	void PrintGeometryData();
 	

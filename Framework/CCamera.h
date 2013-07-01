@@ -7,6 +7,7 @@ typedef unsigned int uint;
 
 #include "Ray.h"
 #include "Intersection.h"
+#include "SceneSample.h"
 
 #include <vector>
 

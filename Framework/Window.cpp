@@ -220,6 +220,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	RedirectIOToConsole();
 //#endif
 	
+
 	/*
 	// enable floating point exception
 	unsigned int cw;

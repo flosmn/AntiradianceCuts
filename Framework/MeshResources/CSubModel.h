@@ -19,7 +19,7 @@ class COGLVertexBuffer;
 class COGLUniformBuffer;
 class CMeshGeometry;
 
-class CTriangle;
+class Triangle;
 class CMaterialBuffer;
 
 typedef unsigned int uint;
@@ -37,8 +37,8 @@ public:
 		
 	void SetWorldTransform(const glm::mat4& transform);
 		
-	std::vector<CTriangle>& GetTrianglesOS();
-	std::vector<CTriangle>& GetTrianglesWS();
+	std::vector<Triangle>& GetTrianglesOS();
+	std::vector<Triangle>& GetTrianglesWS();
 
 	uint GetMaterialIndex() { return m_MaterialIndex; }
 
@@ -50,8 +50,8 @@ private:
 
 	std::unique_ptr<COGLVertexArray> m_vertexArray;
 		
-	std::vector<CTriangle> m_trianglesOS;
-	std::vector<CTriangle> m_trianglesWS;
+	std::vector<Triangle> m_trianglesOS;
+	std::vector<Triangle> m_trianglesWS;
 
 	uint m_MaterialIndex;
 	uint m_nTriangles;
