@@ -102,7 +102,7 @@ void CConfigManager::Update()
 	if(m_pConfVarsGUI->bvhLevel != m_pConfVars->bvhLevel)
 	{
 		m_pConfVars->bvhLevel = m_pConfVarsGUI->bvhLevel;
-		m_renderer->UpdateBVHDebug();
+		m_renderer->UpdateBvhDebug();
 		bool clearLighting = false;
 		bool clearAccumBuffer = false;
 	}
@@ -110,7 +110,7 @@ void CConfigManager::Update()
 	if(m_pConfVarsGUI->considerNormals != m_pConfVars->considerNormals)
 	{
 		m_pConfVars->considerNormals = m_pConfVarsGUI->considerNormals;
-		m_renderer->RebuildBVH();
+		m_renderer->RebuildBvh();
 		bool clearLighting = false;
 		bool clearAccumBuffer = false;
 	}

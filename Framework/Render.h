@@ -23,7 +23,7 @@ class CPathTracingIntegrator;
 
 class PointCloud;
 class AABBCloud;
-class BVH;
+class AvplBvh;
 
 class CudaGather;
 
@@ -89,8 +89,8 @@ public:
 
 	void TestClusteringSpeed();
 
-	void UpdateBVHDebug();
-	void RebuildBVH();
+	void UpdateBvhDebug();
+	void RebuildBvh();
 private:
 	// functions of the render phase
 	void SetUpRender();
@@ -170,7 +170,7 @@ private:
 	std::unique_ptr<CExperimentData> m_experimentData;
 	std::unique_ptr<PointCloud> m_pointCloud;
 	std::unique_ptr<AABBCloud> m_aabbCloud;
-	std::unique_ptr<BVH> m_bvh;
+	std::unique_ptr<AvplBvh> m_avplBvh;
 		
 	std::unique_ptr<CRenderTarget> m_resultRenderTarget;
 	std::unique_ptr<CRenderTarget> m_errorRenderTarget;

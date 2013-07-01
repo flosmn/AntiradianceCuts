@@ -50,7 +50,7 @@ inline __device__ int sign(int i)
 }
 
 // TODO: shared memory
-__global__ void kernel_buildRadixTree(uint64_t* morton, Node* nodes, int* parents, int numNodes)
+__global__ void kernel_buildRadixTree(BvhNode* nodes, uint64_t* morton, int* parents, int numNodes)
 {
 	const int i = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -65,7 +65,8 @@ __global__ void kernel_buildRadixTree(uint64_t* morton, Node* nodes, int* parent
 	int t = 0; // while-loop variable
 
 	// determine direction of range
-	const int d = sign(delta(i, i+1, morton, numNodes) - delta(i, i-1, morton, numNodes));
+	const int d = sign(delta(i, i+1, morton, numNodes) 
+		- delta(i, i-1, morton, numNodes));
 
 	// compute upper bound for the lenght of the range	
 	const int delta_min = delta(i, i - d, morton, numNodes);
@@ -100,7 +101,7 @@ __global__ void kernel_buildRadixTree(uint64_t* morton, Node* nodes, int* parent
 	const int split = i + s*d + min(d, 0);
 
 	// output child pointers
-	Node node;
+	BvhNode node;
 	node.visited = 0;
 	node.left	= min(i, j) == split	? split		: -split;
 	node.right	= max(i, j) == split+1	? (split+1)	: -(split+1);
@@ -124,7 +125,8 @@ __global__ void kernel_buildRadixTree(uint64_t* morton, Node* nodes, int* parent
 }
 
 // TODO: shared memory
-__global__ void kernel_boundingBoxes(Node* nodes, int* parents, int* ids, float3* positions, int numLeafs)
+__global__ void kernel_boundingBoxes(BvhNode* nodes, int* parents, 
+	int* ids, float3* positions, BvhNodeData* nodeData, int numLeafs)
 {
 	const int i = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -147,6 +149,7 @@ __global__ void kernel_boundingBoxes(Node* nodes, int* parents, int* ids, float3
 			const float3 bbMaxRight = right < 0 ? nodes[-right].bbMax	: positions[ids[right]];
 			nodes[parent].bbMin = fminf(bbMinLeft, bbMinRight); 
 			nodes[parent].bbMax = fmaxf(bbMaxLeft, bbMaxRight); 
+			nodeData->cluster(parent, left, right);
 		}
 
 		parent = parents[numLeafs + parent];
@@ -156,31 +159,21 @@ __global__ void kernel_boundingBoxes(Node* nodes, int* parents, int* ids, float3
 	}
 }
 
-BVH::BVH(std::vector<glm::vec3> const& positions, std::vector<glm::vec3> const& normals,
-		bool considerNormals)
+Bvh::Bvh(BvhInput* input, BvhNodeData* nodeData, bool considerNormals)
+	: m_input(input), m_nodeData(nodeData)
 {
-	assert(positions.size() == normals.size());
-
-	if (positions.size() <= 1) {
+	if (input->positions.size() <= 1) {
 		std::cout << "not enough points for bvh construction" << std::endl;
 		return;
 	}
-	const int numLeafs = positions.size();
+	const int numLeafs = input->positions.size();
 	const int numNodes = numLeafs - 1;
-	m_data.positions.resize(numLeafs);
-	m_data.morton.resize(numLeafs);
-	m_data.ids.resize(numLeafs);
-	m_data.parents.resize(numLeafs + numNodes);
-
-	for (int i = 0; i < positions.size(); ++i)
-	{
-		m_data.positions[i] = make_float3(positions[i]);
-	}
-	thrust::device_vector<float3> normals_thrust(numLeafs);
-	for (int i = 0; i < normals.size(); ++i)
-	{
-		normals_thrust[i] = make_float3(normals[i]);
-	}
+	m_data.reset(new BvhData());
+	m_data->morton.resize(numLeafs);
+	m_data->ids.resize(numLeafs);
+	m_data->parents.resize(numLeafs);
+	m_data->numLeafs = numLeafs;
+	m_data->numNodes = numNodes;
 	
 	cuda::CudaTimer timer;
 	timer.start();
@@ -189,34 +182,36 @@ BVH::BVH(std::vector<glm::vec3> const& positions, std::vector<glm::vec3> const& 
 	thrust::device_vector<float3> normalizedNormals(numLeafs);
 
 	{ // normalize positions
-		float3 min = thrust::reduce(m_data.positions.begin(), m_data.positions.end(), 
-				make_float3(std::numeric_limits<float>::max()), Min<float3>());
-		float3 max = thrust::reduce(m_data.positions.begin(), m_data.positions.end(),
-				make_float3(std::numeric_limits<float>::min()), Max<float3>());
-		thrust::transform(m_data.positions.begin(), m_data.positions.end(), normalizedPositions.begin(), Normalize(min, max));
+		float3 min = thrust::reduce(input->positions.begin(), input->positions.end(), 
+			make_float3(std::numeric_limits<float>::max()), Min<float3>());
+		float3 max = thrust::reduce(input->positions.begin(), input->positions.end(),
+			make_float3(std::numeric_limits<float>::min()), Max<float3>());
+		thrust::transform(input->positions.begin(), input->positions.end(), 
+			normalizedPositions.begin(), Normalize(min, max));
 	}
 	{ // normalize normals
-		float3 min = thrust::reduce(normals_thrust.begin(), normals_thrust.end(), 
-				make_float3(std::numeric_limits<float>::max()), Min<float3>());
-		float3 max = thrust::reduce(normals_thrust.begin(), normals_thrust.end(),
-				make_float3(std::numeric_limits<float>::min()), Max<float3>());
-		thrust::transform(normals_thrust.begin(), normals_thrust.end(), normalizedNormals.begin(), Normalize(min, max));
+		float3 min = thrust::reduce(input->normals.begin(), input->normals.end(), 
+			make_float3(std::numeric_limits<float>::max()), Min<float3>());
+		float3 max = thrust::reduce(input->normals.begin(), input->normals.end(),
+			make_float3(std::numeric_limits<float>::min()), Max<float3>());
+		thrust::transform(input->normals.begin(), input->normals.end(), 
+			normalizedNormals.begin(), Normalize(min, max));
 	}
 	
 	if (considerNormals) {
 		thrust::transform(normalizedPositions.begin(), normalizedPositions.end(), 
-			normalizedNormals.begin(), m_data.morton.begin(), MortonCode6D());
+			normalizedNormals.begin(), m_data->morton.begin(), MortonCode6D());
 	} else {
 		thrust::transform(normalizedPositions.begin(), normalizedPositions.end(), 
-			m_data.morton.begin(), MortonCode3D());
+			m_data->morton.begin(), MortonCode3D());
 	}
 
 	cuda::CudaTimer timerSort;
 	timerSort.start();
 	thrust::counting_iterator<int> iter(0);
-	thrust::copy(iter, iter + m_data.ids.size(), m_data.ids.begin());
+	thrust::copy(iter, iter + numLeafs, m_data->ids.begin());
 	
-	thrust::sort_by_key(m_data.morton.begin(), m_data.morton.end(), m_data.ids.begin());
+	thrust::sort_by_key(m_data->morton.begin(), m_data->morton.end(), m_data->ids.begin());
 	
 	timerSort.stop();
 
@@ -228,10 +223,10 @@ BVH::BVH(std::vector<glm::vec3> const& positions, std::vector<glm::vec3> const& 
 		dim3 dimBlock(128);
 		dim3 dimGrid((numNodes + dimBlock.x - 1) / dimBlock.x);
 		kernel_buildRadixTree<<<dimGrid, dimBlock>>>(
-			thrust::raw_pointer_cast(&m_data.morton[0]),
-			thrust::raw_pointer_cast(&m_nodes[0]),
-			thrust::raw_pointer_cast(&m_data.parents[0]),
-			numNodes);
+			thrust::raw_pointer_cast(&m_nodes[0]), 
+			thrust::raw_pointer_cast(&m_data->morton[0]), 
+			thrust::raw_pointer_cast(&m_data->parents[0]), 
+			m_data->numNodes);
 	}
 	timerBuildRadixTree.stop();
 
@@ -245,11 +240,11 @@ BVH::BVH(std::vector<glm::vec3> const& positions, std::vector<glm::vec3> const& 
 		dim3 dimBlock(128);
 		dim3 dimGrid((numLeafs + dimBlock.x - 1) / dimBlock.x);
 		kernel_boundingBoxes<<<dimGrid, dimBlock>>>(
-			thrust::raw_pointer_cast(&m_nodes[0]),
-			thrust::raw_pointer_cast(&m_data.parents[0]),
-			thrust::raw_pointer_cast(&m_data.ids[0]),
-			thrust::raw_pointer_cast(&m_data.positions[0]),
-			numLeafs);
+			thrust::raw_pointer_cast(&m_nodes[0]), 
+			thrust::raw_pointer_cast(&m_data->parents[0]), 
+			thrust::raw_pointer_cast(&m_data->ids[0]), 
+			thrust::raw_pointer_cast(&m_input->positions[0]), 
+			m_nodeData, m_data->numLeafs);
 	}
 	timerBoundingBoxes.stop();
 	
@@ -262,7 +257,7 @@ BVH::BVH(std::vector<glm::vec3> const& positions, std::vector<glm::vec3> const& 
 	// calculate SA of all AABBs
 	float sa = 0;
 	for (int i = 0; i < m_nodes.size(); ++i) {
-		const Node node = m_nodes[i];
+		const BvhNode node = m_nodes[i];
 		const float3 bbMin = node.bbMin;
 		const float3 bbMax = node.bbMax;
 		const float dx = abs(bbMax.x - bbMin.x);
@@ -275,7 +270,7 @@ BVH::BVH(std::vector<glm::vec3> const& positions, std::vector<glm::vec3> const& 
 	// calculate volume of all AABBs
 	float vol = 0;
 	for (int i = 0; i < m_nodes.size(); ++i) {
-		const Node node = m_nodes[i];
+		const BvhNode node = m_nodes[i];
 		const float3 bbMin = node.bbMin;
 		const float3 bbMax = node.bbMax;
 		const float dx = abs(bbMax.x - bbMin.x);
@@ -285,26 +280,28 @@ BVH::BVH(std::vector<glm::vec3> const& positions, std::vector<glm::vec3> const& 
 		vol += 0.001f * (dx * dy * dz); 
 	}
 	std::cout << "sum of aabb volumes: " << vol << std::endl;
+
+	m_positionsDebug.reserve(numLeafs);
+	m_idsDebug.reserve(numLeafs);
+	m_nodesDebug.reserve(m_nodes.size());
+	thrust::copy(m_input->positions.begin(), m_input->positions.end(), m_positionsDebug.begin());
+	thrust::copy(m_data->ids.begin(), m_data->ids.end(), m_idsDebug.begin());
+	thrust::copy(m_nodes.begin(), m_nodes.end(), m_nodesDebug.begin()); 
 }
 
-BVH::~BVH()
+Bvh::~Bvh()
 {
 }
 
-void BVH::generateDebugInfo(int level)
-{
-	thrust::host_vector<Node> nodes = m_nodes;
-	thrust::host_vector<int> parents = m_data.parents;
-	thrust::host_vector<float3> positions = m_data.positions;
-
-	m_colors.resize(m_data.positions.size());
+void Bvh::generateDebugInfo(int level)
+{	
+	m_colors.resize(m_data->numNodes);
 	m_bbMins.clear();
 	m_bbMaxs.clear();
-
-	traverse(m_nodes[0], 0, level);
+	//traverse(m_nodesDebug[0], 0, level);
 }
 
-void BVH::traverse(Node const& node, int depth, int level)
+void Bvh::traverse(BvhNode const& node, int depth, int level)
 {
 	if (depth >= level)
 	{
@@ -315,23 +312,21 @@ void BVH::traverse(Node const& node, int depth, int level)
 	else
 	{
 		if (node.left < 0) {
-			traverse(m_nodes[-node.left], depth + 1, level);
+			traverse(m_nodesDebug[-node.left], depth + 1, level);
 		} else {
-			m_colors[m_data.ids[node.left]] = getColor();
-			addAABB(m_data.positions[m_data.ids[node.left]],
-					m_data.positions[m_data.ids[node.left]]);
+			//m_colors[m_idsDebug[node.left]] = getColor();
+			addAABB(m_positionsDebug[m_idsDebug[node.left]], m_positionsDebug[m_idsDebug[node.left]]);
 		}
 		if (node.right < 0) {
-			traverse(m_nodes[-node.right], depth + 1, level);
+			traverse(m_nodesDebug[-node.right], depth + 1, level);
 		} else {
-			m_colors[m_data.ids[node.right]] = getColor();
-			addAABB(m_data.positions[m_data.ids[node.right]],
-					m_data.positions[m_data.ids[node.right]]);
+			//m_colors[m_idsDebug[node.right]] = getColor();
+			addAABB(m_positionsDebug[m_idsDebug[node.right]], m_positionsDebug[m_idsDebug[node.right]]);
 		}
 	}
 }
 
-void BVH::addAABB(float3 const& min, float3 const& max)
+void Bvh::addAABB(float3 const& min, float3 const& max)
 {
 	const float delta = 5.f;
 	glm::vec3 mi = make_vec3(min);
@@ -352,21 +347,21 @@ void BVH::addAABB(float3 const& min, float3 const& max)
 	m_bbMaxs.push_back(ma);
 }
 
-void BVH::colorChildren(Node const& node, glm::vec3 const& color)
+void Bvh::colorChildren(BvhNode const& node, glm::vec3 const& color)
 {
 	if (node.left < 0) {
-		colorChildren(m_nodes[-node.left], color);
+		colorChildren(m_nodesDebug[-node.left], color);
 	} else {
-		m_colors[m_data.ids[node.left]] = color;
+		//m_colors[m_idsDebug[node.left]] = color;
 	}
 	if (node.right < 0) {
-		colorChildren(m_nodes[-node.right], color);
+		colorChildren(m_nodesDebug[-node.right], color);
 	} else {
-		m_colors[m_data.ids[node.right]] = color;
+		//m_colors[m_idsDebug[node.right]] = color;
 	}
 }
 
-glm::vec3 BVH::getColor()
+glm::vec3 Bvh::getColor()
 {
 	static int color = -1;
 	color++;
@@ -383,4 +378,38 @@ glm::vec3 BVH::getColor()
 		case 9: return glm::vec3(0.5f, 0.0f, 0.5f);
 		default: return glm::vec3(0.f);
 	}
+}
+	
+
+AvplBvh::AvplBvh(std::vector<glm::vec3> const& positions,
+		std::vector<glm::vec3> const& normals, bool considerNormals)
+{
+	assert(positions.size() == normals.size());
+
+	if (positions.size() <= 1) {
+		std::cout << "not enough points for bvh construction" << std::endl;
+		return;
+	}
+	
+	m_input.reset(new BvhInput());
+
+	std::vector<float3> pos(positions.size());
+	std::vector<float3> norm(positions.size());
+	for (int i = 0; i < positions.size(); ++i)
+	{
+		pos[i] = make_float3(positions[i]);
+		norm[i] = make_float3(normals[i]);
+	}
+
+	m_input->positions.resize(pos.size());
+	m_input->normals.resize(pos.size());
+	thrust::copy(pos.begin(), pos.end(), m_input->positions.begin());
+	thrust::copy(norm.begin(), norm.end(), m_input->normals.begin());
+
+	m_nodeData.reset(new BvhNodeData());
+	m_bvh.reset(new Bvh(m_input.get(), m_nodeData.get(), considerNormals));
+}
+
+AvplBvh::~AvplBvh()
+{
 }

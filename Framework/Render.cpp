@@ -205,20 +205,18 @@ Renderer::Renderer(CCamera* m_camera, COGLContext* glContext, CConfigManager* co
 	));
 
 	/*
-	std::vector<glm::vec3> positions;
-	std::vector<glm::vec3> normals;
-	for (int i = 0; i < 200000; ++i)
 	{
-		positions.push_back(glm::vec3(Rand01(), Rand01(), Rand01()));
-		positions.push_back(glm::normalize(glm::vec3(Rand01(), Rand01(), Rand01())));
+		std::vector<glm::vec3> positions;
+		std::vector<glm::vec3> normals;
+		for (int i = 0; i < 20; ++i)
+		{
+			positions.push_back(glm::vec3(Rand01(), Rand01(), Rand01()));
+			normals.push_back(glm::normalize(glm::vec3(Rand01(), Rand01(), Rand01())));
+		}
+
+		AvplBvh avplbvh(positions, normals, true);
 	}
-
-	BVH bvh(positions, normalize, true);
 	*/
-	glm::vec3 normal = glm::vec3(0.f, 1.f, 0.f);
-	float pdf;
-	glm::vec3 dir = GetRandomSampleDirectionCosCone(normal, 0.8f, 0.2f, pdf, 0);
-
 }
 
 Renderer::~Renderer() 
@@ -1371,10 +1369,10 @@ void Renderer::InitDebugLights()
 	std::cout << "Number of AVPLs: " << m_DebugAVPLs.size() << std::endl;
 	m_cpuTimer->Stop("CreatePaths");
 	
-	RebuildBVH();
+	RebuildBvh();
 }
 
-void Renderer::UpdateBVHDebug()
+void Renderer::UpdateBvhDebug()
 {
 	std::vector<glm::vec3> positions;
 	std::vector<glm::vec3> normals;
@@ -1387,13 +1385,13 @@ void Renderer::UpdateBVHDebug()
 	}
 
 	if (positions.size() > 1) {
-		m_bvh->generateDebugInfo(m_confManager->GetConfVars()->bvhLevel);
+		m_avplBvh->generateDebugInfo(m_confManager->GetConfVars()->bvhLevel);
 	}
-	m_pointCloud.reset(new PointCloud(positions, m_bvh->getColors(), m_ubTransform.get()));
-	m_aabbCloud.reset(new AABBCloud(m_bvh->getBBMins(), m_bvh->getBBMaxs(), m_ubTransform.get()));
+	m_pointCloud.reset(new PointCloud(positions, m_avplBvh->getColors(), m_ubTransform.get()));
+	m_aabbCloud.reset(new AABBCloud(m_avplBvh->getBBMins(), m_avplBvh->getBBMaxs(), m_ubTransform.get()));
 }
 
-void Renderer::RebuildBVH()
+void Renderer::RebuildBvh()
 {
 	std::vector<glm::vec3> positions;
 	std::vector<glm::vec3> normals;
@@ -1407,11 +1405,12 @@ void Renderer::RebuildBVH()
 
 	if (positions.size() > 1) 
 	{
-		m_bvh.reset(new BVH(positions, normals, m_confManager->GetConfVars()->considerNormals));
-		m_bvh->generateDebugInfo(m_confManager->GetConfVars()->bvhLevel);
+		m_avplBvh.reset(nullptr);
+		m_avplBvh.reset(new AvplBvh(positions, normals, m_confManager->GetConfVars()->considerNormals));
+		m_avplBvh->generateDebugInfo(m_confManager->GetConfVars()->bvhLevel);
 	}
 
-	UpdateBVHDebug();
+	UpdateBvhDebug();
 }
 
 void Renderer::UpdateAreaLights()

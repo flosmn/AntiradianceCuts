@@ -2,6 +2,9 @@
 #define BVH_H_
 
 #include <thrust/device_vector.h>
+#include <cuda_runtime.h>
+
+#include "CudaResources/cudaUtil.hpp"
 
 #include <glm/glm.hpp>
 
@@ -10,7 +13,7 @@
 
 // negative numbers indicate pointers to inner nodes
 // positive numbers indicate pointers to leaf nodes
-struct Node
+struct BvhNode
 {
 	int left;
 	int right;
@@ -19,20 +22,32 @@ struct Node
 	int visited;
 };
 
-struct BVH_DATA
+class BvhNodeData
 {
-	thrust::device_vector<float3> positions;
+public:
+	__device__ __host__ void cluster(const int target, const int left, const int right) { }
+};
+
+struct BvhData
+{
 	thrust::device_vector<uint64_t> morton;
 	thrust::device_vector<int> ids;
 	thrust::device_vector<int> parents;
+	int numLeafs;
+	int numNodes;
 };
 
-class BVH
+struct BvhInput 
+{
+	thrust::device_vector<float3> positions;
+	thrust::device_vector<float3> normals;
+};
+
+class Bvh
 {
 public:
-	explicit BVH(std::vector<glm::vec3> const& positions,
-		std::vector<glm::vec3> const& normals, bool considerNormals);
-	~BVH();
+	explicit Bvh(BvhInput* bvhInput, BvhNodeData* nodeData, bool considerNormals);
+	~Bvh();
 
 	void generateDebugInfo(int level);
 	std::vector<glm::vec3>& getColors() { return m_colors; }
@@ -40,8 +55,8 @@ public:
 	std::vector<glm::vec3>& getBBMaxs() { return m_bbMaxs; }
 
 private:
-	void traverse(Node const& node, int depth, int level);
-	void colorChildren(Node const& node, glm::vec3 const& color);
+	void traverse(BvhNode const& node, int depth, int level);
+	void colorChildren(BvhNode const& node, glm::vec3 const& color);
 	glm::vec3 getColor();
 	void addAABB(float3 const& min, float3 const& max);
 
@@ -49,11 +64,36 @@ private:
 		thrust::device_vector<float3> const& target);
 
 private:
-	BVH_DATA m_data;
-	thrust::device_vector<Node> m_nodes;
+	BvhInput* m_input;
+	BvhNodeData* m_nodeData;
+	std::unique_ptr<BvhData> m_data;
+	thrust::device_vector<BvhNode> m_nodes;
 	std::vector<glm::vec3> m_colors;
 	std::vector<glm::vec3> m_bbMins;
 	std::vector<glm::vec3> m_bbMaxs;
+	
+	std::vector<float3> m_positionsDebug;
+	std::vector<int> m_idsDebug;
+	std::vector<BvhNode> m_nodesDebug;
+};
+
+class AvplBvh
+{
+public:
+	AvplBvh(std::vector<glm::vec3> const& positions,
+		std::vector<glm::vec3> const& normals, bool considerNormals);
+
+	~AvplBvh();
+
+	void generateDebugInfo(int level) { m_bvh->generateDebugInfo(level); }
+	std::vector<glm::vec3>& getColors() { return m_bvh->getColors(); }
+	std::vector<glm::vec3>& getBBMins() { return m_bvh->getBBMins(); }
+	std::vector<glm::vec3>& getBBMaxs() { return m_bvh->getBBMaxs(); }
+
+private:
+	std::unique_ptr<BvhInput> m_input;
+	std::unique_ptr<BvhNodeData> m_nodeData;
+	std::unique_ptr<Bvh> m_bvh;
 };
 
 #endif // BVH_H_
