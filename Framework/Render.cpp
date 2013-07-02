@@ -1393,20 +1393,10 @@ void Renderer::UpdateBvhDebug()
 
 void Renderer::RebuildBvh()
 {
-	std::vector<glm::vec3> positions;
-	std::vector<glm::vec3> normals;
-	for (int i = 0; i < m_DebugAVPLs.size(); ++i)
-	{
-		if (m_DebugAVPLs[i].GetBounce() > 0) {
-			positions.push_back(m_DebugAVPLs[i].GetPosition());
-			normals.push_back(m_DebugAVPLs[i].GetOrientation());
-		}
-	}
-
-	if (positions.size() > 1) 
+	if (m_DebugAVPLs.size() > 1) 
 	{
 		m_avplBvh.reset(nullptr);
-		m_avplBvh.reset(new AvplBvh(positions, normals, m_confManager->GetConfVars()->considerNormals));
+		m_avplBvh.reset(new AvplBvh(m_DebugAVPLs, m_confManager->GetConfVars()->considerNormals));
 		m_avplBvh->generateDebugInfo(m_confManager->GetConfVars()->bvhLevel);
 	}
 

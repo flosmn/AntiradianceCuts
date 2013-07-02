@@ -19,6 +19,13 @@ public:
 		CUDA_CALL(cudaMalloc(&m_devPtr, m_size));
 		CUDA_CALL(cudaMemcpy(m_devPtr, data.data(), m_size, cudaMemcpyHostToDevice));
 	}
+	
+	CudaBuffer(T* data)
+	{
+		m_size = 1;
+		CUDA_CALL(cudaMalloc(&m_devPtr, sizeof(T)));
+		CUDA_CALL(cudaMemcpy(m_devPtr, (void*)data, sizeof(T), cudaMemcpyHostToDevice));
+	}
 
 	~CudaBuffer()
 	{

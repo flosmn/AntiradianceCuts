@@ -5,6 +5,9 @@
 #include <cuda_runtime.h>
 
 #include "CudaResources/cudaUtil.hpp"
+#include "CudaResources/cudaBuffer.hpp"
+
+#include "AVPL.h"
 
 #include <glm/glm.hpp>
 
@@ -20,12 +23,6 @@ struct BvhNode
 	float3 bbMin;
 	float3 bbMax;
 	int visited;
-};
-
-class BvhNodeData
-{
-public:
-	__device__ __host__ void cluster(const int target, const int left, const int right) { }
 };
 
 struct BvhData
@@ -46,8 +43,11 @@ struct BvhInput
 class Bvh
 {
 public:
-	explicit Bvh(BvhInput* bvhInput, BvhNodeData* nodeData, bool considerNormals);
-	~Bvh();
+	explicit Bvh(bool considerNormals);
+	virtual ~Bvh();
+	
+	virtual void fillInnerNodes() = 0;
+	void create();
 
 	void generateDebugInfo(int level);
 	std::vector<glm::vec3>& getColors() { return m_colors; }
@@ -63,37 +63,35 @@ private:
 	void normalize(thrust::device_vector<float3> const& source,
 		thrust::device_vector<float3> const& target);
 
-private:
-	BvhInput* m_input;
-	BvhNodeData* m_nodeData;
+protected:
+	std::unique_ptr<BvhInput> m_input;
 	std::unique_ptr<BvhData> m_data;
 	thrust::device_vector<BvhNode> m_nodes;
+	int m_numLeafs;
+	bool m_considerNormals;
+
+private:
+	// for debug output
 	std::vector<glm::vec3> m_colors;
 	std::vector<glm::vec3> m_bbMins;
 	std::vector<glm::vec3> m_bbMaxs;
-	
-	std::vector<float3> m_positionsDebug;
-	std::vector<int> m_idsDebug;
-	std::vector<BvhNode> m_nodesDebug;
 };
 
-class AvplBvh
+struct AvplBvhNodeData;
+
+class AvplBvh : public Bvh
 {
 public:
-	AvplBvh(std::vector<glm::vec3> const& positions,
-		std::vector<glm::vec3> const& normals, bool considerNormals);
+	AvplBvh(std::vector<AVPL> const& avpls, bool considerNormals);
 
 	~AvplBvh();
-
-	void generateDebugInfo(int level) { m_bvh->generateDebugInfo(level); }
-	std::vector<glm::vec3>& getColors() { return m_bvh->getColors(); }
-	std::vector<glm::vec3>& getBBMins() { return m_bvh->getBBMins(); }
-	std::vector<glm::vec3>& getBBMaxs() { return m_bvh->getBBMaxs(); }
+	
+	virtual void fillInnerNodes();
 
 private:
-	std::unique_ptr<BvhInput> m_input;
-	std::unique_ptr<BvhNodeData> m_nodeData;
-	std::unique_ptr<Bvh> m_bvh;
+	std::unique_ptr<AvplBvhNodeData> m_nodeData;
+
+	//data for inner nodes
 };
 
 #endif // BVH_H_

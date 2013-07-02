@@ -8,11 +8,17 @@
 #include <thrust/functional.h>
 #include <thrust/reduce.h>
 #include <thrust/host_vector.h>
+#include <thrust/random/linear_congruential_engine.h>
+#include <thrust/random/uniform_real_distribution.h>
 
 #include <limits>
+#include <random>
 
 #include "CudaResources/cudaUtil.hpp"
 #include "CudaResources/cudaTimer.hpp"
+
+std::mt19937 rng;
+std::uniform_real_distribution<float> dist01;
 
 template<typename T>
 struct Max {
@@ -125,8 +131,9 @@ __global__ void kernel_buildRadixTree(BvhNode* nodes, uint64_t* morton, int* par
 }
 
 // TODO: shared memory
-__global__ void kernel_boundingBoxes(BvhNode* nodes, int* parents, 
-	int* ids, float3* positions, BvhNodeData* nodeData, int numLeafs)
+template<typename NodeDataParam>
+__global__ void kernel_innerNodes(BvhNode* nodes, int* parents, 
+	int* ids, float3* positions, int numLeafs, NodeDataParam* param)
 {
 	const int i = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -149,7 +156,7 @@ __global__ void kernel_boundingBoxes(BvhNode* nodes, int* parents,
 			const float3 bbMaxRight = right < 0 ? nodes[-right].bbMax	: positions[ids[right]];
 			nodes[parent].bbMin = fminf(bbMinLeft, bbMinRight); 
 			nodes[parent].bbMax = fmaxf(bbMaxLeft, bbMaxRight); 
-			nodeData->cluster(parent, left, right);
+			cluster(parent, left, right, numLeafs, param);
 		}
 
 		parent = parents[numLeafs + parent];
@@ -159,19 +166,29 @@ __global__ void kernel_boundingBoxes(BvhNode* nodes, int* parents,
 	}
 }
 
-Bvh::Bvh(BvhInput* input, BvhNodeData* nodeData, bool considerNormals)
-	: m_input(input), m_nodeData(nodeData)
+Bvh::Bvh(bool considerNormals)
+	: m_considerNormals(considerNormals)
 {
-	if (input->positions.size() <= 1) {
+
+}
+
+Bvh::~Bvh()
+{
+}
+
+void Bvh::create()
+{
+	if (m_input->positions.size() <= 1) {
 		std::cout << "not enough points for bvh construction" << std::endl;
 		return;
 	}
-	const int numLeafs = input->positions.size();
+	m_numLeafs = m_input->positions.size();
+	const int numLeafs = m_input->positions.size();
 	const int numNodes = numLeafs - 1;
 	m_data.reset(new BvhData());
 	m_data->morton.resize(numLeafs);
 	m_data->ids.resize(numLeafs);
-	m_data->parents.resize(numLeafs);
+	m_data->parents.resize(numLeafs + numNodes);
 	m_data->numLeafs = numLeafs;
 	m_data->numNodes = numNodes;
 	
@@ -182,23 +199,23 @@ Bvh::Bvh(BvhInput* input, BvhNodeData* nodeData, bool considerNormals)
 	thrust::device_vector<float3> normalizedNormals(numLeafs);
 
 	{ // normalize positions
-		float3 min = thrust::reduce(input->positions.begin(), input->positions.end(), 
+		float3 min = thrust::reduce(m_input->positions.begin(), m_input->positions.end(), 
 			make_float3(std::numeric_limits<float>::max()), Min<float3>());
-		float3 max = thrust::reduce(input->positions.begin(), input->positions.end(),
+		float3 max = thrust::reduce(m_input->positions.begin(), m_input->positions.end(),
 			make_float3(std::numeric_limits<float>::min()), Max<float3>());
-		thrust::transform(input->positions.begin(), input->positions.end(), 
+		thrust::transform(m_input->positions.begin(), m_input->positions.end(), 
 			normalizedPositions.begin(), Normalize(min, max));
 	}
 	{ // normalize normals
-		float3 min = thrust::reduce(input->normals.begin(), input->normals.end(), 
+		float3 min = thrust::reduce(m_input->normals.begin(), m_input->normals.end(), 
 			make_float3(std::numeric_limits<float>::max()), Min<float3>());
-		float3 max = thrust::reduce(input->normals.begin(), input->normals.end(),
+		float3 max = thrust::reduce(m_input->normals.begin(), m_input->normals.end(),
 			make_float3(std::numeric_limits<float>::min()), Max<float3>());
-		thrust::transform(input->normals.begin(), input->normals.end(), 
+		thrust::transform(m_input->normals.begin(), m_input->normals.end(), 
 			normalizedNormals.begin(), Normalize(min, max));
 	}
 	
-	if (considerNormals) {
+	if (m_considerNormals) {
 		thrust::transform(normalizedPositions.begin(), normalizedPositions.end(), 
 			normalizedNormals.begin(), m_data->morton.begin(), MortonCode6D());
 	} else {
@@ -234,25 +251,16 @@ Bvh::Bvh(BvhInput* input, BvhNodeData* nodeData, bool considerNormals)
 	//thrust::copy(m_data.parents.begin(), m_data.parents.end(), std::ostream_iterator<int>(std::cout, "\n"));
 	//std::cout << "end parents" << std::endl;
 	
-	cuda::CudaTimer timerBoundingBoxes;
-	timerBoundingBoxes.start();
-	{
-		dim3 dimBlock(128);
-		dim3 dimGrid((numLeafs + dimBlock.x - 1) / dimBlock.x);
-		kernel_boundingBoxes<<<dimGrid, dimBlock>>>(
-			thrust::raw_pointer_cast(&m_nodes[0]), 
-			thrust::raw_pointer_cast(&m_data->parents[0]), 
-			thrust::raw_pointer_cast(&m_data->ids[0]), 
-			thrust::raw_pointer_cast(&m_input->positions[0]), 
-			m_nodeData, m_data->numLeafs);
-	}
-	timerBoundingBoxes.stop();
+	cuda::CudaTimer timerFillInnerNodes;
+	timerFillInnerNodes.start();
+	fillInnerNodes();
+	timerFillInnerNodes.stop();
 	
 	timer.stop();
 	std::cout << "bvh creation: " << timer.getTime() << std::endl;
 	std::cout << "sort: " << timerSort.getTime() << std::endl;
 	std::cout << "kernel build radix-tree: " << timerBuildRadixTree.getTime() << std::endl;
-	std::cout << "kernel build bounding boxes: " << timerBoundingBoxes.getTime() << std::endl;
+	std::cout << "kernel build inner nodes: " << timerFillInnerNodes.getTime() << std::endl;
 	
 	// calculate SA of all AABBs
 	float sa = 0;
@@ -280,25 +288,14 @@ Bvh::Bvh(BvhInput* input, BvhNodeData* nodeData, bool considerNormals)
 		vol += 0.001f * (dx * dy * dz); 
 	}
 	std::cout << "sum of aabb volumes: " << vol << std::endl;
-
-	m_positionsDebug.reserve(numLeafs);
-	m_idsDebug.reserve(numLeafs);
-	m_nodesDebug.reserve(m_nodes.size());
-	thrust::copy(m_input->positions.begin(), m_input->positions.end(), m_positionsDebug.begin());
-	thrust::copy(m_data->ids.begin(), m_data->ids.end(), m_idsDebug.begin());
-	thrust::copy(m_nodes.begin(), m_nodes.end(), m_nodesDebug.begin()); 
-}
-
-Bvh::~Bvh()
-{
 }
 
 void Bvh::generateDebugInfo(int level)
 {	
-	m_colors.resize(m_data->numNodes);
+	m_colors.resize(m_data->ids.size());
 	m_bbMins.clear();
 	m_bbMaxs.clear();
-	//traverse(m_nodesDebug[0], 0, level);
+	traverse(m_nodes[0], 0, level);
 }
 
 void Bvh::traverse(BvhNode const& node, int depth, int level)
@@ -312,16 +309,16 @@ void Bvh::traverse(BvhNode const& node, int depth, int level)
 	else
 	{
 		if (node.left < 0) {
-			traverse(m_nodesDebug[-node.left], depth + 1, level);
+			traverse(m_nodes[-node.left], depth + 1, level);
 		} else {
-			//m_colors[m_idsDebug[node.left]] = getColor();
-			addAABB(m_positionsDebug[m_idsDebug[node.left]], m_positionsDebug[m_idsDebug[node.left]]);
+			m_colors[m_data->ids[node.left]] = getColor();
+			addAABB(m_input->positions[m_data->ids[node.left]], m_input->positions[m_data->ids[node.left]]);
 		}
 		if (node.right < 0) {
-			traverse(m_nodesDebug[-node.right], depth + 1, level);
+			traverse(m_nodes[-node.right], depth + 1, level);
 		} else {
-			//m_colors[m_idsDebug[node.right]] = getColor();
-			addAABB(m_positionsDebug[m_idsDebug[node.right]], m_positionsDebug[m_idsDebug[node.right]]);
+			m_colors[m_data->ids[node.right]] = getColor();
+			addAABB(m_input->positions[m_data->ids[node.right]], m_input->positions[m_data->ids[node.right]]);
 		}
 	}
 }
@@ -350,14 +347,14 @@ void Bvh::addAABB(float3 const& min, float3 const& max)
 void Bvh::colorChildren(BvhNode const& node, glm::vec3 const& color)
 {
 	if (node.left < 0) {
-		colorChildren(m_nodesDebug[-node.left], color);
+		colorChildren(m_nodes[-node.left], color);
 	} else {
-		//m_colors[m_idsDebug[node.left]] = color;
+		m_colors[m_data->ids[node.left]] = color;
 	}
 	if (node.right < 0) {
-		colorChildren(m_nodesDebug[-node.right], color);
+		colorChildren(m_nodes[-node.right], color);
 	} else {
-		//m_colors[m_idsDebug[node.right]] = color;
+		m_colors[m_data->ids[node.right]] = color;
 	}
 }
 
@@ -379,26 +376,109 @@ glm::vec3 Bvh::getColor()
 		default: return glm::vec3(0.f);
 	}
 }
-	
 
-AvplBvh::AvplBvh(std::vector<glm::vec3> const& positions,
-		std::vector<glm::vec3> const& normals, bool considerNormals)
+// ----------------------------------------------------------------------
+// AvplBvh --------------------------------------------------------------
+// ----------------------------------------------------------------------
+	
+struct AvplBvhNodeDataParam
 {
-	assert(positions.size() == normals.size());
+	int* size;
+	int* materialIndex;
+	float* randomNumbers;
+	float3* intensity;
+	float3* incomingDirection;
+};
 
-	if (positions.size() <= 1) {
-		std::cout << "not enough points for bvh construction" << std::endl;
-		return;
+struct AvplBvhNodeData
+{
+	AvplBvhNodeData(std::vector<AVPL> const& avpls)
+	{
+		const int numLeafs = avpls.size();
+		const int numElements = 2 * numLeafs - 1;
+
+		std::vector<int> temp_size(numLeafs);
+		std::vector<int> temp_materialIndex(numLeafs);
+		std::vector<float3> temp_intensity(numLeafs);
+		std::vector<float3> temp_incomingDirection(numLeafs);
+
+		for (int i = 0; i < numLeafs; ++i) {
+			temp_size[i] = 1;
+			temp_materialIndex[i] = avpls[i].m_MaterialIndex;
+			temp_intensity[i] = make_float3(avpls[i].m_Radiance);
+			temp_incomingDirection[i] = make_float3(avpls[i].m_Direction);
+		}
+		
+		std::vector<float> temp_rand(numElements);
+		for (int i = 0; i < numElements; ++i) {
+			temp_rand[i] = dist01(rng);
+		}
+		
+		size.resize(numElements);
+		materialIndex.resize(numElements);
+		intensity.resize(numElements);
+		incomingDirection.resize(numElements);
+		randomNumbers.resize(numElements);
+
+		thrust::copy(temp_size.begin(), temp_size.end(), size.begin());
+		thrust::copy(temp_materialIndex.begin(), temp_materialIndex.end(), materialIndex.begin());
+		thrust::copy(temp_intensity.begin(), temp_intensity.end(), intensity.begin());
+		thrust::copy(temp_incomingDirection.begin(), temp_incomingDirection.end(), incomingDirection.begin());
+		thrust::copy(temp_rand.begin(), temp_rand.end(), randomNumbers.begin());
+
+		AvplBvhNodeDataParam param;
+		param.size = thrust::raw_pointer_cast(&size[0]), 
+		param.materialIndex = thrust::raw_pointer_cast(&materialIndex[0]), 
+		param.randomNumbers = thrust::raw_pointer_cast(&randomNumbers[0]), 
+		param.intensity = thrust::raw_pointer_cast(&intensity[0]), 
+		param.incomingDirection = thrust::raw_pointer_cast(&incomingDirection[0]), 
+		m_param.reset(new cuda::CudaBuffer<AvplBvhNodeDataParam>(&param));
 	}
-	
+
+	thrust::device_vector<int> size;
+	thrust::device_vector<int> materialIndex;
+	thrust::device_vector<float> randomNumbers;
+	thrust::device_vector<float3> intensity;
+	thrust::device_vector<float3> incomingDirection;
+	std::unique_ptr<cuda::CudaBuffer<AvplBvhNodeDataParam>> m_param; 
+};
+
+__device__ __host__ void cluster(const int target, const int left, const int right, int numLeafs, AvplBvhNodeDataParam* param)
+{
+	const int targetId = numLeafs + target;
+	const int leftId = left < 0 ? numLeafs + left : left;
+	const int rightId = right < 0 ? numLeafs + right : right;
+
+	const float i1 = length(param->intensity[left]);
+	const float i2 = length(param->intensity[right]);
+	int repr = leftId;
+	if (param->randomNumbers[targetId]> (i1 / (i1 + i2)))
+		repr = rightId;
+
+	param->size[targetId] = param->size[leftId] + param->size[rightId];
+	param->intensity[targetId] = param->intensity[left] + param->intensity[right];
+	param->materialIndex[targetId] = param->materialIndex[repr];
+	param->incomingDirection[targetId] = param->incomingDirection[repr];
+}
+
+AvplBvh::AvplBvh(std::vector<AVPL> const& avpls, bool considerNormals)
+	: Bvh(considerNormals)
+{
 	m_input.reset(new BvhInput());
 
-	std::vector<float3> pos(positions.size());
-	std::vector<float3> norm(positions.size());
-	for (int i = 0; i < positions.size(); ++i)
+	std::vector<float3> pos;
+	std::vector<float3> norm;
+	for (int i = 0; i < avpls.size(); ++i)
 	{
-		pos[i] = make_float3(positions[i]);
-		norm[i] = make_float3(normals[i]);
+		if (avpls[i].GetBounce() > 0) {
+			pos.push_back(make_float3(avpls[i].GetPosition()));
+			norm.push_back(make_float3(avpls[i].GetOrientation()));
+		}
+	}
+	
+	if (pos.size() <= 1) {
+		std::cout << "not enough points for bvh construction" << std::endl;
+		return;
 	}
 
 	m_input->positions.resize(pos.size());
@@ -406,10 +486,24 @@ AvplBvh::AvplBvh(std::vector<glm::vec3> const& positions,
 	thrust::copy(pos.begin(), pos.end(), m_input->positions.begin());
 	thrust::copy(norm.begin(), norm.end(), m_input->normals.begin());
 
-	m_nodeData.reset(new BvhNodeData());
-	m_bvh.reset(new Bvh(m_input.get(), m_nodeData.get(), considerNormals));
+	m_nodeData.reset(new AvplBvhNodeData(avpls));
+
+	create();
 }
 
 AvplBvh::~AvplBvh()
 {
+}
+
+void AvplBvh::fillInnerNodes()
+{
+	dim3 dimBlock(128);
+	dim3 dimGrid((m_numLeafs + dimBlock.x - 1) / dimBlock.x);
+	kernel_innerNodes<AvplBvhNodeDataParam><<<dimGrid, dimBlock>>>(
+		thrust::raw_pointer_cast(&m_nodes[0]), 
+		thrust::raw_pointer_cast(&m_data->parents[0]), 
+		thrust::raw_pointer_cast(&m_data->ids[0]), 
+		thrust::raw_pointer_cast(&m_input->positions[0]), 
+		m_data->numLeafs,
+		m_nodeData->m_param->getDevicePtr());
 }
