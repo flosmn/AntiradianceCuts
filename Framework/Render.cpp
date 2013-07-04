@@ -394,8 +394,12 @@ void Renderer::Render()
 
 	if (m_confManager->GetConfVars()->gatherWithCuda) 
 	{
-		m_cudaGather->run(avpls_antiradiance, m_camera->GetPosition());
+		//m_avplBvh.reset(new AvplBvh(avpls_antiradiance, false));
 		
+		//if(m_ProfileFrame) timer.Stop("build bvh");
+		
+		//m_cudaGather->run_bvh(m_avplBvh.get(), m_camera->GetPosition(), m_confManager->GetConfVars()->bvhLevel);
+		m_cudaGather->run(avpls_antiradiance, m_camera->GetPosition());
 		Add(m_gatherAntiradianceRenderTarget.get(), m_cudaRenderTarget.get());
 		
 		if(m_ProfileFrame) timer.Stop("gather");

@@ -255,39 +255,48 @@ void Bvh::create()
 	timerFillInnerNodes.start();
 	fillInnerNodes();
 	timerFillInnerNodes.stop();
+
+	BvhParam param;
+	param.numLeafs = numLeafs;
+	param.numNodes = numNodes;
+	param.nodes = thrust::raw_pointer_cast(&m_nodes[0]);
+	param.ids = thrust::raw_pointer_cast(&m_data->ids[0]);
+	param.positions = thrust::raw_pointer_cast(&m_input->positions[0]);
+	param.normals = thrust::raw_pointer_cast(&m_input->normals[0]);
+	m_param.reset(new cuda::CudaBuffer<BvhParam>(&param));
 	
 	timer.stop();
-	std::cout << "bvh creation: " << timer.getTime() << std::endl;
-	std::cout << "sort: " << timerSort.getTime() << std::endl;
-	std::cout << "kernel build radix-tree: " << timerBuildRadixTree.getTime() << std::endl;
-	std::cout << "kernel build inner nodes: " << timerFillInnerNodes.getTime() << std::endl;
+	//std::cout << "bvh creation: " << timer.getTime() << std::endl;
+	//std::cout << "sort: " << timerSort.getTime() << std::endl;
+	//std::cout << "kernel build radix-tree: " << timerBuildRadixTree.getTime() << std::endl;
+	//std::cout << "kernel build inner nodes: " << timerFillInnerNodes.getTime() << std::endl;
 	
-	// calculate SA of all AABBs
-	float sa = 0;
-	for (int i = 0; i < m_nodes.size(); ++i) {
-		const BvhNode node = m_nodes[i];
-		const float3 bbMin = node.bbMin;
-		const float3 bbMax = node.bbMax;
-		const float dx = abs(bbMax.x - bbMin.x);
-		const float dy = abs(bbMax.y - bbMin.y);
-		const float dz = abs(bbMax.z - bbMin.z);
-	
-		sa += 0.001f * 2.f * (dx * (dy + dz) + dy * dz); 
-	}
-	std::cout << "sum of aabb surface areas: " << sa << std::endl;
-	// calculate volume of all AABBs
-	float vol = 0;
-	for (int i = 0; i < m_nodes.size(); ++i) {
-		const BvhNode node = m_nodes[i];
-		const float3 bbMin = node.bbMin;
-		const float3 bbMax = node.bbMax;
-		const float dx = abs(bbMax.x - bbMin.x);
-		const float dy = abs(bbMax.y - bbMin.y);
-		const float dz = abs(bbMax.z - bbMin.z);
-	
-		vol += 0.001f * (dx * dy * dz); 
-	}
-	std::cout << "sum of aabb volumes: " << vol << std::endl;
+	//// calculate SA of all AABBs
+	//float sa = 0;
+	//for (int i = 0; i < m_nodes.size(); ++i) {
+	//	const BvhNode node = m_nodes[i];
+	//	const float3 bbMin = node.bbMin;
+	//	const float3 bbMax = node.bbMax;
+	//	const float dx = abs(bbMax.x - bbMin.x);
+	//	const float dy = abs(bbMax.y - bbMin.y);
+	//	const float dz = abs(bbMax.z - bbMin.z);
+	//
+	//	sa += 0.001f * 2.f * (dx * (dy + dz) + dy * dz); 
+	//}
+	//std::cout << "sum of aabb surface areas: " << sa << std::endl;
+	//// calculate volume of all AABBs
+	//float vol = 0;
+	//for (int i = 0; i < m_nodes.size(); ++i) {
+	//	const BvhNode node = m_nodes[i];
+	//	const float3 bbMin = node.bbMin;
+	//	const float3 bbMax = node.bbMax;
+	//	const float dx = abs(bbMax.x - bbMin.x);
+	//	const float dy = abs(bbMax.y - bbMin.y);
+	//	const float dz = abs(bbMax.z - bbMin.z);
+	//
+	//	vol += 0.001f * (dx * dy * dz); 
+	//}
+	//std::cout << "sum of aabb volumes: " << vol << std::endl;
 }
 
 void Bvh::generateDebugInfo(int level)
@@ -381,67 +390,58 @@ glm::vec3 Bvh::getColor()
 // AvplBvh --------------------------------------------------------------
 // ----------------------------------------------------------------------
 	
-struct AvplBvhNodeDataParam
+AvplBvhNodeData::AvplBvhNodeData(std::vector<AVPL> const& avpls)
 {
-	int* size;
-	int* materialIndex;
-	float* randomNumbers;
-	float3* intensity;
-	float3* incomingDirection;
-};
+	const int numLeafs = avpls.size();
+	const int numElements = 2 * numLeafs - 1;
 
-struct AvplBvhNodeData
-{
-	AvplBvhNodeData(std::vector<AVPL> const& avpls)
-	{
-		const int numLeafs = avpls.size();
-		const int numElements = 2 * numLeafs - 1;
+	std::vector<int> temp_size(numLeafs);
+	std::vector<int> temp_materialIndex(numLeafs);
+	std::vector<float3> temp_position(numLeafs);
+	std::vector<float3> temp_normal(numLeafs);
+	std::vector<float3> temp_incRadiance(numLeafs);
+	std::vector<float3> temp_incDirection(numLeafs);
 
-		std::vector<int> temp_size(numLeafs);
-		std::vector<int> temp_materialIndex(numLeafs);
-		std::vector<float3> temp_intensity(numLeafs);
-		std::vector<float3> temp_incomingDirection(numLeafs);
-
-		for (int i = 0; i < numLeafs; ++i) {
-			temp_size[i] = 1;
-			temp_materialIndex[i] = avpls[i].m_MaterialIndex;
-			temp_intensity[i] = make_float3(avpls[i].m_Radiance);
-			temp_incomingDirection[i] = make_float3(avpls[i].m_Direction);
-		}
-		
-		std::vector<float> temp_rand(numElements);
-		for (int i = 0; i < numElements; ++i) {
-			temp_rand[i] = dist01(rng);
-		}
-		
-		size.resize(numElements);
-		materialIndex.resize(numElements);
-		intensity.resize(numElements);
-		incomingDirection.resize(numElements);
-		randomNumbers.resize(numElements);
-
-		thrust::copy(temp_size.begin(), temp_size.end(), size.begin());
-		thrust::copy(temp_materialIndex.begin(), temp_materialIndex.end(), materialIndex.begin());
-		thrust::copy(temp_intensity.begin(), temp_intensity.end(), intensity.begin());
-		thrust::copy(temp_incomingDirection.begin(), temp_incomingDirection.end(), incomingDirection.begin());
-		thrust::copy(temp_rand.begin(), temp_rand.end(), randomNumbers.begin());
-
-		AvplBvhNodeDataParam param;
-		param.size = thrust::raw_pointer_cast(&size[0]), 
-		param.materialIndex = thrust::raw_pointer_cast(&materialIndex[0]), 
-		param.randomNumbers = thrust::raw_pointer_cast(&randomNumbers[0]), 
-		param.intensity = thrust::raw_pointer_cast(&intensity[0]), 
-		param.incomingDirection = thrust::raw_pointer_cast(&incomingDirection[0]), 
-		m_param.reset(new cuda::CudaBuffer<AvplBvhNodeDataParam>(&param));
+	for (int i = 0; i < numLeafs; ++i) {
+		temp_size[i] = 1;
+		temp_materialIndex[i] = avpls[i].m_MaterialIndex;
+		temp_position[i] = make_float3(avpls[i].GetPosition());
+		temp_normal[i] = make_float3(avpls[i].GetOrientation());
+		temp_incRadiance[i] = make_float3(avpls[i].m_Radiance);
+		temp_incDirection[i] = make_float3(avpls[i].m_Direction);
 	}
+	
+	std::vector<float> temp_rand(numElements);
+	for (int i = 0; i < numElements; ++i) {
+		temp_rand[i] = dist01(rng);
+	}
+	
+	size.resize(numElements);
+	materialIndex.resize(numElements);
+	position.resize(numElements);
+	normal.resize(numElements);
+	incRadiance.resize(numElements);
+	incDirection.resize(numElements);
+	randomNumbers.resize(numElements);
 
-	thrust::device_vector<int> size;
-	thrust::device_vector<int> materialIndex;
-	thrust::device_vector<float> randomNumbers;
-	thrust::device_vector<float3> intensity;
-	thrust::device_vector<float3> incomingDirection;
-	std::unique_ptr<cuda::CudaBuffer<AvplBvhNodeDataParam>> m_param; 
-};
+	thrust::copy(temp_size.begin(), temp_size.end(), size.begin());
+	thrust::copy(temp_materialIndex.begin(), temp_materialIndex.end(), materialIndex.begin());
+	thrust::copy(temp_position.begin(), temp_position.end(), position.begin());
+	thrust::copy(temp_normal.begin(), temp_normal.end(), normal.begin());
+	thrust::copy(temp_incRadiance.begin(), temp_incRadiance.end(), incRadiance.begin());
+	thrust::copy(temp_incDirection.begin(), temp_incDirection.end(), incDirection.begin());
+	thrust::copy(temp_rand.begin(), temp_rand.end(), randomNumbers.begin());
+
+	AvplBvhNodeDataParam param;
+	param.size = thrust::raw_pointer_cast(&size[0]), 
+	param.materialIndex = thrust::raw_pointer_cast(&materialIndex[0]), 
+	param.randomNumbers = thrust::raw_pointer_cast(&randomNumbers[0]), 
+	param.position = thrust::raw_pointer_cast(&position[0]), 
+	param.normal = thrust::raw_pointer_cast(&normal[0]), 
+	param.incRadiance = thrust::raw_pointer_cast(&incRadiance[0]), 
+	param.incDirection = thrust::raw_pointer_cast(&incDirection[0]), 
+	m_param.reset(new cuda::CudaBuffer<AvplBvhNodeDataParam>(&param));
+}
 
 __device__ __host__ void cluster(const int target, const int left, const int right, int numLeafs, AvplBvhNodeDataParam* param)
 {
@@ -449,16 +449,18 @@ __device__ __host__ void cluster(const int target, const int left, const int rig
 	const int leftId = left < 0 ? numLeafs + left : left;
 	const int rightId = right < 0 ? numLeafs + right : right;
 
-	const float i1 = length(param->intensity[left]);
-	const float i2 = length(param->intensity[right]);
+	const float i1 = length(param->incRadiance[left]);
+	const float i2 = length(param->incRadiance[right]);
 	int repr = leftId;
 	if (param->randomNumbers[targetId]> (i1 / (i1 + i2)))
 		repr = rightId;
 
 	param->size[targetId] = param->size[leftId] + param->size[rightId];
-	param->intensity[targetId] = param->intensity[left] + param->intensity[right];
 	param->materialIndex[targetId] = param->materialIndex[repr];
-	param->incomingDirection[targetId] = param->incomingDirection[repr];
+	param->incRadiance[targetId] = param->incRadiance[left] + param->incRadiance[right];
+	param->incDirection[targetId] = param->incDirection[repr];
+	param->position[targetId] = param->position[repr];
+	param->normal[targetId] = param->normal[repr];
 }
 
 AvplBvh::AvplBvh(std::vector<AVPL> const& avpls, bool considerNormals)

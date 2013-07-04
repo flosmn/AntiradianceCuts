@@ -221,6 +221,7 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <ClCompile Include="Utils\Rand.cpp" />
     <ClCompile Include="Utils\Util.cpp" />
     <ClCompile Include="Window.cpp" />
+    <CudaCompile Include="data_gpu.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AreaLight.h" />
@@ -247,6 +248,7 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <ClInclude Include="CTestFramework.h" />
     <ClInclude Include="CTimer.h" />
     <ClInclude Include="cudaGather.h" />
+    <ClInclude Include="data_gpu.h" />
     <ClInclude Include="Defines.h" />
     <ClInclude Include="guicon.h" />
     <ClInclude Include="AVPL.h" />

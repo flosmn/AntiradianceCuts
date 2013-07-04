@@ -40,6 +40,8 @@ public:
 
 	T* getDevicePtr() { return reinterpret_cast<T*>(m_devPtr); }
 
+	int getNumElements() const { return m_numElements; }
+
 private:
 	void* m_devPtr;
 	size_t m_size;

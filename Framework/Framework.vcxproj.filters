@@ -353,6 +353,9 @@
     <ClInclude Include="BBox.h">
       <Filter>RayTracingStuff</Filter>
     </ClInclude>
+    <ClInclude Include="data_gpu.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">
@@ -449,5 +452,8 @@
   <ItemGroup>
     <CudaCompile Include="cudaGather.cu" />
     <CudaCompile Include="bvh.cu" />
+    <CudaCompile Include="data_gpu.cu">
+      <Filter>Utils</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>

@@ -113,7 +113,11 @@ CModel::CModel(std::string name, std::string ext, CMaterialBuffer* pMaterialBuff
 		if(AI_SUCCESS == mtl->Get(AI_MATKEY_COLOR_EMISSIVE, d))
             emissive = glm::vec4(d.r, d.g, d.b, d.a);
         
-		MATERIAL mat(emissive, diffuse, specular, exponent);
+		MATERIAL mat;
+		mat.emissive = emissive;
+		mat.diffuse = diffuse;
+		mat.specular = specular;
+		mat.exponent = exponent;
 
 		int materialIndex = pMaterialBuffer->AddMaterial(name, mat);
 		meshGeometry.SetMaterialIndex(materialIndex);

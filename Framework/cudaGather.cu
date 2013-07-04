@@ -3,9 +3,26 @@
 #include "CudaResources/cudaUtil.hpp"
 #include "CudaResources/cudaTimer.hpp"
 
+#include "data_gpu.h"
+
 #include "Utils/stream.h"
 
+#define THREADS_X 16
+#define THREADS_Y 16
+#define MAX_NUM_MATERIALS 20
+
 using namespace cuda;
+
+struct MAT
+{
+	__device__ __host__ MAT(float3 const& d, float3 const& s, float e)
+		: diffuse(d), specular(s), exponent(e)
+	{ }
+
+	float3 diffuse;
+	float3 specular;
+	float exponent;
+};
 
 inline __device__ float G(float3 const& p1, float3 const& n1, float3 const& p2, float3 const& n2)
 {
@@ -21,20 +38,51 @@ inline __device__ float G(float3 const& p1, float3 const& n1, float3 const& p2, 
 	return (cos_theta_1 * cos_theta_2) / (dist * dist);
 }
 
-inline __device__ float4 f_r(float3 const& w_i, float3 const& w_o, float3 const& n, MATERIAL const& mat)
+inline __device__ float3 f_r(float3 const& w_i, float3 const& w_o, float3 const& n, MAT const& mat)
 {
-	const float4 d = ONE_OVER_PI * make_float4(mat.diffuse);
+	const float3 d = ONE_OVER_PI * mat.diffuse;
 	const float cos_theta = max(0.f, dot(reflect(-w_i, n), w_o));
-	const float4 s = fmaxf(0.5f * ONE_OVER_PI * (mat.exponent+2.f)
-		* pow(cos_theta, mat.exponent) * make_float4(mat.specular), 0.f);
+	const float3 s = 0.5f * ONE_OVER_PI * (mat.exponent+2.f)
+		* pow(cos_theta, mat.exponent) * mat.specular;
 	return d; //vec4(d.x + s.x, d.y + s.y, d.z + s.z, 1.f);
 }
-inline __device__ float4 f_r(float3 const& from, float3 const& over, float3 const& to, float3 const& n, MATERIAL const& mat)
+
+inline __device__ float3 f_r(float3 const& from, float3 const& over, float3 const& to, float3 const& n, MAT const& mat)
 {
 	const float3 w_i = normalize(from - over);
 	const float3 w_o = normalize(to - over);
 	return f_r(w_i, w_o, n, mat);
 }
+
+inline __device__ float3 getRadiance(float3 const& pos, 
+		float3 const& norm, MAT const& mat,
+		float3 const& avpl_pos, float3 const& avpl_norm, 
+		float3 const& avpl_w, float3 const& avpl_L, 
+		MAT const& avpl_mat, float3 const& camPos)
+{
+	const float3 direction = normalize(pos - avpl_pos);
+			
+	float3 brdf_light = f_r(-avpl_w, direction, avpl_norm, avpl_mat);
+
+	// check for light source AVPL
+	if(length(avpl_w) == 0.f)
+		brdf_light = make_float3(1.f);
+		 
+	const float3 brdf = f_r(avpl_pos, pos, camPos, norm, mat);
+
+	return avpl_L * brdf_light * G(pos, norm, avpl_pos, avpl_norm) * brdf;
+}
+
+inline __device__ float3 getRadiance(float3 const& pos, float3 const& norm, MAT const& mat, MAT const& avpl_mat,
+		int idx, AvplBvhNodeDataParam* dataParam, BvhParam* bvhParam, float3 const& camPos)
+{
+	const float3 avpl_pos = dataParam->position[bvhParam->ids[idx]];
+	const float3 avpl_norm = dataParam->normal[bvhParam->ids[idx]];
+	const float3 avpl_incRad = dataParam->incRadiance[bvhParam->ids[idx]];
+	const float3 avpl_incDir = dataParam->incDirection[bvhParam->ids[idx]];
+	return getRadiance(pos, norm, mat, avpl_pos, avpl_norm, avpl_incDir, avpl_incRad, avpl_mat, camPos);
+}
+
 
 // TODO: shared memory
 __global__ void kernel(
@@ -43,10 +91,128 @@ __global__ void kernel(
 		cudaSurfaceObject_t outAntiradiance,
 		cudaSurfaceObject_t inPositions,
 		cudaSurfaceObject_t inNormals,
-		NEW_AVPL* inAvpls,
-		int numAvpls,
-		MATERIAL* inMaterials,
-		float3 cameraPosition,
+		AvplsGpuParam* avpls,
+		MaterialsGpuParam* materials,
+		float3 camPos,
+		int width, int height)
+{
+	const int x = blockIdx.x * blockDim.x + threadIdx.x;
+	const int y = blockIdx.y * blockDim.y + threadIdx.y;
+		
+	const bool calcPixelValue = (x < width && y < height);
+	
+	float3 pos = make_float3(1.f);
+	float3 norm = make_float3(1.f);
+	int materialIndex = 0;
+
+	if (calcPixelValue) { // fetch gbuffer
+		float4 data;
+		surf2Dread(&data, inPositions, x * sizeof(float4), y);
+		pos = make_float3(data);
+		surf2Dread(&data, inNormals, x * sizeof(float4), y);
+		norm= make_float3(data);
+		materialIndex = int(data.w);
+	}
+
+	float3 outRad		= make_float3(0.f);
+	float3 outAntirad	= make_float3(0.f);
+	
+	const int numAvpls = avpls->numAvpls;
+	const int threadId = threadIdx.x + threadIdx.y * blockDim.x;
+	const int chunkSize = THREADS_X * THREADS_Y;
+	const int numChunks = max(numAvpls / chunkSize, 0);
+	
+	__shared__ float3 avpl_position[chunkSize];
+	__shared__ float3 avpl_normal[chunkSize];
+	__shared__ float3 avpl_incRadiance[chunkSize];
+	__shared__ float3 avpl_incDirection[chunkSize];
+	__shared__ int avpl_materialIndex[chunkSize];
+	
+	__shared__ float3 material_diffuse[MAX_NUM_MATERIALS];
+	__shared__ float3 material_specular[MAX_NUM_MATERIALS];
+	__shared__ float material_exponent[MAX_NUM_MATERIALS];
+	if (threadId < materials->numMaterials && threadId < MAX_NUM_MATERIALS) {
+		material_diffuse[threadId] = materials->diffuse[threadId];
+		material_specular[threadId] = materials->specular[threadId];
+		material_exponent[threadId] = materials->exponent[threadId];
+	}
+	syncthreads();
+	
+	MAT mat(material_diffuse[materialIndex],
+			material_specular[materialIndex],
+			material_exponent[materialIndex]);
+
+	for (int chunk = 0; chunk < numChunks; ++chunk) 
+	{
+		// load chunk into shared memory
+		const int index = chunkSize * chunk + threadId;
+		avpl_position[threadId] = avpls->position[index];
+		avpl_normal[threadId] = avpls->normal[index];
+		avpl_incRadiance[threadId] = avpls->incRadiance[index];
+		avpl_incDirection[threadId] = avpls->incDirection[index];
+		avpl_materialIndex[threadId] = avpls->materialIndex[index];
+		syncthreads();
+		
+		if (!calcPixelValue) 
+			continue;
+	
+		// process avpls
+		for(int i = 0; i < chunkSize; ++i)
+		{		
+			int matIndex = avpl_materialIndex[i];
+			MAT avpl_mat(material_diffuse[matIndex],
+						 material_specular[matIndex],
+						 material_exponent[matIndex]);
+			outRad += getRadiance(pos, norm, mat, 
+					avpl_position[i], avpl_normal[i], 
+					avpl_incDirection[i], avpl_incRadiance[i],
+					avpl_mat, camPos);
+		}
+	}
+	
+	// remainig avpls
+	const int index = chunkSize * numChunks + threadId;
+	if (index < numAvpls) {
+		avpl_position[threadId] = avpls->position[index];
+		avpl_normal[threadId] = avpls->normal[index];
+		avpl_incRadiance[threadId] = avpls->incRadiance[index];
+		avpl_incDirection[threadId] = avpls->incDirection[index];
+		avpl_materialIndex[threadId] = avpls->materialIndex[index];
+	}
+	syncthreads();
+	
+	const int remaining = numAvpls - numChunks * chunkSize;
+	for (int i = 0; i < remaining; ++i) 
+	{
+		MAT avpl_mat(material_diffuse[avpl_materialIndex[i]],
+					 material_specular[avpl_materialIndex[i]],
+					 material_exponent[avpl_materialIndex[i]]);
+		outRad += getRadiance(pos, norm, mat, 
+				avpl_position[i], avpl_normal[i], 
+				avpl_incDirection[i], avpl_incRadiance[i],
+				mat, camPos);
+	}
+	
+	if (!calcPixelValue) 
+		return;
+
+	float4 out = make_float4(outRad, 1.f);
+	surf2Dwrite(out, outResult, x * sizeof(float4), y);
+}
+
+
+// TODO: shared memory
+__global__ void kernel_bvh(
+		cudaSurfaceObject_t outResult,
+		cudaSurfaceObject_t outRadiance,
+		cudaSurfaceObject_t outAntiradiance,
+		cudaSurfaceObject_t inPositions,
+		cudaSurfaceObject_t inNormals,
+		BvhParam* bvhParam,
+		AvplBvhNodeDataParam* dataParam,
+		MaterialsGpuParam* materials,
+		float3 camPos,
+		int bvhLevel,
 		int width, int height)
 {
 	const int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -58,48 +224,75 @@ __global__ void kernel(
 		
 	float4 data;
 	surf2Dread(&data, inPositions, x * sizeof(float4), y);
-	const float3 position = make_float3(data);
+	const float3 pos= make_float3(data);
 	surf2Dread(&data, inNormals, x * sizeof(float4), y);
-	const float3 normal= make_float3(data);
+	const float3 norm= make_float3(data);
 	const int materialIndex = int(data.w);
 
-	MATERIAL mat = inMaterials[materialIndex];
+	const int threadId = threadIdx.x + threadIdx.y * blockDim.x;
+	__shared__ float3 material_diffuse[MAX_NUM_MATERIALS];
+	__shared__ float3 material_specular[MAX_NUM_MATERIALS];
+	__shared__ float material_exponent[MAX_NUM_MATERIALS];
+	if (threadId < materials->numMaterials && threadId < MAX_NUM_MATERIALS) {
+		material_diffuse[threadId] = materials->diffuse[threadId];
+		material_specular[threadId] = materials->specular[threadId];
+		material_exponent[threadId] = materials->exponent[threadId];
+	}
+	syncthreads();
 	
-	float4 outRad		= make_float4(0.f);
-	float4 outAntirad	= make_float4(0.f);
-		
-	for(int i = 0; i < numAvpls; ++i)
-	{		
-		NEW_AVPL avpl = inAvpls[i];
-		MATERIAL mat_avpl = inMaterials[int(avpl.materialIndex)];
-
-		float4 rad = make_float4(0.0f);
-		float4 antirad = make_float4(0.f);
+	MAT mat(material_diffuse[materialIndex],
+			material_specular[materialIndex],
+			material_exponent[materialIndex]);
 	
-		const float3 direction = normalize(position - avpl.pos);
-				
-		float4 brdf_light = f_r(-avpl.w, direction, avpl.norm, mat_avpl);
+	float3 outRad = make_float3(0.f);
+	
+	int stack[64];
+	int stack_depth[64];
+	stack[0] = 0;
+	stack_depth[0] = 0;
+	int stack_ptr = 1;
 
-		// check for light source AVPL
-		if(length(avpl.w) == 0.f)
-			brdf_light = make_float4(1.f);
-			 
-		const float4 brdf = f_r(avpl.pos, position, cameraPosition, normal, mat);
+	while (stack_ptr > 0)
+	{
+		stack_ptr--;
+		const int depth = stack_depth[stack_ptr];	
+		const int nodeIndex = stack[stack_ptr];
+		const BvhNode bvhNode = bvhParam->nodes[nodeIndex];
 
-		rad = avpl.L * brdf_light * G(position, normal, avpl.pos, avpl.norm) * brdf;
-		//antirad = brdf * GetAntiradiance(A, p, vPositionWS, n, vNormalWS, w, coneFactor);
-		
-		outRad += rad;
-		outAntirad += antirad;
+		const bool useNode = false;
+		if (useNode) { // 
+				int idx = nodeIndex	+ bvhParam->numLeafs;
+				const int matIdx = dataParam->materialIndex[idx];
+				MAT avpl_mat(material_diffuse[matIdx], material_specular[matIdx], material_exponent[matIdx]);
+				outRad += getRadiance(pos, norm, mat, avpl_mat, idx, dataParam, bvhParam, camPos);
+		} else { // refine
+			if (bvhNode.left > 0) { // leaf node
+				int idx = bvhNode.left;
+				const int matIdx = dataParam->materialIndex[idx];
+				MAT avpl_mat(material_diffuse[matIdx], material_specular[matIdx], material_exponent[matIdx]);
+				outRad += getRadiance(pos, norm, mat, avpl_mat, idx, dataParam, bvhParam, camPos);
+			} else { // inner node
+				stack[stack_ptr] = bvhNode.left;
+				stack_depth[stack_ptr] = depth + 1;
+				stack_ptr++;
+			}
+			if (bvhNode.right > 0) { // leaf node
+				int idx = bvhNode.right;
+				const int matIdx = dataParam->materialIndex[idx];
+				MAT avpl_mat(material_diffuse[matIdx], material_specular[matIdx], material_exponent[matIdx]);
+				outRad += getRadiance(pos, norm, mat, avpl_mat, idx, dataParam, bvhParam, camPos);
+			} else {
+				stack[stack_ptr] = bvhNode.right;
+				stack_depth[stack_ptr] = depth + 1;
+				stack_ptr++;
+			}
+		}
 	}
 	
-	outRad.w = 1.f;
-	outAntirad.w = 1.f;
-
-	surf2Dwrite(outRad - outAntirad, outResult, x * sizeof(float4), y);
-	//surf2Dwrite(outRad, outRadiance, x * sizeof(float4), y);
-	//surf2Dwrite(outAntirad, outAntiradiance, x * sizeof(float4), y);
+	float4 out = make_float4(outRad, 1.f);
+	surf2Dwrite(out, outResult, x * sizeof(float4), y);
 }
+
 
 CudaGather::CudaGather(int width, int height, 
 	GLuint glPositonTexture, GLuint glNormalTexture,
@@ -122,6 +315,7 @@ CudaGather::CudaGather(int width, int height,
 		GL_TEXTURE_2D, cudaGraphicsRegisterFlagsSurfaceLoadStore));
 
 	m_materials.reset(new CudaBuffer<MATERIAL>(materials));
+	m_materialsGpu.reset(new MaterialsGpu(materials));
 }
 
 CudaGather::~CudaGather()
@@ -151,24 +345,57 @@ void CudaGather::run(std::vector<AVPL> const& avpls, glm::vec3 const& cameraPosi
 		new_avpls[i] = newavpl;
 	}
 
+	AvplsGpu avplsGpu(avpls);
+
 	m_avpls.reset(new CudaBuffer<NEW_AVPL>(new_avpls));
 
 	CudaTimer timer;
 	timer.start();
 	// Invoke kernel
-	dim3 dimBlock(32, 32);
+	dim3 dimBlock(THREADS_X, THREADS_Y);
 	dim3 dimGrid((m_width  + dimBlock.x - 1) / dimBlock.x,
 		(m_height + dimBlock.y - 1) / dimBlock.y);
+
 	kernel<<<dimGrid, dimBlock>>>(
 			resultOutMapped.getCudaSurfaceObject(), 
 			radianceOutMapped.getCudaSurfaceObject(), 
 			antiradianceOutMapped.getCudaSurfaceObject(), 
 			positionsMapped.getCudaSurfaceObject(), 
 			normalsMapped.getCudaSurfaceObject(), 
-			m_avpls->getDevicePtr(), avpls.size(),
-			m_materials->getDevicePtr(),
+			avplsGpu.param->getDevicePtr(),
+			m_materialsGpu->param->getDevicePtr(),
 			make_float3(cameraPosition),
 			m_width, m_height);
+	
+	timer.stop();
+	std::cout << "kernel execution time: " << timer.getTime() << std::endl;
+}
+
+void CudaGather::run_bvh(AvplBvh* avplBvh, glm::vec3 const& cameraPosition, int bvhLevel)
+{
+	CudaGraphicsResourceMappedArray positionsMapped(m_positionResource.get());
+	CudaGraphicsResourceMappedArray normalsMapped(m_normalResource.get());
+	CudaGraphicsResourceMappedArray radianceOutMapped(m_radianceOutputResource.get());
+	CudaGraphicsResourceMappedArray antiradianceOutMapped(m_antiradianceOutputResource.get());
+	CudaGraphicsResourceMappedArray resultOutMapped(m_resultOutputResource.get());
+
+	CudaTimer timer;
+	timer.start();
+	// Invoke kernel
+	dim3 dimBlock(THREADS_X, THREADS_Y);
+	dim3 dimGrid((m_width  + dimBlock.x - 1) / dimBlock.x,
+		(m_height + dimBlock.y - 1) / dimBlock.y);
+	kernel_bvh<<<dimGrid, dimBlock>>>(
+			resultOutMapped.getCudaSurfaceObject(), 
+			radianceOutMapped.getCudaSurfaceObject(), 
+			antiradianceOutMapped.getCudaSurfaceObject(), 
+			positionsMapped.getCudaSurfaceObject(), 
+			normalsMapped.getCudaSurfaceObject(), 
+			avplBvh->getBvhParam(),
+			avplBvh->getAvplBvhNodeDataParam(),
+			m_materialsGpu->param->getDevicePtr(),
+			make_float3(cameraPosition),
+			bvhLevel, m_width, m_height);
 
 	timer.stop();
 	//std::cout << "kernel execution time: " << timer.getTime() << std::endl;

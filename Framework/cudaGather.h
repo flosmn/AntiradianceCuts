@@ -6,6 +6,9 @@
 
 #include "CMaterialBuffer.h"
 #include "AVPL.h"
+#include "data_gpu.h"
+
+#include "bvh.h"
 
 #include <vector>
 #include <iostream>
@@ -16,14 +19,14 @@ struct NEW_AVPL
 	float4 L;			// radiance
 	float4 A;			// antiradiance;
 	
-	float3 pos;			// position
-	float materialIndex;		// Index in the material buffer
+	float3 pos;				// position
+	float materialIndex;	// Index in the material buffer
 	
-	float3 norm;			// orientation;
+	float3 norm;		// orientation;
 	float angleFactor;	
 	
 	float3 w;			// direction of antiradiance, incident light direction;
-	float bounce;			// order of indiection
+	float bounce;		// order of indiection
 };
 
 class CudaGather
@@ -39,6 +42,7 @@ public:
 	~CudaGather();
 
 	void run(std::vector<AVPL> const& avpls, glm::vec3 const& cameraPosition);
+	void run_bvh(AvplBvh* avplBvh, glm::vec3 const& cameraPosition, int bvhLevel);
 
 private:
 	std::unique_ptr<cuda::CudaGraphicsResource> m_positionResource;
@@ -49,6 +53,8 @@ private:
 
 	std::unique_ptr<cuda::CudaBuffer<NEW_AVPL>> m_avpls;
 	std::unique_ptr<cuda::CudaBuffer<MATERIAL>> m_materials;
+
+	std::unique_ptr<MaterialsGpu> m_materialsGpu;
 
 	int m_width;
 	int m_height;

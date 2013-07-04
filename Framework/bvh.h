@@ -40,6 +40,16 @@ struct BvhInput
 	thrust::device_vector<float3> normals;
 };
 
+struct BvhParam
+{
+	int numLeafs;
+	int numNodes;
+	BvhNode* nodes;
+	int* ids;
+	float3* positions;
+	float3* normals;
+};
+
 class Bvh
 {
 public:
@@ -53,6 +63,8 @@ public:
 	std::vector<glm::vec3>& getColors() { return m_colors; }
 	std::vector<glm::vec3>& getBBMins() { return m_bbMins; }
 	std::vector<glm::vec3>& getBBMaxs() { return m_bbMaxs; }
+
+	BvhParam* getBvhParam() { return m_param->getDevicePtr(); }	
 
 private:
 	void traverse(BvhNode const& node, int depth, int level);
@@ -75,9 +87,34 @@ private:
 	std::vector<glm::vec3> m_colors;
 	std::vector<glm::vec3> m_bbMins;
 	std::vector<glm::vec3> m_bbMaxs;
+
+	std::unique_ptr<cuda::CudaBuffer<BvhParam>> m_param;
 };
 
-struct AvplBvhNodeData;
+struct AvplBvhNodeDataParam
+{
+	int* size;
+	int* materialIndex;
+	float* randomNumbers;
+	float3* position;
+	float3* normal;
+	float3* incRadiance;
+	float3* incDirection;
+};
+
+struct AvplBvhNodeData
+{
+	AvplBvhNodeData(std::vector<AVPL> const& avpls);
+
+	thrust::device_vector<int> size;
+	thrust::device_vector<int> materialIndex;
+	thrust::device_vector<float> randomNumbers;
+	thrust::device_vector<float3> position;
+	thrust::device_vector<float3> normal;
+	thrust::device_vector<float3> incRadiance;
+	thrust::device_vector<float3> incDirection;
+	std::unique_ptr<cuda::CudaBuffer<AvplBvhNodeDataParam>> m_param; 
+};
 
 class AvplBvh : public Bvh
 {
@@ -87,6 +124,8 @@ public:
 	~AvplBvh();
 	
 	virtual void fillInnerNodes();
+
+	AvplBvhNodeDataParam* getAvplBvhNodeDataParam() { return m_nodeData->m_param->getDevicePtr(); }
 
 private:
 	std::unique_ptr<AvplBvhNodeData> m_nodeData;

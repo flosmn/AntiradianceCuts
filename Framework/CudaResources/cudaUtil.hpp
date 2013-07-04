@@ -1683,6 +1683,11 @@ inline __host__ __device__ float3 make_float3(const glm::vec3& v)
 	return res;
 }
 
+inline __host__ __device__ float3 make_float3(const glm::vec4& v)
+{
+	return make_float3(glm::vec3(v));
+}
+
 inline __host__ __device__ float4 make_float4(const glm::vec4& v)
 {
 	float4 res;
