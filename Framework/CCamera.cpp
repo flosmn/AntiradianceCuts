@@ -129,7 +129,7 @@ void CCamera::UpdateData()
 	m_ViewMatrix[m_UseConfig] = glm::lookAt(position + m_Center[m_UseConfig], m_Center[m_UseConfig], m_Up[m_UseConfig]);
 
 	m_W[m_UseConfig] = glm::normalize(glm::vec3(glm::inverse(m_ViewMatrix[m_UseConfig]) * glm::vec4(0.f, 0.f, 1.f, 0.f)));
-    m_U[m_UseConfig] = glm::normalize(glm::vec3(glm::inverse(m_ViewMatrix[m_UseConfig]) * glm::vec4(-1.f, 0.f, 0.f, 0.f)));
+    m_U[m_UseConfig] = glm::normalize(glm::vec3(glm::inverse(m_ViewMatrix[m_UseConfig]) * glm::vec4(1.f, 0.f, 0.f, 0.f)));
 	m_V[m_UseConfig] = glm::normalize(glm::vec3(glm::inverse(m_ViewMatrix[m_UseConfig]) * glm::vec4(0.f, 1.f, 0.f, 0.f)));
 		
     m_U[m_UseConfig] *= m_Scale;

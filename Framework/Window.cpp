@@ -426,7 +426,7 @@ bool HandleKeyEvent(WPARAM wParam)
 
 		case 'X':
 
-			g_renderer->shootSceneProbe(g_camera->GetWidth() - g_MousePosX, 
+			g_renderer->shootSceneProbe(g_MousePosX, 
 				g_camera->GetHeight() - g_MousePosY);
 			return true; break;
 
