@@ -4,6 +4,8 @@
 #include "ObjectClouds.h"
 #include "Utils/stream.h"
 
+#include "SceneProbe.h"
+
 #include "CudaGather.h"
 #include "bvh.h"
 
@@ -473,7 +475,8 @@ void Renderer::Render()
 		}
 
 		if (m_sceneProbe) {
-			drawSceneProbe();
+			m_sceneProbe->draw(m_resultRenderTarget.get(), m_debugProgram.get(), 
+					m_ubTransform.get(), m_camera);
 		}
 	}
 	DrawDebug();
@@ -1526,28 +1529,7 @@ void Renderer::shootSceneProbe(int x, int y)
 	Intersection intersection;
 	float t;
 	if (m_scene->IntersectRayScene(ray, &t, &intersection, Triangle::FRONT_FACE)) {
-		m_sceneProbe.reset(new Sphere(10));
-		glm::mat4 T = glm::translate(glm::mat4(), intersection.getPosition());
-		glm::mat4 S = glm::scale(glm::mat4(), glm::vec3(10.f));
-		m_sceneProbe->setTransform(T * S);
+		m_sceneProbe.reset(new SceneProbe(glm::uvec2(x, y), intersection));
+
 	}
-}
-
-void Renderer::drawSceneProbe()
-{
-	CRenderTargetLock lock(m_resultRenderTarget.get());
-	COGLBindLock lockProgram(m_debugProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
-	
-	TRANSFORM transform;
-	transform.M = m_sceneProbe->getTransform();
-	transform.V = m_scene->GetCamera()->GetViewMatrix();
-	transform.itM = glm::inverse(transform.M);
-	transform.MVP = m_scene->GetCamera()->GetProjectionMatrix() * transform.V * transform.M; 
-	m_ubTransform->UpdateData(&transform);
-
-	glEnable(GL_DEPTH_TEST);
-	glDisable(GL_CULL_FACE);
-	m_sceneProbe->getMesh()->draw();
-	SetTransformToCamera();
-	glEnable(GL_CULL_FACE);
 }
