@@ -14,5 +14,5 @@ layout(location = 0) in vec3 in_position;
 
 void main()
 {
-	gl_Position = uTransform.MVP * vec4(10.f * in_position, 1.f);
+	gl_Position = uTransform.MVP * vec4(in_position, 1.f);
 }

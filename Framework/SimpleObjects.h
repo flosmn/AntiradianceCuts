@@ -16,8 +16,11 @@ public:
 	virtual ~SimpleObject() {}
 
 	Mesh* getMesh() { return m_mesh.get(); }
+	void setTransform(glm::mat4 const& mat) { m_transform = mat; }
+	glm::mat4 const& getTransform() const { return m_transform; }
 protected:
 	std::unique_ptr<Mesh> m_mesh;
+	glm::mat4 m_transform;
 };
 
 class Cube : public SimpleObject

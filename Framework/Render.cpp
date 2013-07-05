@@ -1,5 +1,6 @@
 #include "Render.h"
 
+#include "SimpleObjects.h"
 #include "ObjectClouds.h"
 #include "Utils/stream.h"
 
@@ -128,6 +129,7 @@ Renderer::Renderer(CCamera* m_camera, COGLContext* glContext, CConfigManager* co
 	m_areaLightProgram				.reset(new CProgram("Shaders/DrawAreaLight.vert"	, "Shaders/DrawAreaLight.frag"			, "AreaLightProgram"			));
 	m_drawOctahedronProgram 		.reset(new CProgram("Shaders/DrawOctahedron.vert"	, "Shaders/DrawOctahedron.frag"			, "DrawOctahedronProgram"		));
 	m_drawSphere			 		.reset(new CProgram("Shaders/DrawSphere.vert"		, "Shaders/DrawSphere.frag"				, "DrawSphere"					));
+	m_debugProgram			 		.reset(new CProgram("Shaders/Debug.vert"			, "Shaders/Debug.frag"					, "Debug"					));
 
 	m_scene.reset(new Scene(m_camera, m_confManager, m_clContext.get()));
 	m_scene->LoadCornellBox();
@@ -245,6 +247,7 @@ void Renderer::BindSamplers()
 	m_gatherProgram->BindUniformBuffer(m_ubCamera.get(), "camera");
 	
 	m_drawSphere->BindUniformBuffer(m_ubTransform.get(), "transform");
+	m_debugProgram->BindUniformBuffer(m_ubTransform.get(), "transform");
 
 	m_gatherRadianceWithSMProgram->BindUniformBuffer(m_ubCamera.get(), "camera");
 	m_gatherRadianceWithSMProgram->BindUniformBuffer(m_ubConfig.get(), "config");	
@@ -467,6 +470,10 @@ void Renderer::Render()
 		if (m_confManager->GetConfVars()->DrawAABBs) {
 			CRenderTargetLock lock(m_resultRenderTarget.get());
 			m_aabbCloud->Draw();
+		}
+
+		if (m_sceneProbe) {
+			drawSceneProbe();
 		}
 	}
 	DrawDebug();
@@ -1511,4 +1518,36 @@ void Renderer::IssueClearLighting()
 void Renderer::IssueClearAccumulationBuffer()
 {
 	m_ClearAccumulationBuffer = true;
+}
+
+void Renderer::shootSceneProbe(int x, int y)
+{
+	Ray ray = m_camera->GetEyeRay(x, y);
+	Intersection intersection;
+	float t;
+	if (m_scene->IntersectRayScene(ray, &t, &intersection, Triangle::FRONT_FACE)) {
+		m_sceneProbe.reset(new Sphere(10));
+		glm::mat4 T = glm::translate(glm::mat4(), intersection.getPosition());
+		glm::mat4 S = glm::scale(glm::mat4(), glm::vec3(10.f));
+		m_sceneProbe->setTransform(T * S);
+	}
+}
+
+void Renderer::drawSceneProbe()
+{
+	CRenderTargetLock lock(m_resultRenderTarget.get());
+	COGLBindLock lockProgram(m_debugProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
+	
+	TRANSFORM transform;
+	transform.M = m_sceneProbe->getTransform();
+	transform.V = m_scene->GetCamera()->GetViewMatrix();
+	transform.itM = glm::inverse(transform.M);
+	transform.MVP = m_scene->GetCamera()->GetProjectionMatrix() * transform.V * transform.M; 
+	m_ubTransform->UpdateData(&transform);
+
+	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+	m_sceneProbe->getMesh()->draw();
+	SetTransformToCamera();
+	glEnable(GL_CULL_FACE);
 }

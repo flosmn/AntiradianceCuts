@@ -24,6 +24,7 @@ class CPathTracingIntegrator;
 class PointCloud;
 class AABBCloud;
 class AvplBvh;
+class Sphere;
 
 class CudaGather;
 
@@ -81,6 +82,8 @@ public:
 
 	void Export();
 
+	void shootSceneProbe(int x, int y);
+	void drawSceneProbe();
 	void NewDebugLights();
 	
 	void ClusteringTestRender();
@@ -197,6 +200,7 @@ private:
 	std::unique_ptr<CProgram> m_errorProgram;
 	std::unique_ptr<CProgram> m_skyboxProgram;
 	std::unique_ptr<CProgram> m_drawSphere;
+	std::unique_ptr<CProgram> m_debugProgram;
 
 	std::unique_ptr<COGLTextureBuffer> m_lightBuffer;
 	std::unique_ptr<COGLTextureBuffer> m_clusterBuffer;
@@ -224,6 +228,7 @@ private:
 	std::unique_ptr<CudaGather> m_cudaGather;
 
 	std::unique_ptr<COGLCubeMap> m_cubeMap;
+	std::unique_ptr<Sphere> m_sceneProbe;
 
 	std::unique_ptr<COGLSampler> m_linearSampler;
 	std::unique_ptr<COGLSampler> m_pointSampler;
