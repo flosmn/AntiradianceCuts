@@ -24,12 +24,12 @@ CConfigManager::CConfigManager()
 	m_pConfVars->GeoTermLimitAntiradiance = m_pConfVarsGUI->GeoTermLimitAntiradiance = 0.0001f;
 	m_pConfVars->ClampGeoTerm = m_pConfVarsGUI->ClampGeoTerm = 0;
 	m_pConfVars->ClampConeMode = m_pConfVarsGUI->ClampConeMode = 0;
-	m_pConfVars->NumAVPLsPerFrame = m_pConfVarsGUI->NumAVPLsPerFrame = 1;
+	m_pConfVars->NumAVPLsPerFrame = m_pConfVarsGUI->NumAVPLsPerFrame = 10;
 	m_pConfVars->NumAdditionalAVPLs = m_pConfVarsGUI->NumAdditionalAVPLs = 0;
 	m_pConfVars->NumVPLsDirectLight = m_pConfVarsGUI->NumVPLsDirectLight = 500;
 	m_pConfVars->NumVPLsDirectLightPerFrame = m_pConfVarsGUI->NumVPLsDirectLightPerFrame = 5;
 	m_pConfVars->ConeFactor = m_pConfVarsGUI->ConeFactor = 10.f;
-	m_pConfVars->ClusterRefinementThreshold = m_pConfVarsGUI->ClusterRefinementThreshold = 0.01f;
+	m_pConfVars->ClusterRefinementThreshold = m_pConfVarsGUI->ClusterRefinementThreshold = PI / 10.f;
 	m_pConfVars->ClusterRefinementWeight = m_pConfVarsGUI->ClusterRefinementWeight = 0.8f;
 	m_pConfVars->ClusterRefinementMaxRadiance = m_pConfVarsGUI->ClusterRefinementMaxRadiance = 20.f;
 
@@ -59,7 +59,7 @@ CConfigManager::CConfigManager()
 	m_pConfVars->Exposure = m_pConfVarsGUI->Exposure = 1.f;
 	m_pConfVars->Intersection_BFC = m_pConfVarsGUI->Intersection_BFC = 1;
 			
-	m_pConfVars->NumAVPLsDebug = m_pConfVarsGUI->NumAVPLsDebug = 100;
+	m_pConfVars->NumAVPLsDebug = m_pConfVarsGUI->NumAVPLsDebug = 10;
 	m_pConfVars->AntiradFilterMode = m_pConfVarsGUI->AntiradFilterMode = 0;
 	m_pConfVars->AntiradFilterGaussFactor = m_pConfVarsGUI->AntiradFilterGaussFactor = 2.5f;
 	m_pConfVars->RenderBounce = m_pConfVarsGUI->RenderBounce = -1;

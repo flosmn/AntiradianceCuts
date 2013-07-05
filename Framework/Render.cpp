@@ -394,13 +394,17 @@ void Renderer::Render()
 
 	if (m_confManager->GetConfVars()->gatherWithCuda) 
 	{
-		//m_avplBvh.reset(new AvplBvh(avpls_antiradiance, false));
+		if (avpls_antiradiance.size() > 0) {
+			m_avplBvh.reset(new AvplBvh(avpls_antiradiance, false));
 		
-		//if(m_ProfileFrame) timer.Stop("build bvh");
+			if(m_ProfileFrame) timer.Stop("build bvh");
 		
-		//m_cudaGather->run_bvh(m_avplBvh.get(), m_camera->GetPosition(), m_confManager->GetConfVars()->bvhLevel);
-		m_cudaGather->run(avpls_antiradiance, m_camera->GetPosition());
-		Add(m_gatherAntiradianceRenderTarget.get(), m_cudaRenderTarget.get());
+			m_cudaGather->run_bvh(m_avplBvh.get(), m_camera->GetPosition(), m_confManager->GetConfVars()->bvhLevel, 
+				m_confManager->GetConfVars()->ClusterRefinementThreshold);
+			//m_cudaGather->run(avpls_antiradiance, m_camera->GetPosition());
+			
+			Add(m_gatherAntiradianceRenderTarget.get(), m_cudaRenderTarget.get());
+		}
 		
 		if(m_ProfileFrame) timer.Stop("gather");
 	}
@@ -1391,7 +1395,7 @@ void Renderer::UpdateBvhDebug()
 	if (positions.size() > 1) {
 		m_avplBvh->generateDebugInfo(m_confManager->GetConfVars()->bvhLevel);
 	}
-	m_pointCloud.reset(new PointCloud(positions, m_avplBvh->getColors(), m_ubTransform.get()));
+	m_pointCloud.reset(new PointCloud(m_avplBvh->getPositions(), m_avplBvh->getColors(), m_ubTransform.get()));
 	m_aabbCloud.reset(new AABBCloud(m_avplBvh->getBBMins(), m_avplBvh->getBBMaxs(), m_ubTransform.get()));
 }
 

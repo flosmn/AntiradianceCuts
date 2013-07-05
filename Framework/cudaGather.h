@@ -42,7 +42,7 @@ public:
 	~CudaGather();
 
 	void run(std::vector<AVPL> const& avpls, glm::vec3 const& cameraPosition);
-	void run_bvh(AvplBvh* avplBvh, glm::vec3 const& cameraPosition, int bvhLevel);
+	void run_bvh(AvplBvh* avplBvh, glm::vec3 const& cameraPosition, int bvhLevel, float refThresh);
 
 private:
 	std::unique_ptr<cuda::CudaGraphicsResource> m_positionResource;

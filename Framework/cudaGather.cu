@@ -74,12 +74,12 @@ inline __device__ float3 getRadiance(float3 const& pos,
 }
 
 inline __device__ float3 getRadiance(float3 const& pos, float3 const& norm, MAT const& mat, MAT const& avpl_mat,
-		int idx, AvplBvhNodeDataParam* dataParam, BvhParam* bvhParam, float3 const& camPos)
+		int idx, AvplBvhNodeDataParam* dataParam, float3 const& camPos)
 {
-	const float3 avpl_pos = dataParam->position[bvhParam->ids[idx]];
-	const float3 avpl_norm = dataParam->normal[bvhParam->ids[idx]];
-	const float3 avpl_incRad = dataParam->incRadiance[bvhParam->ids[idx]];
-	const float3 avpl_incDir = dataParam->incDirection[bvhParam->ids[idx]];
+	const float3 avpl_pos = dataParam->position[idx];
+	const float3 avpl_norm = dataParam->normal[idx];
+	const float3 avpl_incRad = dataParam->incRadiance[idx];
+	const float3 avpl_incDir = dataParam->incDirection[idx];
 	return getRadiance(pos, norm, mat, avpl_pos, avpl_norm, avpl_incDir, avpl_incRad, avpl_mat, camPos);
 }
 
@@ -211,9 +211,7 @@ __global__ void kernel_bvh(
 		BvhParam* bvhParam,
 		AvplBvhNodeDataParam* dataParam,
 		MaterialsGpuParam* materials,
-		float3 camPos,
-		int bvhLevel,
-		int width, int height)
+		float3 camPos, int bvhLevel, float refThresh, int width, int height)
 {
 	const int x = blockIdx.x * blockDim.x + threadIdx.x;
 	const int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -245,45 +243,55 @@ __global__ void kernel_bvh(
 			material_exponent[materialIndex]);
 	
 	float3 outRad = make_float3(0.f);
+
+	/*
+	for (int i = 0; i < bvhParam->numLeafs; ++i) {
+		int matIndex = dataParam->materialIndex[i];
+		MAT avpl_mat(material_diffuse[matIndex],
+					 material_specular[matIndex],
+					 material_exponent[matIndex]);
+		outRad += getRadiance(pos, norm, mat, 
+				dataParam->position[i], dataParam->normal[i], 
+				dataParam->incDirection[i], dataParam->incRadiance[i],
+				avpl_mat, camPos);
+	}
+	*/
 	
 	int stack[64];
 	int stack_depth[64];
-	stack[0] = 0;
+	stack[0] = -1;
 	stack_depth[0] = 0;
 	int stack_ptr = 1;
 
-	while (stack_ptr > 0)
+	while (stack_ptr > 0) 
 	{
 		stack_ptr--;
-		const int depth = stack_depth[stack_ptr];	
 		const int nodeIndex = stack[stack_ptr];
-		const BvhNode bvhNode = bvhParam->nodes[nodeIndex];
+		const int nodeDepth = stack_depth[stack_ptr];
 
-		const bool useNode = false;
-		if (useNode) { // 
-				int idx = nodeIndex	+ bvhParam->numLeafs;
+		if (nodeIndex >= 0) { // leaf
+			const int matIdx = dataParam->materialIndex[nodeIndex];
+			MAT avpl_mat(material_diffuse[matIdx], material_specular[matIdx], material_exponent[matIdx]);
+			outRad += getRadiance(pos, norm, mat, avpl_mat, nodeIndex, dataParam, camPos);
+		} else { // inner node
+			const BvhNode bvhNode = bvhParam->nodes[-(nodeIndex+1)];
+			const float radius = 0.5f * length(bvhNode.bbMax - bvhNode.bbMin);
+			const float dist = length(dataParam->position[nodeIndex + bvhParam->numLeafs] - pos);
+			const float solidAngle = 2.f * PI * (1.f - dist / (sqrt(radius * radius + dist * dist)));
+			const bool useNode = nodeDepth == bvhLevel;
+			//const bool useNode = solidAngle < refThresh;
+
+			if (useNode) {
+				const int idx = bvhParam->numLeafs-(nodeIndex+1);
 				const int matIdx = dataParam->materialIndex[idx];
 				MAT avpl_mat(material_diffuse[matIdx], material_specular[matIdx], material_exponent[matIdx]);
-				outRad += getRadiance(pos, norm, mat, avpl_mat, idx, dataParam, bvhParam, camPos);
-		} else { // refine
-			if (bvhNode.left > 0) { // leaf node
-				int idx = bvhNode.left;
-				const int matIdx = dataParam->materialIndex[idx];
-				MAT avpl_mat(material_diffuse[matIdx], material_specular[matIdx], material_exponent[matIdx]);
-				outRad += getRadiance(pos, norm, mat, avpl_mat, idx, dataParam, bvhParam, camPos);
-			} else { // inner node
-				stack[stack_ptr] = bvhNode.left;
-				stack_depth[stack_ptr] = depth + 1;
-				stack_ptr++;
-			}
-			if (bvhNode.right > 0) { // leaf node
-				int idx = bvhNode.right;
-				const int matIdx = dataParam->materialIndex[idx];
-				MAT avpl_mat(material_diffuse[matIdx], material_specular[matIdx], material_exponent[matIdx]);
-				outRad += getRadiance(pos, norm, mat, avpl_mat, idx, dataParam, bvhParam, camPos);
+				outRad += getRadiance(pos, norm, mat, avpl_mat, idx, dataParam, camPos);
 			} else {
+				stack[stack_ptr] = bvhNode.left;
+				stack_depth[stack_ptr] = nodeDepth + 1;
+				stack_ptr++;
 				stack[stack_ptr] = bvhNode.right;
-				stack_depth[stack_ptr] = depth + 1;
+				stack_depth[stack_ptr] = nodeDepth + 1;
 				stack_ptr++;
 			}
 		}
@@ -371,7 +379,7 @@ void CudaGather::run(std::vector<AVPL> const& avpls, glm::vec3 const& cameraPosi
 	std::cout << "kernel execution time: " << timer.getTime() << std::endl;
 }
 
-void CudaGather::run_bvh(AvplBvh* avplBvh, glm::vec3 const& cameraPosition, int bvhLevel)
+void CudaGather::run_bvh(AvplBvh* avplBvh, glm::vec3 const& cameraPosition, int bvhLevel, float refThresh)
 {
 	CudaGraphicsResourceMappedArray positionsMapped(m_positionResource.get());
 	CudaGraphicsResourceMappedArray normalsMapped(m_normalResource.get());
@@ -395,7 +403,7 @@ void CudaGather::run_bvh(AvplBvh* avplBvh, glm::vec3 const& cameraPosition, int 
 			avplBvh->getAvplBvhNodeDataParam(),
 			m_materialsGpu->param->getDevicePtr(),
 			make_float3(cameraPosition),
-			bvhLevel, m_width, m_height);
+			bvhLevel, refThresh, m_width, m_height);
 
 	timer.stop();
 	//std::cout << "kernel execution time: " << timer.getTime() << std::endl;

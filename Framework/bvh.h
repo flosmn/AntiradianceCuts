@@ -28,7 +28,6 @@ struct BvhNode
 struct BvhData
 {
 	thrust::device_vector<uint64_t> morton;
-	thrust::device_vector<int> ids;
 	thrust::device_vector<int> parents;
 	int numLeafs;
 	int numNodes;
@@ -45,7 +44,6 @@ struct BvhParam
 	int numLeafs;
 	int numNodes;
 	BvhNode* nodes;
-	int* ids;
 	float3* positions;
 	float3* normals;
 };
@@ -57,10 +55,12 @@ public:
 	virtual ~Bvh();
 	
 	virtual void fillInnerNodes() = 0;
+	virtual void sort() = 0;
 	void create();
 
 	void generateDebugInfo(int level);
 	std::vector<glm::vec3>& getColors() { return m_colors; }
+	std::vector<glm::vec3>& getPositions() { return m_positions; }
 	std::vector<glm::vec3>& getBBMins() { return m_bbMins; }
 	std::vector<glm::vec3>& getBBMaxs() { return m_bbMaxs; }
 
@@ -74,6 +74,7 @@ private:
 
 	void normalize(thrust::device_vector<float3> const& source,
 		thrust::device_vector<float3> const& target);
+	void printDebugRadixTree();
 
 protected:
 	std::unique_ptr<BvhInput> m_input;
@@ -85,6 +86,7 @@ protected:
 private:
 	// for debug output
 	std::vector<glm::vec3> m_colors;
+	std::vector<glm::vec3> m_positions;
 	std::vector<glm::vec3> m_bbMins;
 	std::vector<glm::vec3> m_bbMaxs;
 
@@ -124,6 +126,9 @@ public:
 	~AvplBvh();
 	
 	virtual void fillInnerNodes();
+	virtual void sort();
+
+	void testTraverse();
 
 	AvplBvhNodeDataParam* getAvplBvhNodeDataParam() { return m_nodeData->m_param->getDevicePtr(); }
 

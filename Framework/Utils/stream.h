@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <glm/glm.hpp>
+#include "cuda_runtime.h"
 
 inline std::ostream& operator<<(std::ostream& stream, glm::ivec2 const& v)
 {
@@ -45,6 +46,16 @@ inline std::ostream& operator<<(std::ostream& stream, glm::vec3 const& v)
 }
 
 inline std::ostream& operator<<(std::ostream& stream, glm::vec4 const& v)
+{
+    return stream << "(" << v.x << ", " << v.y << ", " << v.z << ", " << v.w << ")";
+}
+
+inline std::ostream& operator<<(std::ostream& stream, float3 const& v)
+{
+    return stream << "(" << v.x << ", " << v.y << ", " << v.z << ")";
+}
+
+inline std::ostream& operator<<(std::ostream& stream, float4 const& v)
 {
     return stream << "(" << v.x << ", " << v.y << ", " << v.z << ", " << v.w << ")";
 }
