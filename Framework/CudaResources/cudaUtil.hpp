@@ -43,10 +43,10 @@ typedef unsigned short ushort;
 
 namespace {
 
-__device__ float PI					= 3.14159265f;
-__device__ float TWO_PI				= 6.28318530f;
-__device__ float ONE_OVER_PI		= 0.318309886f;
-__device__ float ONE_OVER_TWO_PI	= 0.159154943f;
+__device__ float CUDA_PI					= 3.14159265f;
+__device__ float CUDA_TWO_PI				= 6.28318530f;
+__device__ float CUDA_ONE_OVER_PI		= 0.318309886f;
+__device__ float CUDA_ONE_OVER_TWO_PI	= 0.159154943f;
 
 }
 
@@ -1722,6 +1722,14 @@ inline __host__ __device__ glm::vec4 make_vec4(const float4& v)
 	res.y = v.y;
 	res.z = v.z;
 	res.w = v.w;
+	return res;
+}
+
+inline __host__ __device__ uint2 make_uint2(const glm::uvec2& v)
+{
+	uint2 res;
+	res.x = v.x;
+	res.y = v.y;
 	return res;
 }
 

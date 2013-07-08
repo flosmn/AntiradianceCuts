@@ -59,13 +59,16 @@ public:
 	void create();
 
 	void generateDebugInfo(int level);
+	void checkTreeIntegrity();
 	std::vector<glm::vec3>& getColors() { return m_colors; }
 	std::vector<glm::vec3>& getPositions() { return m_positions; }
 	std::vector<glm::vec3>& getBBMins() { return m_bbMins; }
 	std::vector<glm::vec3>& getBBMaxs() { return m_bbMaxs; }
 
 	BvhParam* getBvhParam() { return m_param->getDevicePtr(); }	
+	BvhData* getBvhData() { return m_data.get(); }
 
+	BvhNode getNode(int i);
 private:
 	void traverse(BvhNode const& node, int depth, int level);
 	void colorChildren(BvhNode const& node, glm::vec3 const& color);
@@ -89,6 +92,7 @@ private:
 	std::vector<glm::vec3> m_positions;
 	std::vector<glm::vec3> m_bbMins;
 	std::vector<glm::vec3> m_bbMaxs;
+	std::vector<BvhNode> m_nodesDebug;
 
 	std::unique_ptr<cuda::CudaBuffer<BvhParam>> m_param;
 };
@@ -131,11 +135,25 @@ public:
 	void testTraverse();
 
 	AvplBvhNodeDataParam* getAvplBvhNodeDataParam() { return m_nodeData->m_param->getDevicePtr(); }
+	AvplBvhNodeData* getAvplBvhNodeData() { return m_nodeData.get(); } 
 
 private:
 	std::unique_ptr<AvplBvhNodeData> m_nodeData;
 
 	//data for inner nodes
+};
+
+class SimpleBvh : public Bvh
+{
+public:
+	SimpleBvh(std::vector<float3> const& positions,
+			std::vector<float3> const& normals,
+			bool considerNormals);
+
+	~SimpleBvh();
+	
+	virtual void fillInnerNodes();
+	virtual void sort();
 };
 
 #endif // BVH_H_

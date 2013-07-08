@@ -2,6 +2,8 @@
 
 #include "Render.h"
 
+#include "Defines.h"
+
 #include <iostream>
 
 CConfigManager::CConfigManager()
@@ -29,7 +31,7 @@ CConfigManager::CConfigManager()
 	m_pConfVars->NumVPLsDirectLight = m_pConfVarsGUI->NumVPLsDirectLight = 500;
 	m_pConfVars->NumVPLsDirectLightPerFrame = m_pConfVarsGUI->NumVPLsDirectLightPerFrame = 5;
 	m_pConfVars->ConeFactor = m_pConfVarsGUI->ConeFactor = 10.f;
-	m_pConfVars->ClusterRefinementThreshold = m_pConfVarsGUI->ClusterRefinementThreshold = PI / 10.f;
+	m_pConfVars->ClusterRefinementThreshold = m_pConfVarsGUI->ClusterRefinementThreshold = M_PI / 10.f;
 	m_pConfVars->ClusterRefinementWeight = m_pConfVarsGUI->ClusterRefinementWeight = 0.8f;
 	m_pConfVars->ClusterRefinementMaxRadiance = m_pConfVarsGUI->ClusterRefinementMaxRadiance = 20.f;
 

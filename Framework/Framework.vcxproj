@@ -221,6 +221,12 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <ClCompile Include="Utils\Rand.cpp" />
     <ClCompile Include="Utils\Util.cpp" />
     <ClCompile Include="Window.cpp" />
+    <CudaCompile Include="cudaGather.cu">
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">O2</Optimization>
+      <HostDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</HostDebugInfo>
+      <FastMath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</FastMath>
+      <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
+    </CudaCompile>
     <CudaCompile Include="data_gpu.cu" />
   </ItemGroup>
   <ItemGroup>
@@ -340,17 +346,6 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <None Include="Shaders\PostProcess.vert" />
     <None Include="Shaders\Shade.frag" />
     <None Include="Shaders\Util.glsl" />
-  </ItemGroup>
-  <ItemGroup>
-    <CudaCompile Include="cudaGather.cu">
-      <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">compute_30,sm_30</CodeGeneration>
-      <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Release|x64'">compute_30,sm_30</CodeGeneration>
-      <FastMath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</FastMath>
-      <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">O2</Optimization>
-      <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
-      <FastMath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</FastMath>
-      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">O2</Optimization>
-    </CudaCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

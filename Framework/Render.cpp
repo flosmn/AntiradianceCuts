@@ -74,6 +74,44 @@ std::vector<Light*> initialLights;
 Renderer::Renderer(CCamera* m_camera, COGLContext* glContext, CConfigManager* confManager) 
 	: m_camera(m_camera), m_glContext(glContext), m_confManager(confManager) 
 {
+	{
+		std::vector<float3> positions;
+		positions.push_back(make_float3(-0.100015, 232.636, 56.8892));
+		positions.push_back(make_float3(555.17, 389.26, 88.5252));
+		positions.push_back(make_float3(471.53, 548.9, 234.827));
+		positions.push_back(make_float3(249.71, -0.099939, 549.226));
+		positions.push_back(make_float3(256.71, 15.548, 559.3));
+		positions.push_back(make_float3(166.728, 132.898, 559.3));
+		positions.push_back(make_float3(-0.1, 273.76, 556.807));
+		positions.push_back(make_float3(251.238, 223.708, 559.3));
+		positions.push_back(make_float3(386.761, 171.561, 432.87));
+		positions.push_back(make_float3(471.606, 258.043, 405.062));
+		positions.push_back(make_float3(309.317, 113.042, 440.368));
+		positions.push_back(make_float3(313.568, 135.148, 454.25));
+		positions.push_back(make_float3(551.763, 120.848, 445.027));
+		positions.push_back(make_float3(518.82, 130.824, 559.3));
+		positions.push_back(make_float3(-0.100015, 324.739, 555.998));
+		positions.push_back(make_float3(4.88542, 327.211, 559.3));
+		positions.push_back(make_float3(274.069, 548.9, 559.134));
+		positions.push_back(make_float3(274.175, 548.734, 559.3));
+		positions.push_back(make_float3(273.977, 548.9, 559.108));
+		positions.push_back(make_float3(353.004, 329.9, 335.073));
+		positions.push_back(make_float3(314.429, 329.9, 383.559));
+		positions.push_back(make_float3(555.041, 367.157, 314.958));
+		positions.push_back(make_float3(555.497, 445.476, 382.47));
+		positions.push_back(make_float3(371.681, 291.257, 437.642));
+		positions.push_back(make_float3(554.84, 390.444, 456.672));
+		positions.push_back(make_float3(482.95, 368.023, 559.3));
+		positions.push_back(make_float3(298.231, 548.9, 486.263));
+		std::vector<float3> normals;
+		for (int i = 0; i < positions.size(); ++i)
+		{
+			normals.push_back(make_float3(0.f, 1.f, 0.f));
+		}
+
+		SimpleBvh bvh(positions, normals, false);
+	}
+
 	m_clContext			.reset(new COCLContext(m_glContext));
 	m_cudaContext		.reset(new cuda::CudaContext());
 	m_textureViewer 	.reset(new CTextureViewer());
@@ -205,22 +243,10 @@ Renderer::Renderer(CCamera* m_camera, COGLContext* glContext, CConfigManager* co
 		m_cudaRenderTarget->GetTarget(0)->GetResourceIdentifier(),
 		m_cudaRenderTarget->GetTarget(1)->GetResourceIdentifier(),
 		m_cudaRenderTarget->GetTarget(2)->GetResourceIdentifier(),
-		m_scene->GetMaterialBuffer()->getMaterials()
+		m_scene->GetMaterialBuffer()->getMaterials(),
+		m_ubTransform.get()
 	));
-
-	/*
-	{
-		std::vector<glm::vec3> positions;
-		std::vector<glm::vec3> normals;
-		for (int i = 0; i < 20; ++i)
-		{
-			positions.push_back(glm::vec3(Rand01(), Rand01(), Rand01()));
-			normals.push_back(glm::normalize(glm::vec3(Rand01(), Rand01(), Rand01())));
-		}
-
-		AvplBvh avplbvh(positions, normals, true);
-	}
-	*/
+	
 }
 
 Renderer::~Renderer() 
@@ -404,8 +430,12 @@ void Renderer::Render()
 		
 			if(m_ProfileFrame) timer.Stop("build bvh");
 		
+			glm::uvec2 pixel(0, 0);
+			if (m_sceneProbe) pixel = m_sceneProbe->getPixel();
 			m_cudaGather->run_bvh(m_avplBvh.get(), m_camera->GetPosition(), m_confManager->GetConfVars()->bvhLevel, 
-				m_confManager->GetConfVars()->ClusterRefinementThreshold);
+				m_confManager->GetConfVars()->ClusterRefinementThreshold, pixel, 
+				m_confManager->GetConfVars()->UseDebugMode && m_sceneProbe);
+			
 			//m_cudaGather->run(avpls_antiradiance, m_camera->GetPosition());
 			
 			Add(m_gatherAntiradianceRenderTarget.get(), m_cudaRenderTarget.get());
@@ -467,11 +497,13 @@ void Renderer::Render()
 	{
 		if (m_confManager->GetConfVars()->DrawLights) {
 			CRenderTargetLock lock(m_resultRenderTarget.get());
-			m_pointCloud->Draw();
+			m_cudaGather->getPointCloud()->Draw();
+			//m_pointCloud->Draw();
 		}
 		if (m_confManager->GetConfVars()->DrawAABBs) {
 			CRenderTargetLock lock(m_resultRenderTarget.get());
-			m_aabbCloud->Draw();
+			m_cudaGather->getAABBCloud()->Draw();
+			//m_aabbCloud->Draw();
 		}
 
 		if (m_sceneProbe) {

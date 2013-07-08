@@ -51,6 +51,8 @@ public:
 		m_sphere->getMesh()->draw();
 		glEnable(GL_CULL_FACE);
 	}
+
+	glm::uvec2 const& getPixel() { return m_pixel; }
 private:
 	glm::uvec2 m_pixel;
 	Intersection m_intersection;

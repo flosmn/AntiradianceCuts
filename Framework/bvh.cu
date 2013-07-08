@@ -17,10 +17,20 @@
 #include "CudaResources/cudaUtil.hpp"
 #include "CudaResources/cudaTimer.hpp"
 
-//#define PRINT_DEBUG
+#define PRINT_DEBUG
 
 std::mt19937 rng;
 std::uniform_real_distribution<float> dist01;
+
+template<typename T>
+void printVector(std::string const& text, std::vector<T> const& vector)
+{
+	std::cout << text << " ";
+	for (int i = 0; i < vector.size(); i++) {
+		std::cout << vector[i] << ", ";
+	}
+	std::cout << std::endl;
+}
 
 template<typename T>
 void printDeviceVector(std::string const& text, thrust::device_vector<T> const& vector)
@@ -58,7 +68,7 @@ inline __device__ int delta(int i, int j, uint64_t* morton, int numNodes)
 		return -1;
 	}
 	const int d = __clzll(morton[i] ^ morton[j]); 
-	if (d==0) return __clzll(i ^ j);
+	if (d==0) return __clz(i ^ j);
 	return d;
 }
 
@@ -168,7 +178,10 @@ __global__ void kernel_innerNodes(BvhNode* nodes, int* parents,
 			const float3 bbMaxRight = right < 0 ? nodes[-(right+1)].bbMax	: positions[right];
 			nodes[parent].bbMin = fminf(bbMinLeft, bbMinRight); 
 			nodes[parent].bbMax = fmaxf(bbMaxLeft, bbMaxRight); 
-			cluster(parent, left, right, numLeafs, param);
+
+			if (param != 0) {
+				cluster(parent, left, right, numLeafs, param);
+			}
 		}
 
 		parent = parents[numLeafs + parent];
@@ -255,6 +268,7 @@ void Bvh::create()
 			m_data->numNodes);
 	}
 	timerBuildRadixTree.stop();
+	checkTreeIntegrity();
 
 	printDebugRadixTree();
 	
@@ -352,7 +366,11 @@ void Bvh::generateDebugInfo(int level)
 	m_colors.resize(m_data->morton.size());
 	m_bbMins.clear();
 	m_bbMaxs.clear();
-	traverse(m_nodes[0], 0, level);
+
+	m_nodesDebug.resize(m_nodes.size());
+	thrust::copy(m_nodes.begin(), m_nodes.end(), m_nodesDebug.begin());
+	
+	traverse(m_nodesDebug[0], 0, level);
 }
 
 void Bvh::traverse(BvhNode const& node, int depth, int level)
@@ -366,13 +384,13 @@ void Bvh::traverse(BvhNode const& node, int depth, int level)
 	else
 	{
 		if (node.left < 0) {
-			traverse(m_nodes[-(node.left+1)], depth + 1, level);
+			traverse(m_nodesDebug[-(node.left+1)], depth + 1, level);
 		} else {
 			m_colors[node.left] = getColor();
 			addAABB(m_input->positions[node.left], m_input->positions[node.left]);
 		}
 		if (node.right < 0) {
-			traverse(m_nodes[-(node.right+1)], depth + 1, level);
+			traverse(m_nodesDebug[-(node.right+1)], depth + 1, level);
 		} else {
 			m_colors[node.right] = getColor();
 			addAABB(m_input->positions[node.right], m_input->positions[node.right]);
@@ -404,15 +422,87 @@ void Bvh::addAABB(float3 const& min, float3 const& max)
 void Bvh::colorChildren(BvhNode const& node, glm::vec3 const& color)
 {
 	if (node.left < 0) {
-		colorChildren(m_nodes[-(node.left+1)], color);
+		colorChildren(m_nodesDebug[-(node.left+1)], color);
 	} else {
 		m_colors[node.left] = color;
 	}
 	if (node.right < 0) {
-		colorChildren(m_nodes[-(node.right+1)], color);
+		colorChildren(m_nodesDebug[-(node.right+1)], color);
 	} else {
 		m_colors[node.right] = color;
 	}
+}
+
+void Bvh::checkTreeIntegrity()
+{
+	m_nodesDebug.resize(m_nodes.size());
+	thrust::copy(m_nodes.begin(), m_nodes.end(), m_nodesDebug.begin());
+
+	std::vector<int> stack(4096);
+	int numNodes = m_nodes.size();
+	stack[0] = -1;
+	int stack_ptr = 1;
+	int max_stack_ptr = 0;
+	std::vector<int> checkparent(numNodes);
+	std::vector<int> visited(numNodes + m_numLeafs);
+	std::fill(checkparent.begin(), checkparent.end(), 0);
+	std::fill(visited.begin(), visited.end(), 0);
+
+	while (stack_ptr > 0) {
+		int nodeIndex = stack[--stack_ptr];
+
+		if (nodeIndex >= 0) { // leaf
+			if (nodeIndex >= m_numLeafs) {
+				std::cout << "leaf node index " << nodeIndex << " out of bounds";
+			}
+			int parent = m_data->parents[nodeIndex];
+			if (parent != -1) { // if not root
+				checkparent[parent]++;
+			}
+
+			if (visited[nodeIndex] == 1) {
+				std::cout << "node " << nodeIndex << " already visited!" << std::endl;
+				printDeviceVector("positions: ", m_input->positions);
+				return;
+			} else {
+				visited[nodeIndex] = 1;
+			}
+		}
+		else { // inner node
+			BvhNode node = m_nodesDebug[-(nodeIndex+1)];
+			int idx = m_numLeafs - (nodeIndex+1);
+			int parent = m_data->parents[idx];
+			if (parent != -1) { // if not root
+				checkparent[parent]++;
+			}
+
+			if (visited[idx] == 1) {
+				std::cout << "node " << nodeIndex << " already visited!" << std::endl;
+				printDeviceVector("positions: ", m_input->positions);
+				return;
+			} else {
+				visited[idx] = 1;
+			}
+
+			stack[stack_ptr++] = node.left;
+			stack[stack_ptr++] = node.right;
+			if (stack_ptr > max_stack_ptr) {
+				max_stack_ptr = stack_ptr;
+			}
+		}
+	}
+
+	for (int i = 0; i < checkparent.size(); ++i) {
+		if (checkparent[i] != 2) {
+			std::cout << "node " << i << " only has one child" << std::endl;
+		}
+	}
+	for (int i = 0; i < visited.size(); ++i) {
+		if (visited[i] != 1) {
+			std::cout << "nodechild " << i << " was not visited" << std::endl;
+		}
+	}
+	std::cout << "max stack_ptr: " << max_stack_ptr << std::endl;
 }
 
 glm::vec3 Bvh::getColor()
@@ -432,6 +522,15 @@ glm::vec3 Bvh::getColor()
 		case 9: return glm::vec3(0.5f, 0.0f, 0.5f);
 		default: return glm::vec3(0.f);
 	}
+}
+
+BvhNode Bvh::getNode(int i)
+{
+	if (i < 0 || i >= m_nodes.size()) {
+		std::cout << "index out of range" << std::endl;
+		return m_nodes[0];
+	}
+	return m_nodes[i];
 }
 
 // ----------------------------------------------------------------------
@@ -539,9 +638,8 @@ AvplBvh::AvplBvh(std::vector<AVPL> const& avpls, bool considerNormals)
 	m_nodeData.reset(new AvplBvhNodeData(avpls));
 
 	create();
-
-	testTraverse();
 }
+
 
 AvplBvh::~AvplBvh()
 {
@@ -575,6 +673,7 @@ void AvplBvh::sort()
 		)
 	);
 }
+
 
 void AvplBvh::testTraverse()
 {
@@ -621,4 +720,51 @@ void AvplBvh::testTraverse()
 		}
 	}
 #endif
+}
+
+
+SimpleBvh::SimpleBvh(std::vector<float3> const& positions,
+		std::vector<float3> const& normals,
+		bool considerNormals)
+	: Bvh(considerNormals)
+{
+	m_input.reset(new BvhInput());
+
+	if (positions.size() <= 1) {
+		std::cout << "not enough points for bvh construction" << std::endl;
+		return;
+	}
+
+	m_input->positions.resize(positions.size());
+	m_input->normals.resize(positions.size());
+	thrust::copy(positions.begin(), positions.end(), m_input->positions.begin());
+	thrust::copy(normals.begin(), normals.end(), m_input->normals.begin());
+
+	create();
+}
+
+SimpleBvh::~SimpleBvh()
+{ }
+
+void SimpleBvh::sort()
+{
+	thrust::sort_by_key(m_data->morton.begin(), m_data->morton.end(),
+		thrust::make_zip_iterator(thrust::make_tuple(
+				m_input->positions.begin(), 
+				m_input->normals.begin()
+			)	
+		)
+	);
+}
+
+void SimpleBvh::fillInnerNodes()
+{
+	dim3 dimBlock(128);
+	dim3 dimGrid((m_numLeafs + dimBlock.x - 1) / dimBlock.x);
+	kernel_innerNodes<AvplBvhNodeDataParam><<<dimGrid, dimBlock>>>(
+		thrust::raw_pointer_cast(&m_nodes[0]), 
+		thrust::raw_pointer_cast(&m_data->parents[0]), 
+		thrust::raw_pointer_cast(&m_input->positions[0]), 
+		m_data->numLeafs,
+		0);
 }

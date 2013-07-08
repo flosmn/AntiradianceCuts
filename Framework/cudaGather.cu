@@ -1,15 +1,17 @@
 #include "cudaGather.h"
 
-#include "CudaResources/cudaUtil.hpp"
 #include "CudaResources/cudaTimer.hpp"
 
 #include "data_gpu.h"
 
 #include "Utils/stream.h"
 
+#include "CudaResources/cudaUtil.hpp"
+
 #define THREADS_X 16
 #define THREADS_Y 16
 #define MAX_NUM_MATERIALS 20
+#define STACK_SIZE 1024
 
 using namespace cuda;
 
@@ -40,14 +42,15 @@ inline __device__ float G(float3 const& p1, float3 const& n1, float3 const& p2, 
 
 inline __device__ float3 f_r(float3 const& w_i, float3 const& w_o, float3 const& n, MAT const& mat)
 {
-	const float3 d = ONE_OVER_PI * mat.diffuse;
+	const float3 d = CUDA_ONE_OVER_PI * mat.diffuse;
 	const float cos_theta = max(0.f, dot(reflect(-w_i, n), w_o));
-	const float3 s = 0.5f * ONE_OVER_PI * (mat.exponent+2.f)
+	const float3 s = 0.5f * CUDA_ONE_OVER_PI * (mat.exponent+2.f)
 		* pow(cos_theta, mat.exponent) * mat.specular;
 	return d; //vec4(d.x + s.x, d.y + s.y, d.z + s.z, 1.f);
 }
 
-inline __device__ float3 f_r(float3 const& from, float3 const& over, float3 const& to, float3 const& n, MAT const& mat)
+inline __device__ float3 f_r(float3 const& from, float3 const& over, float3 const& to,
+		float3 const& n, MAT const& mat)
 {
 	const float3 w_i = normalize(from - over);
 	const float3 w_o = normalize(to - over);
@@ -211,7 +214,13 @@ __global__ void kernel_bvh(
 		BvhParam* bvhParam,
 		AvplBvhNodeDataParam* dataParam,
 		MaterialsGpuParam* materials,
-		float3 camPos, int bvhLevel, float refThresh, int width, int height)
+		float3 camPos, 
+		int bvhLevel, 
+		float refThresh, 
+		bool genDebugInfo,
+		uint2 debugPixel,
+		int* usedAvpls,
+		int width, int height)
 {
 	const int x = blockIdx.x * blockDim.x + threadIdx.x;
 	const int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -219,6 +228,8 @@ __global__ void kernel_bvh(
 	if (x >= width || y >= height) {
 		return;
 	}
+
+	bool generateDebugInfo = (x == debugPixel.x) && (y == debugPixel.y) && genDebugInfo;
 		
 	float4 data;
 	surf2Dread(&data, inPositions, x * sizeof(float4), y);
@@ -226,6 +237,12 @@ __global__ void kernel_bvh(
 	surf2Dread(&data, inNormals, x * sizeof(float4), y);
 	const float3 norm= make_float3(data);
 	const int materialIndex = int(data.w);
+
+	//if (length(pos) == 0 && length(norm) == 0) {
+	//	float4 out = make_float4(0.f, 100000.f, 0.f, 1.f);
+	//	surf2Dwrite(out, outResult, x * sizeof(float4), y);
+	//	return;
+	//}
 
 	const int threadId = threadIdx.x + threadIdx.y * blockDim.x;
 	__shared__ float3 material_diffuse[MAX_NUM_MATERIALS];
@@ -244,8 +261,8 @@ __global__ void kernel_bvh(
 	
 	float3 outRad = make_float3(0.f);
 
-	/*
-	for (int i = 0; i < bvhParam->numLeafs; ++i) {
+	/*	
+	for (int i = 0; i < bvhParam->numLeafs + bvhParam->numNodes; ++i) {
 		int matIndex = dataParam->materialIndex[i];
 		MAT avpl_mat(material_diffuse[matIndex],
 					 material_specular[matIndex],
@@ -256,12 +273,13 @@ __global__ void kernel_bvh(
 				avpl_mat, camPos);
 	}
 	*/
-	
-	int stack[64];
-	int stack_depth[64];
+		
+	int stack[STACK_SIZE];
+	int stack_depth[STACK_SIZE];
 	stack[0] = -1;
 	stack_depth[0] = 0;
 	int stack_ptr = 1;
+	bool error = false;
 
 	while (stack_ptr > 0) 
 	{
@@ -273,19 +291,35 @@ __global__ void kernel_bvh(
 			const int matIdx = dataParam->materialIndex[nodeIndex];
 			MAT avpl_mat(material_diffuse[matIdx], material_specular[matIdx], material_exponent[matIdx]);
 			outRad += getRadiance(pos, norm, mat, avpl_mat, nodeIndex, dataParam, camPos);
+			if (generateDebugInfo) {
+				usedAvpls[nodeIndex] = 1;
+			}
 		} else { // inner node
+			const int idx = bvhParam->numLeafs-(nodeIndex+1);
 			const BvhNode bvhNode = bvhParam->nodes[-(nodeIndex+1)];
+			
+			if (-(nodeIndex+1) < 0 || -(nodeIndex+1) >= bvhParam->numNodes) {
+				error = true;
+				break;
+			}
+			const bool clusterVisible = (dot(norm, normalize(bvhNode.bbMax - pos)) > 0) ||
+										(dot(norm, normalize(bvhNode.bbMin - pos)) > 0);
+			if (!clusterVisible)
+				continue;
+			
+			const float3 clusterToPoint = normalize(dataParam->position[idx] - pos);
 			const float radius = 0.5f * length(bvhNode.bbMax - bvhNode.bbMin);
-			const float dist = length(dataParam->position[nodeIndex + bvhParam->numLeafs] - pos);
-			const float solidAngle = 2.f * PI * (1.f - dist / (sqrt(radius * radius + dist * dist)));
-			const bool useNode = nodeDepth == bvhLevel;
-			//const bool useNode = solidAngle < refThresh;
+			const float dist = length(dataParam->position[idx] - pos);
+			const float solidAngle = 2.f * CUDA_PI * (1.f - dist / (sqrt(radius * radius + dist * dist)));
+			const bool useNode = (solidAngle < refThresh);
 
 			if (useNode) {
-				const int idx = bvhParam->numLeafs-(nodeIndex+1);
 				const int matIdx = dataParam->materialIndex[idx];
 				MAT avpl_mat(material_diffuse[matIdx], material_specular[matIdx], material_exponent[matIdx]);
 				outRad += getRadiance(pos, norm, mat, avpl_mat, idx, dataParam, camPos);
+				if (generateDebugInfo) {
+					usedAvpls[idx] = 1;
+				}
 			} else {
 				stack[stack_ptr] = bvhNode.left;
 				stack_depth[stack_ptr] = nodeDepth + 1;
@@ -293,11 +327,19 @@ __global__ void kernel_bvh(
 				stack[stack_ptr] = bvhNode.right;
 				stack_depth[stack_ptr] = nodeDepth + 1;
 				stack_ptr++;
+
+				if (stack_ptr >= STACK_SIZE) {
+					error = true;
+					break;
+				}
 			}
 		}
 	}
 	
 	float4 out = make_float4(outRad, 1.f);
+	if (error) {
+		out = make_float4(100000.f, 0.f, 100000.f, 1.f);
+	}
 	surf2Dwrite(out, outResult, x * sizeof(float4), y);
 }
 
@@ -307,8 +349,9 @@ CudaGather::CudaGather(int width, int height,
 	GLuint glResultOutputTexture,
 	GLuint glRadianceOutputTexture,
 	GLuint glAntiradianceOutputTexture,
-	std::vector<MATERIAL> const& materials)
-	: m_width(width), m_height(height)
+	std::vector<MATERIAL> const& materials,
+	COGLUniformBuffer* ubTransform)
+	: m_width(width), m_height(height), m_ubTransform(ubTransform)
 {
 	m_positionResource.reset(new CudaGraphicsResource(glPositonTexture, GL_TEXTURE_2D, 
 		cudaGraphicsRegisterFlagsNone));
@@ -379,14 +422,19 @@ void CudaGather::run(std::vector<AVPL> const& avpls, glm::vec3 const& cameraPosi
 	std::cout << "kernel execution time: " << timer.getTime() << std::endl;
 }
 
-void CudaGather::run_bvh(AvplBvh* avplBvh, glm::vec3 const& cameraPosition, int bvhLevel, float refThresh)
+void CudaGather::run_bvh(AvplBvh* avplBvh, glm::vec3 const& cameraPosition, int bvhLevel, float refThresh,
+		glm::uvec2 const& debugPixel, bool generateDebugInfo)
 {
 	CudaGraphicsResourceMappedArray positionsMapped(m_positionResource.get());
 	CudaGraphicsResourceMappedArray normalsMapped(m_normalResource.get());
 	CudaGraphicsResourceMappedArray radianceOutMapped(m_radianceOutputResource.get());
 	CudaGraphicsResourceMappedArray antiradianceOutMapped(m_antiradianceOutputResource.get());
 	CudaGraphicsResourceMappedArray resultOutMapped(m_resultOutputResource.get());
-
+	
+	thrust::device_vector<int> usedAvplsGpu(avplBvh->getBvhData()->numLeafs + avplBvh->getBvhData()->numNodes);
+	thrust::host_vector<int> usedAvplsCpu(avplBvh->getBvhData()->numLeafs + avplBvh->getBvhData()->numNodes);
+	thrust::fill(usedAvplsGpu.begin(), usedAvplsGpu.end(), 0);
+	
 	CudaTimer timer;
 	timer.start();
 	// Invoke kernel
@@ -403,9 +451,44 @@ void CudaGather::run_bvh(AvplBvh* avplBvh, glm::vec3 const& cameraPosition, int 
 			avplBvh->getAvplBvhNodeDataParam(),
 			m_materialsGpu->param->getDevicePtr(),
 			make_float3(cameraPosition),
-			bvhLevel, refThresh, m_width, m_height);
+			bvhLevel, 
+			refThresh, 
+			generateDebugInfo,
+			make_uint2(debugPixel),
+			thrust::raw_pointer_cast(&usedAvplsGpu[0]),
+			m_width, m_height);
 
 	timer.stop();
-	//std::cout << "kernel execution time: " << timer.getTime() << std::endl;
+	std::cout << "kernel execution time: " << timer.getTime() << std::endl;
+	
+	if (generateDebugInfo) {
+		std::vector<glm::vec3> positions;
+		std::vector<glm::vec3> colors;
+		std::vector<glm::vec3> bbMins;
+		std::vector<glm::vec3> bbMaxs;
+		int numLeafs = avplBvh->getBvhData()->numLeafs;
+		thrust::copy(usedAvplsGpu.begin(), usedAvplsGpu.end(), usedAvplsCpu.begin());
+		for (int i = 0; i < usedAvplsCpu.size(); ++i) {
+			if (usedAvplsCpu[i] == 1) {
+				glm::vec3 pos(make_vec3(avplBvh->getAvplBvhNodeData()->position[i]));
+				positions.push_back(pos);
+				if (i < numLeafs) {
+					bbMins.push_back(pos);
+					bbMaxs.push_back(pos);
+					colors.push_back(glm::vec3(1.f, 0.f, 0.f));
+				} else {
+					colors.push_back(glm::vec3(0.f, 1.f, 0.f));
+					int idx = i - numLeafs;
+					glm::vec3 bbmin(make_vec3(avplBvh->getNode(idx).bbMin));
+					glm::vec3 bbmax(make_vec3(avplBvh->getNode(idx).bbMax));
+					bbMins.push_back(bbmin);
+					bbMaxs.push_back(bbmax);
+				}
+			}
+		}
+
+		m_pointCloud.reset(new PointCloud(positions, colors, m_ubTransform));
+		m_aabbCloud.reset(new AABBCloud(bbMins, bbMaxs, m_ubTransform));
+	}
 }
 

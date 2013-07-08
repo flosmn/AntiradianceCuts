@@ -336,7 +336,6 @@
     <ClInclude Include="CConfigManager.h">
       <Filter>GUI&amp;Config</Filter>
     </ClInclude>
-    <ClInclude Include="cudaGather.h" />
     <ClInclude Include="bvh.h" />
     <ClInclude Include="Triangle.h">
       <Filter>RayTracingStuff</Filter>
@@ -354,6 +353,7 @@
       <Filter>RayTracingStuff</Filter>
     </ClInclude>
     <ClInclude Include="data_gpu.h" />
+    <ClInclude Include="cudaGather.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">
@@ -448,8 +448,8 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="cudaGather.cu" />
     <CudaCompile Include="bvh.cu" />
     <CudaCompile Include="data_gpu.cu" />
+    <CudaCompile Include="cudaGather.cu" />
   </ItemGroup>
 </Project>
