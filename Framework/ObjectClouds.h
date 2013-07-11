@@ -17,7 +17,9 @@
 class PointCloud
 {
 public:
-	PointCloud(std::vector<glm::vec3> const& points, std::vector<glm::vec3> const& colors, COGLUniformBuffer* transform)
+	PointCloud(std::vector<glm::vec3> const& points, std::vector<glm::vec3> const& colors, COGLUniformBuffer* transform, 
+			float pointSize)
+		: m_pointSize(pointSize)
 	{
 		std::shared_ptr<Sphere> sphere = std::make_shared<Sphere>(10);
 		m_program.reset(new CProgram("Shaders/PointCloud.vert", "Shaders/PointCloud.frag", "PointCloudProgram"));
@@ -48,6 +50,9 @@ public:
 	{
 		COGLBindLock lockProgram(m_program->GetGLProgram(), COGL_PROGRAM_SLOT);
 
+		GLint location = glGetUniformLocation(m_program->GetGLProgram()->GetResourceIdentifier(), "pointSize");
+		glUniform1f(location, m_pointSize);
+
 		glEnable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
 		m_vertexArray->Draw(3 * m_numIndices);
@@ -59,6 +64,7 @@ private:
 	std::unique_ptr<CProgram> m_program;
 
 	int m_numIndices;
+	float m_pointSize;
 };
 
 class AABBCloud

@@ -12,13 +12,19 @@ CConfigManager::CConfigManager()
 	m_pConfVarsGUI = new CONF_VARS[1];
 
 	m_pConfVars->gatherWithCuda = m_pConfVarsGUI->gatherWithCuda = 1;
+	m_pConfVars->useLightCuts = m_pConfVarsGUI->useLightCuts = 0;
 	m_pConfVars->bvhLevel = m_pConfVarsGUI->bvhLevel = 0;
-	m_pConfVars->DrawAABBs = m_pConfVarsGUI->DrawAABBs = 0;
+	m_pConfVars->DrawClusterAABBs = m_pConfVarsGUI->DrawClusterAABBs = 0;
+	m_pConfVars->DrawClusterLights = m_pConfVarsGUI->DrawClusterLights = 0;
+	m_pConfVars->DrawLights = m_pConfVarsGUI->DrawLights = 0;
 	m_pConfVars->considerNormals = m_pConfVarsGUI->considerNormals = 1;
 	
+	m_pConfVars->lightRadiusScale = m_pConfVarsGUI->lightRadiusScale = 0.5f;
+	m_pConfVars->photonRadiusScale = m_pConfVarsGUI->photonRadiusScale = 1.0f;
+
 	m_pConfVars->UseAntiradiance = m_pConfVarsGUI->UseAntiradiance = 1;
-	m_pConfVars->SeparateDirectIndirectLighting = m_pConfVarsGUI->SeparateDirectIndirectLighting = 1;
-	m_pConfVars->LightingMode = m_pConfVarsGUI->LightingMode = 2;
+	m_pConfVars->SeparateDirectIndirectLighting = m_pConfVarsGUI->SeparateDirectIndirectLighting = 0;
+	m_pConfVars->LightingMode = m_pConfVarsGUI->LightingMode = 0;
 	m_pConfVars->GatherWithAVPLAtlas = m_pConfVarsGUI->GatherWithAVPLAtlas = 0;
 	m_pConfVars->GatherWithAVPLClustering = m_pConfVarsGUI->GatherWithAVPLClustering = 0;
 	m_pConfVars->NoAntiradiance = m_pConfVarsGUI->NoAntiradiance = 0;
@@ -26,7 +32,7 @@ CConfigManager::CConfigManager()
 	m_pConfVars->GeoTermLimitAntiradiance = m_pConfVarsGUI->GeoTermLimitAntiradiance = 0.0001f;
 	m_pConfVars->ClampGeoTerm = m_pConfVarsGUI->ClampGeoTerm = 0;
 	m_pConfVars->ClampConeMode = m_pConfVarsGUI->ClampConeMode = 0;
-	m_pConfVars->NumAVPLsPerFrame = m_pConfVarsGUI->NumAVPLsPerFrame = 10;
+	m_pConfVars->NumAVPLsPerFrame = m_pConfVarsGUI->NumAVPLsPerFrame = 100;
 	m_pConfVars->NumAdditionalAVPLs = m_pConfVarsGUI->NumAdditionalAVPLs = 0;
 	m_pConfVars->NumVPLsDirectLight = m_pConfVarsGUI->NumVPLsDirectLight = 500;
 	m_pConfVars->NumVPLsDirectLightPerFrame = m_pConfVarsGUI->NumVPLsDirectLightPerFrame = 5;
@@ -61,7 +67,7 @@ CConfigManager::CConfigManager()
 	m_pConfVars->Exposure = m_pConfVarsGUI->Exposure = 1.f;
 	m_pConfVars->Intersection_BFC = m_pConfVarsGUI->Intersection_BFC = 1;
 			
-	m_pConfVars->NumAVPLsDebug = m_pConfVarsGUI->NumAVPLsDebug = 10;
+	m_pConfVars->NumAVPLsDebug = m_pConfVarsGUI->NumAVPLsDebug = 100;
 	m_pConfVars->AntiradFilterMode = m_pConfVarsGUI->AntiradFilterMode = 0;
 	m_pConfVars->AntiradFilterGaussFactor = m_pConfVarsGUI->AntiradFilterGaussFactor = 2.5f;
 	m_pConfVars->RenderBounce = m_pConfVarsGUI->RenderBounce = -1;
@@ -101,6 +107,20 @@ void CConfigManager::Update()
 	bool clearAccumBuffer = false;
 	bool updateAreaLight = false;
 
+	if(m_pConfVarsGUI->lightRadiusScale != m_pConfVars->lightRadiusScale)
+	{
+		m_pConfVars->lightRadiusScale = m_pConfVarsGUI->lightRadiusScale;
+		bool clearLighting = false;
+		bool clearAccumBuffer = false;
+	}
+
+	if(m_pConfVarsGUI->photonRadiusScale != m_pConfVars->photonRadiusScale)
+	{
+		m_pConfVars->photonRadiusScale = m_pConfVarsGUI->photonRadiusScale;
+		bool clearLighting = false;
+		bool clearAccumBuffer = false;
+	}
+
 	if(m_pConfVarsGUI->bvhLevel != m_pConfVars->bvhLevel)
 	{
 		m_pConfVars->bvhLevel = m_pConfVarsGUI->bvhLevel;
@@ -117,9 +137,16 @@ void CConfigManager::Update()
 		bool clearAccumBuffer = false;
 	}
 	
-	if(m_pConfVarsGUI->DrawAABBs != m_pConfVars->DrawAABBs)
+	if(m_pConfVarsGUI->DrawClusterAABBs != m_pConfVars->DrawClusterAABBs)
 	{
-		m_pConfVars->DrawAABBs = m_pConfVarsGUI->DrawAABBs;
+		m_pConfVars->DrawClusterAABBs = m_pConfVarsGUI->DrawClusterAABBs;
+		bool clearLighting = false;
+		bool clearAccumBuffer = false;
+	}
+	
+	if(m_pConfVarsGUI->DrawClusterLights != m_pConfVars->DrawClusterLights)
+	{
+		m_pConfVars->DrawClusterLights = m_pConfVarsGUI->DrawClusterLights;
 		bool clearLighting = false;
 		bool clearAccumBuffer = false;
 	}
@@ -127,6 +154,14 @@ void CConfigManager::Update()
 	if(m_pConfVarsGUI->gatherWithCuda != m_pConfVars->gatherWithCuda)
 	{
 		m_pConfVars->gatherWithCuda = m_pConfVarsGUI->gatherWithCuda;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->useLightCuts != m_pConfVars->useLightCuts)
+	{
+		m_pConfVars->useLightCuts = m_pConfVarsGUI->useLightCuts;
 		configureLighting = true;
 		clearAccumBuffer = true;
 		clearLighting = true;

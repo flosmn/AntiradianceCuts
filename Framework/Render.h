@@ -17,7 +17,7 @@ class Scene;
 class CCamera;
 class CConfigManager;
 class CShadowMap;
-class CPostprocess;
+class Postprocess;
 class CImagePlane;
 class CPathTracingIntegrator;
 
@@ -29,12 +29,9 @@ class SceneProbe;
 
 class CudaGather;
 
-class CAccumulationBuffer;
 class CGBuffer;
 class CProgram;
 class CLightViewer;
-class CTextureViewer;
-class CFullScreenQuad;
 class CExport;
 class CRenderTarget;
 class COctahedronMap;
@@ -46,6 +43,9 @@ class CAVPLImportanceSampling;
 class CBidirInstantRadiosity;
 class CRenderTarget;
 class CExperimentData;
+
+class TextureViewer;
+class FullScreenQuad;
 
 class COGLUniformBuffer;
 class COGLSampler;
@@ -98,7 +98,12 @@ private:
 	// functions of the render phase
 	void SetUpRender();
 	void CreateGBuffer();
+
+	void drawScene(glm::mat4 const& view, glm::mat4 const& proj);
+	void drawAreaLight(CRenderTarget* pTarget, glm::vec3 const& color);
 	
+	void updateTransform(glm::mat4 const& world, glm::mat4 const& view, glm::mat4 const& proj);
+
 	void Gather(const std::vector<AVPL>& path, CRenderTarget* pRenderTarget);
 	void GatherWithAtlas(const std::vector<AVPL>& path, CRenderTarget* pRenderTarget);
 	void GatherWithClustering(const std::vector<AVPL>& path, CRenderTarget* pRenderTarget);
@@ -122,9 +127,7 @@ private:
 	void CreateClustering(std::vector<AVPL>& avpls);
 	
 	bool UseAVPL(AVPL& avpl);
-
-	void DirectEnvMapLighting();
-
+	
 	void InitDebugLights();
 
 	void ClearAccumulationBuffer();
@@ -135,8 +138,6 @@ private:
 	void DetermineUsedAvpls(const std::vector<AVPL>& avpls, std::vector<AVPL>& used);
 	
 	void GatherRadianceWithShadowMap(const std::vector<AVPL>& path, CRenderTarget* pRenderTarget);	
-	void DrawAreaLight(CRenderTarget* pTarget);
-	void DrawAreaLight(CRenderTarget* pTarget, glm::vec3 color);
 	
 	void CreatePlaneHammersleySamples(int i);
 		
@@ -162,10 +163,10 @@ private:
 	std::unique_ptr<Scene> m_scene;
 	std::unique_ptr<CShadowMap> m_shadowMap;
 	std::unique_ptr<CGBuffer> m_gbuffer;
-	std::unique_ptr<CPostprocess> m_postProcess;
+	std::unique_ptr<Postprocess> m_postProcess;
 	std::unique_ptr<CExport> m_export;
-	std::unique_ptr<CTextureViewer> m_textureViewer;
-	std::unique_ptr<CFullScreenQuad> m_fullScreenQuad;
+	std::unique_ptr<TextureViewer> m_textureViewer;
+	std::unique_ptr<FullScreenQuad> m_fullScreenQuad;
 	std::unique_ptr<COCLContext> m_clContext;
 	std::unique_ptr<CClusterTree> m_clusterTree;
 	std::unique_ptr<CImagePlane> m_imagePlane;
@@ -191,12 +192,10 @@ private:
 	std::unique_ptr<CProgram> m_gatherWithClustering;
 	std::unique_ptr<CProgram> m_normalizeProgram;
 	std::unique_ptr<CProgram> m_addProgram;
-	std::unique_ptr<CProgram> m_directEnvmapLighting;
 	std::unique_ptr<CProgram> m_createGBufferProgram;
 	std::unique_ptr<CProgram> m_createSMProgram;
 	std::unique_ptr<CProgram> m_gatherRadianceWithSMProgram;
 	std::unique_ptr<CProgram> m_areaLightProgram;
-	std::unique_ptr<CProgram> m_drawOctahedronProgram;
 	std::unique_ptr<CProgram> m_errorProgram;
 	std::unique_ptr<CProgram> m_skyboxProgram;
 	std::unique_ptr<CProgram> m_drawSphere;
@@ -215,10 +214,7 @@ private:
 	std::unique_ptr<COGLUniformBuffer> m_ubConfig;
 	std::unique_ptr<COGLUniformBuffer> m_ubCamera;
 	std::unique_ptr<COGLUniformBuffer> m_ubInfo;
-	std::unique_ptr<COGLUniformBuffer> m_ubAreaLight;
-	std::unique_ptr<COGLUniformBuffer> m_ubModel;
 	std::unique_ptr<COGLUniformBuffer> m_ubAtlasInfo;
-	std::unique_ptr<COGLUniformBuffer> m_ubNormalize;
 	
 	std::unique_ptr<COGLTexture2D> m_depthBuffer;
 	std::unique_ptr<COGLTexture2D> m_testTexture;

@@ -23,9 +23,9 @@ class CCamera
 public:
 	CCamera(int width, int height, float zNear, float zFar);
 
-	glm::mat4 GetProjectionMatrix() const;
-	glm::mat4 GetViewMatrix() const;
-	glm::vec3 GetPosition() const;
+	glm::mat4 const& GetProjectionMatrix() const;
+	glm::mat4 const& GetViewMatrix() const;
+	glm::vec3 const& GetPosition() const;
 
 	glm::vec3 GetViewDirection();
 

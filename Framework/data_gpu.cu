@@ -9,6 +9,7 @@ AvplsGpu::AvplsGpu(std::vector<AVPL> const& avpls)
 	thrust::host_vector<float3> normal_h(numAvpls);
 	thrust::host_vector<float3> incDirection_h(numAvpls);	// incoming direction
 	thrust::host_vector<float3> incRadiance_h(numAvpls);	// incident radiance
+	thrust::host_vector<float3> antiradiance_h(numAvpls);	// incident radiance
 	thrust::host_vector<int> materialIndex_h(numAvpls);
 	thrust::host_vector<int> bounce_h(numAvpls);
 
@@ -17,6 +18,7 @@ AvplsGpu::AvplsGpu(std::vector<AVPL> const& avpls)
 		normal_h[i] = make_float3(avpls[i].GetOrientation());
 		incDirection_h[i] = make_float3(avpls[i].GetDirection());
 		incRadiance_h[i] = make_float3(avpls[i].GetIncidentRadiance());
+		antiradiance_h[i] = make_float3(avpls[i].GetIncidentAntradiance());
 		materialIndex_h[i] = avpls[i].GetMaterialIndex();
 		bounce_h[i] = avpls[i].GetBounce();
 	}
@@ -25,6 +27,7 @@ AvplsGpu::AvplsGpu(std::vector<AVPL> const& avpls)
 	normal.resize(numAvpls);
 	incDirection.resize(numAvpls);
 	incRadiance.resize(numAvpls);
+	antiradiance.resize(numAvpls);
 	materialIndex.resize(numAvpls);
 	bounce.resize(numAvpls);
 
@@ -32,6 +35,7 @@ AvplsGpu::AvplsGpu(std::vector<AVPL> const& avpls)
 	thrust::copy(normal_h.begin(), normal_h.end(), normal.begin());
 	thrust::copy(incDirection_h.begin(), incDirection_h.end(), incDirection.begin());
 	thrust::copy(incRadiance_h.begin(), incRadiance_h.end(), incRadiance.begin());
+	thrust::copy(antiradiance_h.begin(), antiradiance_h.end(), antiradiance.begin());
 	thrust::copy(materialIndex_h.begin(), materialIndex_h.end(), materialIndex.begin());
 	thrust::copy(bounce_h.begin(), bounce_h.end(), bounce.begin());
 
@@ -40,6 +44,7 @@ AvplsGpu::AvplsGpu(std::vector<AVPL> const& avpls)
 	p.normal = thrust::raw_pointer_cast(&normal[0]);
 	p.incDirection = thrust::raw_pointer_cast(&incDirection[0]);
 	p.incRadiance = thrust::raw_pointer_cast(&incRadiance[0]);
+	p.antiradiance = thrust::raw_pointer_cast(&antiradiance[0]);
 	p.materialIndex = thrust::raw_pointer_cast(&materialIndex[0]);
 	p.bounce = thrust::raw_pointer_cast(&bounce[0]);
 	p.numAvpls = numAvpls;

@@ -6,8 +6,7 @@
 #include "Intersection.h"
 #include "BBox.h"
 #include "Ray.h"
-
-const float EPS = 1e-4f;
+#include "Defines.h"
 
 class Triangle
 {

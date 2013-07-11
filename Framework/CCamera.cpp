@@ -44,17 +44,17 @@ void CCamera::Init(int config, glm::vec3 position, glm::vec3 center, glm::vec3 u
 	UpdateData();
 }
 
-glm::mat4 CCamera::GetProjectionMatrix() const
+glm::mat4 const& CCamera::GetProjectionMatrix() const
 {
 	return m_ProjectionMatrix;
 }
 
-glm::mat4 CCamera::GetViewMatrix() const 
+glm::mat4 const& CCamera::GetViewMatrix() const 
 {
 	return m_ViewMatrix[m_UseConfig];
 }
 
-inline glm::vec3 CCamera::GetPosition() const
+inline glm::vec3 const& CCamera::GetPosition() const
 {
 	return m_Position[m_UseConfig];
 }

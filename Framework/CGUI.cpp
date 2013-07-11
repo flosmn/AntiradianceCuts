@@ -27,6 +27,7 @@ bool CGUI::Init(uint window_width, uint window_height)
 	TwAddSeparator(m_pTwBar, "", "");
 		
 	TwAddVarRW(m_pTwBar, "Gather with cuda", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->gatherWithCuda), "min=0 max=1 step=1");
+	TwAddVarRW(m_pTwBar, "Use lightcuts", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->useLightCuts), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Use Antiradiance", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->UseAntiradiance), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Gather With AVPL Clustering", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->GatherWithAVPLClustering), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Sep D/I Lighting", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->SeparateDirectIndirectLighting), " min=0 max=1 step=1 ");
@@ -59,6 +60,10 @@ bool CGUI::Init(uint window_width, uint window_height)
 	TwAddVarRW(m_pTwBar, "Use Debug Textures", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawDebugTextures), "min=0 max=1 step=1");
 	
 	TwAddSeparator(m_pTwBar, "", "");
+	TwAddVarRW(m_pTwBar, "Photon Radius Scale", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->photonRadiusScale), " min=0.01 max=10.0 step=0.01 ");
+	TwAddVarRW(m_pTwBar, "Light Radius Scale", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->lightRadiusScale), " min=0.01 max=10.0 step=0.01 ");
+
+	TwAddSeparator(m_pTwBar, "", "");
 
 	TwAddVarRW(m_pTwBar, "Antirad Filter Mode", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->AntiradFilterMode), " min=0 max=2 step=1 ");
 	TwAddVarRW(m_pTwBar, "Antirad Filter Gauss Factor", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->AntiradFilterGaussFactor), " min=1.0 max=4.0 step=0.1 ");
@@ -69,7 +74,8 @@ bool CGUI::Init(uint window_width, uint window_height)
 	TwAddVarRW(m_pTwBar, "Draw AVPL atlas", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawAVPLAtlas), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Draw AVPL cluster atlas", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawAVPLClusterAtlas), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Draw Lights", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawLights), " min=0 max=1 step=1 ");
-	TwAddVarRW(m_pTwBar, "Draw AABBs", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawAABBs), " min=0 max=1 step=1 ");
+	TwAddVarRW(m_pTwBar, "Draw ClusterLights", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawClusterLights), " min=0 max=1 step=1 ");
+	TwAddVarRW(m_pTwBar, "Draw ClusterAABBs", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawClusterAABBs), " min=0 max=1 step=1 ");
 	TwAddVarRW(m_pTwBar, "BVH level", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->bvhLevel), " min=0 max=100 step=1 ");
 	TwAddVarRW(m_pTwBar, "Consider Normals", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->considerNormals), " min=0 max=1 step=1 ");
 		

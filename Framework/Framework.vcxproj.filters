@@ -4,9 +4,6 @@
     <Filter Include="OGLResources">
       <UniqueIdentifier>{bbf5ef29-6fa9-43d6-afa7-6254333ef663}</UniqueIdentifier>
     </Filter>
-    <Filter Include="MeshResources">
-      <UniqueIdentifier>{77518a91-3f07-4a3b-ae0f-f294ae560153}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Utils">
       <UniqueIdentifier>{6f01f52a-125e-40ea-997a-e19e795fd562}</UniqueIdentifier>
     </Filter>
@@ -39,28 +36,10 @@
   <ItemGroup>
     <ClCompile Include="Render.cpp" />
     <ClCompile Include="Scene.cpp" />
-    <ClCompile Include="AreaLight.cpp" />
-    <ClCompile Include="CAccumulationBuffer.cpp" />
     <ClCompile Include="CGBuffer.cpp" />
     <ClCompile Include="CProgram.cpp" />
     <ClCompile Include="CRenderTarget.cpp" />
-    <ClCompile Include="CPostprocess.cpp" />
     <ClCompile Include="AVPL.cpp" />
-    <ClCompile Include="MeshResources\CMeshGeometry.cpp">
-      <Filter>MeshResources</Filter>
-    </ClCompile>
-    <ClCompile Include="MeshResources\CModel.cpp">
-      <Filter>MeshResources</Filter>
-    </ClCompile>
-    <ClCompile Include="MeshResources\CObjFileLoader.cpp">
-      <Filter>MeshResources</Filter>
-    </ClCompile>
-    <ClCompile Include="MeshResources\CSubModel.cpp">
-      <Filter>MeshResources</Filter>
-    </ClCompile>
-    <ClCompile Include="Utils\CTextureViewer.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
     <ClCompile Include="Utils\GLErrorUtil.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
@@ -174,31 +153,11 @@
     <ClInclude Include="Render.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="AreaLight.h" />
-    <ClInclude Include="CAccumulationBuffer.h" />
     <ClInclude Include="CGBuffer.h" />
     <ClInclude Include="CProgram.h" />
     <ClInclude Include="CShadowMap.h" />
     <ClInclude Include="CRenderTarget.h" />
-    <ClInclude Include="CPostprocess.h" />
     <ClInclude Include="AVPL.h" />
-    <ClInclude Include="MeshResources\CFullScreenQuad.h">
-      <Filter>MeshResources</Filter>
-    </ClInclude>
-    <ClInclude Include="MeshResources\CMeshGeometry.h">
-      <Filter>MeshResources</Filter>
-    </ClInclude>
-    <ClInclude Include="MeshResources\CModel.h">
-      <Filter>MeshResources</Filter>
-    </ClInclude>
-    <ClInclude Include="MeshResources\CObjFileLoader.h">
-      <Filter>MeshResources</Filter>
-    </ClInclude>
-    <ClInclude Include="MeshResources\CSubModel.h">
-      <Filter>MeshResources</Filter>
-    </ClInclude>
-    <ClInclude Include="Utils\CTextureViewer.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
     <ClInclude Include="Utils\GLErrorUtil.h">
       <Filter>Utils</Filter>
     </ClInclude>
@@ -280,9 +239,6 @@
     <ClInclude Include="OCLResources\COCLContext.h">
       <Filter>OCLResources</Filter>
     </ClInclude>
-    <ClInclude Include="MeshResources\CMesh.h">
-      <Filter>MeshResources</Filter>
-    </ClInclude>
     <ClInclude Include="CGUI.h">
       <Filter>GUI&amp;Config</Filter>
     </ClInclude>
@@ -316,7 +272,6 @@
     <ClInclude Include="guicon.h">
       <Filter>GUI&amp;Config</Filter>
     </ClInclude>
-    <ClInclude Include="CPointCloud.h" />
     <ClInclude Include="CClusterTree.h" />
     <ClInclude Include="LightTreeTypes.h" />
     <ClInclude Include="CTimer.h">
@@ -354,6 +309,11 @@
     </ClInclude>
     <ClInclude Include="data_gpu.h" />
     <ClInclude Include="cudaGather.h" />
+    <ClInclude Include="ObjectClouds.h" />
+    <ClInclude Include="mesh.hpp" />
+    <ClInclude Include="model.hpp" />
+    <ClInclude Include="FullScreenQuad.h" />
+    <ClInclude Include="Postprocess.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">

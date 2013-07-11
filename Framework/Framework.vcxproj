@@ -162,11 +162,13 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="AreaLight.cpp" />
     <CudaCompile Include="bvh.cu">
       <FileType>CppCode</FileType>
+      <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
+      <HostDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</HostDebugInfo>
+      <FastMath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</FastMath>
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">O2</Optimization>
     </CudaCompile>
-    <ClCompile Include="CAccumulationBuffer.cpp" />
     <ClCompile Include="CCamera.cpp" />
     <ClCompile Include="CClusterTree.cpp" />
     <ClCompile Include="CConfigManager.cpp" />
@@ -189,11 +191,6 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <ClCompile Include="KdTreeAccelerator.cpp" />
     <ClCompile Include="LightTreeTypes.cpp" />
     <ClCompile Include="OCLResources\COCLTexture2D.cpp" />
-    <ClCompile Include="CPostprocess.cpp" />
-    <ClCompile Include="MeshResources\CMeshGeometry.cpp" />
-    <ClCompile Include="MeshResources\CModel.cpp" />
-    <ClCompile Include="MeshResources\CObjFileLoader.cpp" />
-    <ClCompile Include="MeshResources\CSubModel.cpp" />
     <ClCompile Include="OCLResources\COCLBuffer.cpp" />
     <ClCompile Include="OCLResources\COCLContext.cpp" />
     <ClCompile Include="OCLResources\COCLKernel.cpp" />
@@ -215,7 +212,6 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <ClCompile Include="Render.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Utils\CExport.cpp" />
-    <ClCompile Include="Utils\CTextureViewer.cpp" />
     <ClCompile Include="Utils\GLErrorUtil.cpp" />
     <ClCompile Include="Utils\mtrand.cpp" />
     <ClCompile Include="Utils\Rand.cpp" />
@@ -226,6 +222,7 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
       <HostDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</HostDebugInfo>
       <FastMath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</FastMath>
       <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
+      <GenerateLineInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GenerateLineInfo>
     </CudaCompile>
     <CudaCompile Include="data_gpu.cu" />
   </ItemGroup>
@@ -233,7 +230,6 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <ClInclude Include="AreaLight.h" />
     <ClInclude Include="BBox.h" />
     <ClInclude Include="bvh.h" />
-    <ClInclude Include="CAccumulationBuffer.h" />
     <ClInclude Include="CCamera.h" />
     <ClInclude Include="CClusterTree.h" />
     <ClInclude Include="CConfigManager.h" />
@@ -246,7 +242,6 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <ClInclude Include="COctahedronAtlas.h" />
     <ClInclude Include="COctahedronMap.h" />
     <ClInclude Include="CPathTracingIntegrator.h" />
-    <ClInclude Include="CPointCloud.h" />
     <ClInclude Include="CProgram.h" />
     <ClInclude Include="CReferenceImage.h" />
     <ClInclude Include="CRenderTarget.h" />
@@ -256,20 +251,17 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <ClInclude Include="cudaGather.h" />
     <ClInclude Include="data_gpu.h" />
     <ClInclude Include="Defines.h" />
+    <ClInclude Include="FullScreenQuad.h" />
     <ClInclude Include="guicon.h" />
     <ClInclude Include="AVPL.h" />
     <ClInclude Include="Intersection.h" />
     <ClInclude Include="KdTreeAccelerator.h" />
     <ClInclude Include="LightTreeTypes.h" />
     <ClInclude Include="Macros.h" />
-    <ClInclude Include="CPostprocess.h" />
     <ClInclude Include="Material.h" />
-    <ClInclude Include="MeshResources\CFullScreenQuad.h" />
-    <ClInclude Include="MeshResources\CMesh.h" />
-    <ClInclude Include="MeshResources\CMeshGeometry.h" />
-    <ClInclude Include="MeshResources\CModel.h" />
-    <ClInclude Include="MeshResources\CObjFileLoader.h" />
-    <ClInclude Include="MeshResources\CSubModel.h" />
+    <ClInclude Include="mesh.hpp" />
+    <ClInclude Include="model.hpp" />
+    <ClInclude Include="ObjectClouds.h" />
     <ClInclude Include="OCLResources\COCLBuffer.h" />
     <ClInclude Include="OCLResources\COCLContext.h" />
     <ClInclude Include="OCLResources\COCLKernel.h" />
@@ -293,6 +285,7 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <ClInclude Include="OGLResources\COGLUniformBuffer.h" />
     <ClInclude Include="OGLResources\COGLVertexArray.h" />
     <ClInclude Include="OGLResources\COGLVertexBuffer.h" />
+    <ClInclude Include="Postprocess.h" />
     <ClInclude Include="Ray.h" />
     <ClInclude Include="Render.h" />
     <ClInclude Include="Scene.h" />
@@ -301,7 +294,6 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <ClInclude Include="uniforms.h" />
     <ClInclude Include="Utils\CExport.h" />
     <ClInclude Include="Utils\CLightViewer.h" />
-    <ClInclude Include="Utils\CTextureViewer.h" />
     <ClInclude Include="Utils\GLErrorUtil.h" />
     <ClInclude Include="Utils\mtrand.h" />
     <ClInclude Include="Utils\Rand.h" />

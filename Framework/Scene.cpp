@@ -15,20 +15,29 @@ typedef unsigned int uint;
 #include "CMaterialBuffer.h"
 #include "CReferenceImage.h"
 
+#include "Utils/stream.h"
+#include "Utils/Util.h"
+
 #include "OGLResources\COGLUniformBuffer.h"
 
 #include "OCLResources\COCLContext.h"
 
-#include "MeshResources\CMesh.h"
-#include "MeshResources\CModel.h"
-#include "MeshResources\CSubModel.h"
+#include "mesh.hpp"
+#include "model.hpp"
 
 #include <set>
 #include <iostream>
 #include <algorithm>
 #include <iterator>
+#include <fstream>
+#include <sstream>
 
 #include <omp.h>
+
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+#include <assimp/importer.hpp>
+
 
 Scene::Scene(CCamera* camera, CConfigManager* confManager, COCLContext* clContext)
 	: m_camera(camera), m_confManager(confManager)
@@ -48,6 +57,7 @@ Scene::~Scene()
 void Scene::ClearScene() 
 {
 	m_models.clear();
+	m_meshes.clear();
 	
 	ClearLighting();
 }
@@ -59,40 +69,7 @@ void Scene::ClearScene()
 
 	m_NumCreatedAVPLs = 0;
 }
-
-void Scene::DrawScene(COGLUniformBuffer* ubTransform, COGLUniformBuffer* ubMaterial)
-{
-	std::vector<std::unique_ptr<CModel>>::iterator it;
-
-	for (it = m_models.begin(); it < m_models.end(); it++) {
-		(*it)->Draw(m_camera->GetViewMatrix(), m_camera->GetProjectionMatrix(), ubTransform, ubMaterial);
-	}
-}
-
-void Scene::DrawScene(COGLUniformBuffer* ubTransform)
-{
-	DrawScene(m_camera->GetViewMatrix(), m_camera->GetProjectionMatrix(), ubTransform);
-}
-
-void Scene::DrawScene(const glm::mat4& mView, const glm::mat4& mProj, COGLUniformBuffer* ubTransform)
-{
-	std::vector<std::unique_ptr<CModel>>::iterator it;
-
-	for (it = m_models.begin(); it < m_models.end(); it++) {
-		(*it)->Draw(mView, mProj, ubTransform);
-	}
-}
-
-void Scene::DrawAreaLight(COGLUniformBuffer* ubTransform, COGLUniformBuffer* ubAreaLight)
-{
-	m_areaLight->Draw(m_camera, ubTransform, ubAreaLight);
-}
-
-void Scene::DrawAreaLight(COGLUniformBuffer* ubTransform, COGLUniformBuffer* ubAreaLight, glm::vec3 color)
-{
-	m_areaLight->Draw(m_camera, ubTransform, ubAreaLight, color);
-}
-
+ 
 bool Scene::CreateAVPL(AVPL* pred, AVPL* newAVPL)
 {
 	bool mis = m_confManager->GetConfVars()->UseMIS == 1 ? true : false;
@@ -136,16 +113,16 @@ bool Scene::CreatePrimaryAVPL(AVPL* newAVPL)
 	
 	// create VPL on light source
 	float pdf;
-	glm::vec3 pos = m_areaLight->SamplePos(pdf);
+	glm::vec3 pos = m_areaLight->samplePos(pdf);
 
-	glm::vec3 ori = m_areaLight->GetFrontDirection();
-	glm::vec3 I = m_areaLight->GetRadiance();
+	glm::vec3 ori = m_areaLight->getFrontDirection();
+	glm::vec3 I = m_areaLight->getRadiance();
 
 	if(!(pdf > 0.f))
 		std::cout << "Warning: pdf is 0" << std::endl;
 
 	AVPL avpl(pos, ori, I / pdf, glm::vec3(0), glm::vec3(0), m_confManager->GetConfVars()->ConeFactor, 
-		0, m_areaLight->GetMaterialIndex(), m_materialBuffer.get(), m_confManager);
+		0, m_areaLight->getMaterialIndex(), m_materialBuffer.get(), m_confManager);
 	*newAVPL = avpl;
 
 	return true;
@@ -158,28 +135,15 @@ bool Scene::ContinueAVPLPath(AVPL* pred, AVPL* newAVPL, glm::vec3 direction, flo
 	const glm::vec3 pred_norm = glm::normalize(pred->GetOrientation());
 	direction = glm::normalize(direction);
 
-	const float epsilon = 0.005f;
-	Ray ray(pred_pos + epsilon * direction, direction);
+	Ray ray(pred_pos + EPS * direction, direction);
 		
-	Intersection intersection_kd, intersection_simple;
-	float t_kd = 0.f, t_simple = 0.f;
-	bool inter_kd = IntersectRayScene(ray, &t_kd, &intersection_kd, Triangle::FRONT_FACE);
-		
-	/*
-	bool inter_simple = IntersectRaySceneSimple(ray, &t_simple, &intersection_simple, isect_bfc);
-	if(inter_kd != inter_simple)
-		std::cout << "KDTree intersection and naive intersection differ!" << std::endl;
-	else if(intersection_kd.GetPosition() != intersection_simple.GetPosition())
-		std::cout << "KDTree intersection point and naive intersection point differ!" << std::endl;
-	*/
-
-	Intersection intersection = intersection_kd;
-	float t = t_kd;
-	if(inter_kd)
+	Intersection intersection;
+	float t = 0.f;
+	if(IntersectRayScene(ray, &t, &intersection, Triangle::FRONT_FACE))
 	{
 		// gather information for the new VPL
 		glm::vec3 norm = intersection.getTriangle()->getNormal();
-		glm::vec3 pos = intersection.getPosition() - 0.1f * norm;
+		glm::vec3 pos = intersection.getPosition() - EPS * norm;
 		uint index = intersection.getTriangle()->getMaterialIndex();
 		if(index > 100)
 			std::cout << "material index uob" << std::endl;
@@ -200,7 +164,7 @@ bool Scene::ContinueAVPLPath(AVPL* pred, AVPL* newAVPL, glm::vec3 direction, flo
 		
 		const float area = 2 * M_PI * ( 1 - cos(M_PI/coneFactor) );
 
-		glm::vec3 antiradiance = 1.f/float(m_confManager->GetConfVars()->NumAdditionalAVPLs + 1.f) * contrib / area;
+		glm::vec3 antiradiance = 1.f/float(m_confManager->GetConfVars()->NumAdditionalAVPLs + 1.f) * contrib; // / area;
 
 		AVPL avpl(pos, norm, contrib, antiradiance, direction, coneFactor, pred->GetBounce() + 1,
 			intersection.getTriangle()->getMaterialIndex(), m_materialBuffer.get(), m_confManager);
@@ -329,39 +293,6 @@ void Scene::CreatePrimaryVpls(std::vector<AVPL>& avpls, int numVpls)
 	}
 }
 
-bool Scene::IntersectRaySceneSimple(const Ray& ray, float* t, Intersection *pIntersection,  Triangle::IsectMode isectMode)
-{	
-	float t_best = std::numeric_limits<float>::max();
-	Intersection isect_best;
-	bool hasIntersection = false;
-
-	for(uint i = 0; i < m_primitives.size(); ++i)
-	{
-		float t_temp = 0.f;
-		Intersection isect_temp;
-		if(m_primitives[i].intersect(ray, &t_temp, &isect_temp, isectMode))
-		{
-			if(t_temp < t_best && t_temp > 0) {
-				t_best = t_temp;
-				isect_best = isect_temp;
-				hasIntersection = true;
-			}
-		}
-	}
-
-	*pIntersection = isect_best;
-	*t = t_best;
-		
-	// no intersections on light sources
-	if(hasIntersection) {
-		if(glm::length(GetMaterialBuffer()->GetMaterial(pIntersection->getTriangle()->getMaterialIndex())->emissive) > 0.f) {
-			hasIntersection =  false;
-		}
-	}
-
-	return hasIntersection;
-}
-
 bool Scene::IntersectRayScene(const Ray& ray, float* t, Intersection *pIntersection,  Triangle::IsectMode isectMode)
 {	
 	bool intersect = m_kdTreeAccelerator->intersect(ray, t, pIntersection, isectMode);
@@ -380,9 +311,7 @@ void Scene::LoadSimpleScene()
 {
 	ClearScene();
 
-	m_models.emplace_back(std::unique_ptr<CModel>(
-		new CModel("twoplanes", "obj", m_materialBuffer.get())));
-	m_models.back()->SetWorldTransform(glm::scale(glm::vec3(2.f, 2.f, 2.f)));
+	loadSceneFromFile("twoplanes.obj");
 
 	m_camera->Init(0, glm::vec3(-9.2f, 5.7f, 6.75f), 
 		glm::vec3(0.f, -2.f, 0.f),
@@ -393,20 +322,19 @@ void Scene::LoadSimpleScene()
 		glm::vec3(0.0f, 4.f, 0.0f), 
 		glm::vec3(0.0f, -1.0f, 0.0f),
 		glm::vec3(0.0f, 0.0f, 1.0f),
+		glm::vec3(120.f, 120.f, 120.f),
 		m_materialBuffer.get()));
 
-	m_areaLight->SetRadiance(glm::vec3(120.f, 120.f, 120.f));
-	InitKdTree();
+	initKdTree();
+	calcBoundingBox();
 }
 
 void Scene::LoadCornellBox()
 {
 	ClearScene();
 
-	m_models.emplace_back(std::unique_ptr<CModel>(
-		new CModel("cb-diffuse", "obj", m_materialBuffer.get())));
-	m_models.back()->SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
-
+	loadSceneFromFile("cb-diffuse.obj");
+	
 	m_referenceImage.reset(new CReferenceImage(m_camera->GetWidth(), m_camera->GetHeight()));
 	m_referenceImage->LoadFromFile("References/cb-diffuse-closeup-ref.hdr", true);
 
@@ -455,22 +383,20 @@ void Scene::LoadCornellBox()
 		areaLightPosition, 
 		areaLightFrontDir,
 		Orthogonal(areaLightFrontDir),
+		glm::vec3(100.f, 100.f, 100.f),
 		m_materialBuffer.get()));
-
-	m_areaLight->SetRadiance(glm::vec3(100.f, 100.f, 100.f));
 
 	m_confManager->GetConfVars()->UseIBL = m_confManager->GetConfVarsGUI()->UseIBL = 0;
 		
-	InitKdTree();
+	initKdTree();
+	calcBoundingBox();
 }
 
 void Scene::LoadCornellEmpty()
 {
 	ClearScene();
 
-	m_models.emplace_back(std::unique_ptr<CModel>(
-		new CModel("cb-empty", "obj", m_materialBuffer.get())));
-	m_models.back()->SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
+	loadSceneFromFile("cb_empty.obj");
 
 	m_referenceImage.reset(new CReferenceImage(m_camera->GetWidth(), m_camera->GetHeight()));
 	m_referenceImage->LoadFromFile("References/cb-diffuse-clamped-indirect.hdr", true);
@@ -500,23 +426,21 @@ void Scene::LoadCornellEmpty()
 		areaLightPosition, 
 		areaLightFrontDir,
 		Orthogonal(areaLightFrontDir),
+		AreaLightRadianceScale * glm::vec3(100.f, 100.f, 100.f),
 		m_materialBuffer.get()));
-
-	m_areaLight->SetRadiance(AreaLightRadianceScale * glm::vec3(100.f, 100.f, 100.f));
 
 	m_confManager->GetConfVars()->UseIBL = m_confManager->GetConfVarsGUI()->UseIBL = 0;
 		
-	InitKdTree();
+	initKdTree();
+	calcBoundingBox();
 }
 
 void Scene::LoadBuddha()
 {
 	ClearScene();
 
-	m_models.emplace_back(std::unique_ptr<CModel>(
-		new CModel("cb-buddha-specular", "obj", m_materialBuffer.get())));
-	m_models.back()->SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
-
+	loadSceneFromFile("cb-buddha-specular.obj");
+	
 	m_referenceImage.reset(new CReferenceImage(m_camera->GetWidth(), m_camera->GetHeight()));
 	m_referenceImage->LoadFromFile("References/cb-buddha-full-noclamp.hdr", true);
 
@@ -555,23 +479,21 @@ void Scene::LoadBuddha()
 		areaLightPosition, 
 		areaLightFrontDir,
 		Orthogonal(areaLightFrontDir),
+		glm::vec3(100.f, 100.f, 100.f),
 		m_materialBuffer.get()));
-
-	m_areaLight->SetRadiance(glm::vec3(100.f, 100.f, 100.f));
 
 	m_confManager->GetConfVars()->UseIBL = m_confManager->GetConfVarsGUI()->UseIBL = 0;
 		
-	InitKdTree();
+	initKdTree();
+	calcBoundingBox();
 }
 
 void Scene::LoadConferenceRoom()
 {
 	ClearScene();
 
-	m_models.emplace_back(std::unique_ptr<CModel>(
-		new CModel("conference-3", "obj", m_materialBuffer.get())));
-	m_models.back()->SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
-		
+	loadSceneFromFile("conference-3.obj");
+	
 	m_camera->Init(0, glm::vec3(-130.8f, 304.3f, 21.6f), 
 		glm::vec3(-129.9f, 304.0f, 21.2f),
 		glm::vec3(0.f, 1.f, 0.f),
@@ -597,13 +519,13 @@ void Scene::LoadConferenceRoom()
 		areaLightPosition, 
 		areaLightFrontDir,
 		Orthogonal(areaLightFrontDir),
+		AreaLightRadianceScale * glm::vec3(1.f, 1.f, 1.f),
 		m_materialBuffer.get()));
-
-	m_areaLight->SetRadiance(AreaLightRadianceScale * glm::vec3(1.f, 1.f, 1.f));
 
 	m_confManager->GetConfVars()->UseIBL = m_confManager->GetConfVarsGUI()->UseIBL = 0;
 		
-	InitKdTree();
+	initKdTree();
+	calcBoundingBox();
 }
 
 void Scene::LoadSibernik()
@@ -612,9 +534,7 @@ void Scene::LoadSibernik()
 
 	float scale = 100.f;
 
-	m_models.emplace_back(std::unique_ptr<CModel>(
-		new CModel("sibenik", "obj", m_materialBuffer.get())));
-	m_models.back()->SetWorldTransform(glm::scale(scale * glm::vec3(1.f, 1.f, 1.f)));
+	loadSceneFromFile("sibenik.obj");
 
 	m_camera->Init(0, scale * glm::vec3(-16.f, -5.f, 0.f), 
 		scale * glm::vec3(-15.f, -5.5f, 0.f),
@@ -658,81 +578,58 @@ void Scene::LoadSibernik()
 		areaLightPosition, 
 		areaLightFrontDir,
 		Orthogonal(areaLightFrontDir),
+		glm::vec3(AreaLightRadianceScale),
 		m_materialBuffer.get()));
 	
-	m_areaLight->SetRadiance(glm::vec3(AreaLightRadianceScale));
-
-	InitKdTree();
+	initKdTree();
+	calcBoundingBox();
 }
 
-void Scene::LoadCornellBoxDragon()
+void Scene::initKdTree()
 {
-	ClearScene();
+	std::vector<Triangle> triangles;
 
-	m_models.emplace_back(std::unique_ptr<CModel>(
-		new CModel("cornell-box-dragon43k", "obj", m_materialBuffer.get())));
-	m_models.back()->SetWorldTransform(glm::scale(glm::vec3(1.f, 1.f, 1.f)));
+	for (size_t i = 0; i < m_models.size(); ++i) {
+		Mesh* mesh = m_models[i]->getMesh();
+		glm::mat4 worldTransform = m_models[i]->getWorldTransform();
+		int materialIndex = m_models[i]->getMaterial();
 
-	m_camera->Init(0, glm::vec3(0.0f, 1.0f, 3.5f), 
-		glm::vec3(0.0f, 1.0f, 0.0f),
-		glm::vec3(0.0f, 1.0f, 0.0f),
-		1.0f);
+		std::vector<glm::vec3> const& positions = mesh->getPositions();
+		std::vector<glm::uvec3> const& indices = mesh->getIndices();
+		for (size_t j = 0; j < indices.size(); ++j) {
+			glm::vec4 p0 =  glm::vec4(positions[indices[j].x], 1.f);
+			glm::vec4 p1 =  glm::vec4(positions[indices[j].y], 1.f);
+			glm::vec4 p2 =  glm::vec4(positions[indices[j].z], 1.f);
+			Triangle triangle(glm::vec3(worldTransform*p0), 
+							  glm::vec3(worldTransform*p1), 
+							  glm::vec3(worldTransform*p2));
+			triangle.setMaterialIndex(materialIndex);
 
-	glm::vec3 areaLightFrontDir = glm::vec3(0.f, -1.f, 0.f);
-	glm::vec3 areaLightPosition = glm::vec3(-0.005f, 1.97f, 0.19f);
+			triangles.push_back(triangle);
+		}
+	}
 	
-	m_confManager->GetConfVars()->AreaLightFrontDirection[0] = m_confManager->GetConfVarsGUI()->AreaLightFrontDirection[0] = areaLightFrontDir.x;
-	m_confManager->GetConfVars()->AreaLightFrontDirection[1] = m_confManager->GetConfVarsGUI()->AreaLightFrontDirection[1] = areaLightFrontDir.y;
-	m_confManager->GetConfVars()->AreaLightFrontDirection[2] = m_confManager->GetConfVarsGUI()->AreaLightFrontDirection[2] = areaLightFrontDir.z;
+	{ // add triangles from the area light source
+		Mesh const* mesh = m_areaLight->getMesh();
+		glm::mat4 worldTransform = m_areaLight->getWorldTransform();
+		int materialIndex = m_areaLight->getMaterialIndex();
 
-	m_confManager->GetConfVars()->AreaLightPosX = m_confManager->GetConfVarsGUI()->AreaLightPosX = areaLightPosition.x;
-	m_confManager->GetConfVars()->AreaLightPosY = m_confManager->GetConfVarsGUI()->AreaLightPosY = areaLightPosition.y;
-	m_confManager->GetConfVars()->AreaLightPosZ = m_confManager->GetConfVarsGUI()->AreaLightPosZ = areaLightPosition.z;
+		std::vector<glm::vec3> const& positions = mesh->getPositions();
+		std::vector<glm::uvec3> const& indices = mesh->getIndices();
+		for (size_t j = 0; j < indices.size(); ++j) {
+			glm::vec4 p0 =  glm::vec4(positions[indices[j].x], 1.f);
+			glm::vec4 p1 =  glm::vec4(positions[indices[j].y], 1.f);
+			glm::vec4 p2 =  glm::vec4(positions[indices[j].z], 1.f);
+			Triangle triangle(glm::vec3(worldTransform*p0), 
+							  glm::vec3(worldTransform*p1), 
+							  glm::vec3(worldTransform*p2));
+			triangle.setMaterialIndex(materialIndex);
 
-	float AreaLightRadianceScale = 10;
-	m_confManager->GetConfVars()->AreaLightRadianceScale = m_confManager->GetConfVarsGUI()->AreaLightRadianceScale = AreaLightRadianceScale;
-
-	m_areaLight.reset(new AreaLight(0.47f, 0.38f, 
-		areaLightPosition, 
-		areaLightFrontDir,
-		Orthogonal(areaLightFrontDir),
-		m_materialBuffer.get()));
-	
-	m_areaLight->SetIntensity(glm::vec3(AreaLightRadianceScale));
-
-	InitKdTree();
-}
-
-
-void Scene::InitKdTree()
-{
-	std::vector<std::unique_ptr<CModel>>::iterator it_models;
-	for (it_models = m_models.begin(); it_models < m_models.end(); it_models++ )
-	{
-		CModel* model = (*it_models).get();
-
-		std::vector<CSubModel*> subModels = model->GetSubModels();
-		std::vector<CSubModel*>::iterator it_subModels;
-		for (it_subModels = subModels.begin(); it_subModels < subModels.end(); it_subModels++ )
-		{
-			CSubModel* subModel = *it_subModels;
-			std::vector<Triangle> triangles = subModel->GetTrianglesWS();
-			for(uint i = 0; i < triangles.size(); ++i)
-			{
-				m_primitives.push_back(triangles[i]);
-			}
+			triangles.push_back(triangle);
 		}
 	}
 
-	// add area light source
-	std::vector<Triangle> triangles;
-	m_areaLight->GetTrianglesWS(triangles);
-	for(uint i = 0; i < triangles.size(); ++i)
-	{
-		m_primitives.push_back(triangles[i]);
-	}
-	
-	m_kdTreeAccelerator.reset(new KdTreeAccelerator(m_primitives, 80, 1, 5, 0));
+	m_kdTreeAccelerator.reset(new KdTreeAccelerator(triangles, 80, 1, 5, 0));
 	CTimer timer(CTimer::CPU);
 	timer.Start();
 	m_kdTreeAccelerator->buildTree();
@@ -741,8 +638,7 @@ void Scene::InitKdTree()
 
 void Scene::ReleaseKdTree()
 {
-	m_kdTreeAccelerator.reset(nullptr);	
-	m_primitives.clear();
+	m_kdTreeAccelerator.reset(nullptr);
 }
 
 void Scene::UpdateAreaLights()
@@ -754,15 +650,15 @@ void Scene::UpdateAreaLights()
 		m_confManager->GetConfVars()->AreaLightPosX, 
 		m_confManager->GetConfVars()->AreaLightPosY, 
 		m_confManager->GetConfVars()->AreaLightPosZ); 
-	m_areaLight->SetCenterPosition(pos);
+	m_areaLight->setCenterPosition(pos);
 
 	glm::vec3 front = glm::vec3(
 		m_confManager->GetConfVars()->AreaLightFrontDirection[0],
 		m_confManager->GetConfVars()->AreaLightFrontDirection[1],
 		m_confManager->GetConfVars()->AreaLightFrontDirection[2]);
-	m_areaLight->SetFrontDirection(front);
+	m_areaLight->setFrontDirection(front);
 
-	m_areaLight->SetRadiance(glm::vec3(m_confManager->GetConfVars()->AreaLightRadianceScale));
+	m_areaLight->setRadiance(glm::vec3(m_confManager->GetConfVars()->AreaLightRadianceScale));
 }
 
 bool Scene::Visible(const SceneSample& ss1, const SceneSample& ss2)
@@ -778,7 +674,7 @@ bool Scene::Visible(const SceneSample& ss1, const SceneSample& ss2)
 
 	float t = 0.f;
 	Intersection intersection;
-	bool isect = IntersectRaySceneSimple(r, &t, &intersection,  Triangle::FRONT_FACE);
+	bool isect = IntersectRayScene(r, &t, &intersection,  Triangle::FRONT_FACE);
 			
 	const float big = std::max(dist, t);
 	const float small = std::min(dist, t);
@@ -795,15 +691,142 @@ bool Scene::Visible(const SceneSample& ss1, const SceneSample& ss2)
 void Scene::SampleLightSource(SceneSample& ss)
 {
 	float pdf = 0.f;
-	ss.position = m_areaLight->SamplePos(pdf);
-	ss.normal = m_areaLight->GetFrontDirection();
+	ss.position = m_areaLight->samplePos(pdf);
+	ss.normal = m_areaLight->getFrontDirection();
 	ss.pdf = pdf;
-	ss.materialIndex = m_areaLight->GetMaterialIndex();
+	ss.materialIndex = m_areaLight->getMaterialIndex();
 
 	if(!(pdf > 0.f))
 		std::cout << "Warning: pdf is 0" << std::endl;
 }
+
 MATERIAL* Scene::GetMaterial(const SceneSample& ss)
 {
 	return m_materialBuffer->GetMaterial(ss.materialIndex);
+}
+
+void Scene::calcBoundingBox() 
+{
+	glm::vec3 min(std::numeric_limits<float>::max());
+	glm::vec3 max(std::numeric_limits<float>::min());
+
+	for (size_t i = 0; i < m_models.size(); ++i) {
+		Mesh* mesh = m_models[i]->getMesh();
+		glm::mat4 worldTransform = m_models[i]->getWorldTransform();
+		
+		std::vector<glm::vec3> const& positions = mesh->getPositions();
+		for (size_t j = 0; j < positions.size(); ++j) {
+			glm::vec3 pos =  glm::vec3(worldTransform * glm::vec4(positions[j], 1.f));
+			min = glm::min(min, pos);
+			max = glm::max(max, pos);
+		}
+	}
+	m_bbox = BBox(min, max);
+	std::cout << "scene bounding box: min=" << m_bbox.getMin() << ", max=" << m_bbox.getMax() << std::endl;
+}
+
+void Scene::loadSceneFromFile(std::string const& file) 
+{
+	std::cout << "Start loading model from file " << file << std::endl;
+	CTimer timer(CTimer::CPU);
+	timer.Start();
+	
+	// Create an instance of the Importer class
+	Assimp::Importer importer;
+	const aiScene* scene = NULL;
+	
+	//check if file exists
+	std::stringstream ss;
+	ss << "Resources\\" << file;
+
+	std::ifstream fin(ss.str().c_str());
+    if (!fin.fail()) {
+        fin.close();
+    } else {
+		printf("Couldn't open file: %s\n", ss.str().c_str());
+        printf("%s\n", importer.GetErrorString());
+        return;
+    }
+ 
+	std::string pFile(ss.str());
+	scene = importer.ReadFile(pFile, aiProcess_Triangulate | aiProcess_GenNormals  | aiProcess_FlipWindingOrder);
+ 
+    // If the import failed, report it
+    if (!scene) {
+        printf("%s\n", importer.GetErrorString());
+        return;
+    }
+ 
+    // Now we can access the file's contents.
+    timer.Stop("Import with assimp");
+	
+	timer.Start();
+    // For each mesh
+    for (unsigned int n = 0; n < scene->mNumMeshes; ++n)
+    {
+        const struct aiMesh* mesh = scene->mMeshes[n];
+ 
+		 // create material uniform buffer
+        struct aiMaterial *mtl = scene->mMaterials[mesh->mMaterialIndex];
+        
+		aiColor4D d;
+		aiString matName;
+		float e = 0.f;
+
+		std::string name = "noname";
+		if(AI_SUCCESS == mtl->Get(AI_MATKEY_NAME, matName))
+			name = std::string(matName.C_Str());
+
+        glm::vec4 diffuse = glm::vec4(0.f);
+		if(AI_SUCCESS == mtl->Get(AI_MATKEY_COLOR_DIFFUSE, d))
+            diffuse = glm::vec4(d.r, d.g, d.b, d.a);
+
+		glm::vec4 specular = glm::vec4(0.f);
+		if(AI_SUCCESS == mtl->Get(AI_MATKEY_COLOR_SPECULAR, d))
+			specular = glm::vec4(d.r, d.g, d.b, d.a);
+
+		float exponent = 0.f;
+		if(AI_SUCCESS == mtl->Get(AI_MATKEY_SHININESS, e))
+			exponent = e;
+		
+		glm::vec4 emissive = glm::vec4(0.f);
+		if(AI_SUCCESS == mtl->Get(AI_MATKEY_COLOR_EMISSIVE, d))
+            emissive = glm::vec4(d.r, d.g, d.b, d.a);
+        
+		MATERIAL mat;
+		mat.emissive = emissive;
+		mat.diffuse = diffuse;
+		mat.specular = specular;
+		mat.exponent = exponent;
+
+		int materialIndex = m_materialBuffer->AddMaterial(name, mat);
+
+        // create array with faces
+        // have to convert from Assimp format to array
+		std::vector<glm::uvec3> indices(mesh->mNumFaces);
+        for (size_t i = 0; i < mesh->mNumFaces; ++i) {
+            const struct aiFace* face = &mesh->mFaces[i];
+			indices[i] = glm::uvec3(face->mIndices[0], face->mIndices[1], face->mIndices[2]);
+        }
+
+        // buffer for vertex positions
+		std::vector<glm::vec3> positions(mesh->mNumVertices);
+        if (mesh->HasPositions()) {			
+			for (size_t i = 0; i < mesh->mNumVertices; ++i) {
+				positions[i] = glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y,
+						mesh->mVertices[i].z);
+			}
+        }
+ 		
+        // buffer for vertex normals
+		std::vector<glm::vec3> normals(mesh->mNumVertices);
+        if (mesh->HasNormals()) {
+			for (size_t i = 0; i < mesh->mNumVertices; ++i)
+				normals[i] = glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
+        }
+ 	
+		m_meshes.emplace_back(std::unique_ptr<Mesh>(new Mesh(positions, normals, indices, materialIndex)));
+		m_models.emplace_back(std::unique_ptr<Model>(new Model(m_meshes.back().get(), materialIndex, glm::mat4())));
+    }
+	timer.Stop("Creating models ");
 }

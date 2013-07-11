@@ -10,6 +10,8 @@ uniform transform
 	mat4 MVP;
 } uTransform;
 
+uniform float pointSize;
+
 layout(location = 0) in vec3 in_position;
 layout(location = 1) in vec3 in_instancePosition;
 layout(location = 2) in vec3 in_instanceColor;
@@ -19,7 +21,7 @@ out vec3 instanceColor;
 
 void main()
 {
-	gl_Position = uTransform.MVP * vec4(in_instancePosition + 5.f * in_position, 1.f);
+	gl_Position = uTransform.MVP * vec4(in_instancePosition + pointSize * in_position, 1.f);
 	instancePosition = in_instancePosition;
 	instanceColor = in_instanceColor;
 }

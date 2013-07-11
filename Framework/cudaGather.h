@@ -18,20 +18,8 @@
 #include <iostream>
 #include <memory>
 
-struct NEW_AVPL
-{
-	float4 L;			// radiance
-	float4 A;			// antiradiance;
-	
-	float3 pos;				// position
-	float materialIndex;	// Index in the material buffer
-	
-	float3 norm;		// orientation;
-	float angleFactor;	
-	
-	float3 w;			// direction of antiradiance, incident light direction;
-	float bounce;		// order of indiection
-};
+class CConfigManager;
+class SceneProbe;
 
 class CudaGather
 {
@@ -41,15 +29,16 @@ public:
 		GLuint glRadianceOutputTexture, GLuint glAntiradianceOutputTexture,
 		GLuint glResultOutputTexture,
 		std::vector<MATERIAL> const& materials,
-		COGLUniformBuffer* ubTransform
+		COGLUniformBuffer* ubTransform,
+		CConfigManager* confManager
 	);
 
 	~CudaGather();
 
-	void run(std::vector<AVPL> const& avpls, glm::vec3 const& cameraPosition);
-	void run_bvh(AvplBvh* avplBvh, glm::vec3 const& cameraPosition, int bvhLevel, float refThresh, 
-			glm::uvec2 const& debugPixel, bool genDebugInfo);
-
+	void gatherAntiradiance(std::vector<AVPL> const& avpls, glm::vec3 const& cameraPosition, float photonRadius);
+	void run(std::vector<AVPL> const& avpls, glm::vec3 const& cameraPosition, 
+		SceneProbe* sceneProbe, float sceneExtent, bool profile);
+	
 	PointCloud* getPointCloud() { return m_pointCloud.get(); }
 	AABBCloud* getAABBCloud() { return m_aabbCloud.get(); }
 
@@ -59,9 +48,6 @@ private:
 	std::unique_ptr<cuda::CudaGraphicsResource> m_radianceOutputResource;
 	std::unique_ptr<cuda::CudaGraphicsResource> m_antiradianceOutputResource;
 	std::unique_ptr<cuda::CudaGraphicsResource> m_resultOutputResource;
-
-	std::unique_ptr<cuda::CudaBuffer<NEW_AVPL>> m_avpls;
-	std::unique_ptr<cuda::CudaBuffer<MATERIAL>> m_materials;
 	
 	// for lightcut debug
 	std::unique_ptr<PointCloud> m_pointCloud;
@@ -70,6 +56,7 @@ private:
 	std::unique_ptr<MaterialsGpu> m_materialsGpu;
 
 	COGLUniformBuffer* m_ubTransform;
+	CConfigManager* m_confManager;
 
 	int m_width;
 	int m_height;

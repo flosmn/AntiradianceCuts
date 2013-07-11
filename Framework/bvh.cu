@@ -17,10 +17,27 @@
 #include "CudaResources/cudaUtil.hpp"
 #include "CudaResources/cudaTimer.hpp"
 
-#define PRINT_DEBUG
+#include <intrin.h>
+
+#pragma intrinsic(_BitScanReverse)
+#pragma intrinsic(_BitScanReverse64)
+
+//#define PRINT_DEBUG
 
 std::mt19937 rng;
 std::uniform_real_distribution<float> dist01;
+
+template<typename T>
+void printBinary(T i)
+{
+	T one = 1;
+	T shift = sizeof(T) * 8 - 1;
+	for (T z = (one << shift); z > 0; z >>= 1) {
+		if ((i & z) == z) { std::cout << "1"; }
+		else { std::cout << "0"; }
+	}
+	std::cout << std::endl;
+}
 
 template<typename T>
 void printVector(std::string const& text, std::vector<T> const& vector)
@@ -40,6 +57,17 @@ void printDeviceVector(std::string const& text, thrust::device_vector<T> const& 
 		std::cout << vector[i] << ", ";
 	}
 	std::cout << std::endl;
+}
+
+template<typename T>
+void printMortonCodes(thrust::device_vector<T> const& vector)
+{
+	std::cout << "morton codes: " << std::endl;
+	for (int i = 0; i < vector.size(); i++) {
+		T val = vector[i];
+		printBinary<T>(val);
+	}
+	std::cout << "end morton codes" << std::endl;
 }
 	
 template<typename T>
@@ -62,26 +90,83 @@ struct Normalize {
 	float3 m_min, m_max;
 };
 
-inline __device__ int delta(int i, int j, uint64_t* morton, int numNodes)
+
+inline __device__ int cuda_clz(uint32_t x) {
+	return __clz(x);
+}
+
+inline __device__ int cuda_clz(uint64_t x) {
+	return __clzll(x);
+}
+
+template<typename T>
+inline __device__ int cuda_delta(int i, int j, T* morton, int numNodes)
 {
 	if (j < 0 || j > numNodes) {
 		return -1;
 	}
-	const int d = __clzll(morton[i] ^ morton[j]); 
-	if (d==0) return __clz(i ^ j);
+	int d = cuda_clz(morton[i] ^ morton[j]); 
+	if (d==sizeof(T)*8) {
+		d += cuda_clz(uint32_t(i ^ j));
+	}
 	return d;
 }
 
-inline __device__ int sign(int i)
+inline __host__ int cpu_clz(uint32_t x) {
+	if (x == 0) return 32;
+	unsigned long r = 0;
+	_BitScanReverse(&r, x);
+	return 31 - r;
+}
+
+inline __host__ int cpu_clz(uint64_t x) {
+	if (x == 0) return 64;
+	unsigned long r = 0;
+	_BitScanReverse64(&r, x);
+	return 63 - r;
+}
+
+template<typename T>
+inline __host__ int cpu_delta(int i, int j, T* morton, int numNodes)
+{
+	if (j < 0 || j > numNodes) {
+		return -1;
+	}
+	int d = cpu_clz(morton[i] ^ morton[j]); 
+	if (d==sizeof(T)*8) {
+		d += cpu_clz(uint32_t(i ^ j));
+	}
+	return d;
+}
+
+#ifdef __CUDA_ARCH__
+#define delta cuda_delta
+#else
+#define delta cpu_delta
+#endif
+
+inline __host__ __device__ int sign(int i)
 {
 	return (i < 0) ? -1 : 1;
 }
 
-// TODO: shared memory
-__global__ void kernel_buildRadixTree(BvhNode* nodes, uint64_t* morton, int* parents, int numNodes)
-{
+template<typename T>
+__global__ void kernel_clz(T* morton, int* clz_res, int numMortonCodes) {
 	const int i = blockIdx.x * blockDim.x + threadIdx.x;
+	const int j = blockIdx.y * blockDim.y + threadIdx.y;
 
+	if (i >= numMortonCodes || j >= numMortonCodes)
+		return;
+
+	int index = i + j * numMortonCodes;
+
+	clz_res[index] = delta(i, j, morton, numMortonCodes);
+}
+
+// build the i-th inner node of the radix tree
+template<typename T>
+__host__ __device__ void buildRadixTree(int i, BvhNode* nodes, T* morton, int* parents, int numNodes)
+{
 	// needed to fill parent info:
 	// first numLeafs=numNodes+1 element in parents are
 	// for leaf nodes. The root index is numLeafs
@@ -119,13 +204,16 @@ __global__ void kernel_buildRadixTree(BvhNode* nodes, uint64_t* morton, int* par
 	int s = 0;
 	int k = 2;
 	t = (l+k-1)/k;
-	do {
+	while (true) {
 		if (delta(i, i + (s+t)*d, morton, numNodes) > delta_node) {
 			s += t;
 		}
+		
+		if (t <= 1) { break; }
+		
 		k *= 2;
 		t = (l+k-1)/k;
-	} while (t > 0);
+	}
 	const int split = i + s*d + min(d, 0);
 
 	// output child pointers
@@ -137,12 +225,15 @@ __global__ void kernel_buildRadixTree(BvhNode* nodes, uint64_t* morton, int* par
 	if (node.left >= 0) {
 		parents[node.left] = i;
 	} else {
-		parents[rootIndex - (node.left+1)] = i;
+		const int index = rootIndex - (node.left+1);
+		parents[index] = i;
 	}
 	if (node.right >= 0) {
-		parents[node.right] = i;
+		const int index = node.right;
+		parents[index] = i;
 	} else {
-		parents[rootIndex - (node.right+1)] = i;
+		const int index = rootIndex - (node.right+1);
+		parents[index] = i;
 	}
 
 	nodes[i] = node;
@@ -152,7 +243,18 @@ __global__ void kernel_buildRadixTree(BvhNode* nodes, uint64_t* morton, int* par
 	}
 }
 
-// TODO: shared memory
+template<typename T>
+__global__ void kernel_buildRadixTree(BvhNode* nodes, T* morton, int* parents, int numNodes)
+{
+	const int i = blockIdx.x * blockDim.x + threadIdx.x;
+		
+	if (i >= numNodes) {
+		return;
+	}
+
+	buildRadixTree(i, nodes, morton, parents, numNodes);
+}
+
 template<typename NodeDataParam>
 __global__ void kernel_innerNodes(BvhNode* nodes, int* parents, 
 	float3* positions, int numLeafs, NodeDataParam* param)
@@ -193,13 +295,10 @@ __global__ void kernel_innerNodes(BvhNode* nodes, int* parents,
 
 Bvh::Bvh(bool considerNormals)
 	: m_considerNormals(considerNormals)
-{
-
-}
+{ }
 
 Bvh::~Bvh()
-{
-}
+{ }
 
 void Bvh::create()
 {
@@ -251,11 +350,45 @@ void Bvh::create()
 	timerSort.start();
 
 	sort();
-	
 	timerSort.stop();
-
 	m_nodes.resize(numNodes);
-
+	
+	//{ // for debug purposes: check morton clz
+	//	int numMortonCodes = m_data->morton.size();
+	//	thrust::device_vector<int> clz_cuda(numMortonCodes * numMortonCodes);
+	//	dim3 dimBlock(16, 16);
+	//	dim3 dimGrid((numMortonCodes + dimBlock.x - 1)/dimBlock.x, (numMortonCodes + dimBlock.y - 1)/dimBlock.y);
+	//	kernel_clz<<<dimGrid, dimBlock>>>(
+	//		thrust::raw_pointer_cast(&m_data->morton[0]), 
+	//		thrust::raw_pointer_cast(&clz_cuda[0]),
+	//		numMortonCodes
+	//		);
+	//	std::vector<MC_SIZE> morton_cpu(numLeafs);
+	//	thrust::copy(m_data->morton.begin(), m_data->morton.end(), morton_cpu.begin());
+	//	for (int i = 0; i < numMortonCodes; ++i) {
+	//		for (int j = 0; j < numMortonCodes; ++j) {
+	//			int index = i + j * numMortonCodes;
+	//			int clz_ref = cpu_delta(i, j, morton_cpu.data(), numMortonCodes);
+	//			if (clz_ref != clz_cuda[index]) {
+	//				std::cout << "(i,j)=(" << i << "," << j << ")" << std::endl;
+	//				std::cout << "    clz_cuda = " << clz_cuda[index] << std::endl;
+	//				std::cout << "    clz_ref = " << clz_ref << std::endl;
+	//			}
+	//		}
+	//	}
+	//}
+	
+	//{ // for debug purposes: construct radix tree on cpu
+	//	std::vector<BvhNode> nodes(numNodes);
+	//	std::vector<MC_SIZE> morton(numLeafs);
+	//	thrust::copy(m_data->morton.begin(), m_data->morton.end(), morton.begin());
+	//	std::vector<int> parents(numNodes + numLeafs);
+	//	for (int i = 0; i < numNodes; ++i) {
+	//		buildRadixTree(i, nodes.data(), morton.data(), parents.data(), numNodes);
+	//	}
+	//	checkTreeIntegrity(nodes, parents);
+	//}
+	
 	cuda::CudaTimer timerBuildRadixTree;
 	timerBuildRadixTree.start();
 	{
@@ -268,10 +401,16 @@ void Bvh::create()
 			m_data->numNodes);
 	}
 	timerBuildRadixTree.stop();
-	checkTreeIntegrity();
-
-	printDebugRadixTree();
 	
+	//{ // for debug purposes: check the integrity of the radix tree
+	//	std::vector<int> parents(m_data->parents.size());
+	//	thrust::copy(m_data->parents.begin(), m_data->parents.end(), parents.begin());
+	//	m_nodesDebug.resize(m_nodes.size());
+	//	thrust::copy(m_nodes.begin(), m_nodes.end(), m_nodesDebug.begin());
+	//	checkTreeIntegrity(m_nodesDebug, parents);
+	//	printDebugRadixTree();
+	//}
+
 	cuda::CudaTimer timerFillInnerNodes;
 	timerFillInnerNodes.start();
 	fillInnerNodes();
@@ -290,38 +429,10 @@ void Bvh::create()
 	//std::cout << "sort: " << timerSort.getTime() << std::endl;
 	//std::cout << "kernel build radix-tree: " << timerBuildRadixTree.getTime() << std::endl;
 	//std::cout << "kernel build inner nodes: " << timerFillInnerNodes.getTime() << std::endl;
-	
-	//// calculate SA of all AABBs
-	//float sa = 0;
-	//for (int i = 0; i < m_nodes.size(); ++i) {
-	//	const BvhNode node = m_nodes[i];
-	//	const float3 bbMin = node.bbMin;
-	//	const float3 bbMax = node.bbMax;
-	//	const float dx = abs(bbMax.x - bbMin.x);
-	//	const float dy = abs(bbMax.y - bbMin.y);
-	//	const float dz = abs(bbMax.z - bbMin.z);
-	//
-	//	sa += 0.001f * 2.f * (dx * (dy + dz) + dy * dz); 
-	//}
-	//std::cout << "sum of aabb surface areas: " << sa << std::endl;
-	//// calculate volume of all AABBs
-	//float vol = 0;
-	//for (int i = 0; i < m_nodes.size(); ++i) {
-	//	const BvhNode node = m_nodes[i];
-	//	const float3 bbMin = node.bbMin;
-	//	const float3 bbMax = node.bbMax;
-	//	const float dx = abs(bbMax.x - bbMin.x);
-	//	const float dy = abs(bbMax.y - bbMin.y);
-	//	const float dz = abs(bbMax.z - bbMin.z);
-	//
-	//	vol += 0.001f * (dx * dy * dz); 
-	//}
-	//std::cout << "sum of aabb volumes: " << vol << std::endl;
 }
 
 void Bvh::printDebugRadixTree()
 {
-#ifdef PRINT_DEBUG
 	int numLeafs = m_input->positions.size();
 	std::cout << "traverse radix tree: (" << numLeafs << " leafs)" << std::endl;
 	
@@ -351,7 +462,6 @@ void Bvh::printDebugRadixTree()
 			stack_ptr++;
 		}
 	}
-#endif
 }
 
 void Bvh::generateDebugInfo(int level)
@@ -433,18 +543,16 @@ void Bvh::colorChildren(BvhNode const& node, glm::vec3 const& color)
 	}
 }
 
-void Bvh::checkTreeIntegrity()
+void Bvh::checkTreeIntegrity(std::vector<BvhNode> const& nodes, std::vector<int> const& parents)
 {
-	m_nodesDebug.resize(m_nodes.size());
-	thrust::copy(m_nodes.begin(), m_nodes.end(), m_nodesDebug.begin());
-
 	std::vector<int> stack(4096);
-	int numNodes = m_nodes.size();
+	int numNodes = nodes.size();
+	int numLeafs = numNodes + 1;
 	stack[0] = -1;
 	int stack_ptr = 1;
 	int max_stack_ptr = 0;
 	std::vector<int> checkparent(numNodes);
-	std::vector<int> visited(numNodes + m_numLeafs);
+	std::vector<int> visited(numNodes + numLeafs);
 	std::fill(checkparent.begin(), checkparent.end(), 0);
 	std::fill(visited.begin(), visited.end(), 0);
 
@@ -452,10 +560,10 @@ void Bvh::checkTreeIntegrity()
 		int nodeIndex = stack[--stack_ptr];
 
 		if (nodeIndex >= 0) { // leaf
-			if (nodeIndex >= m_numLeafs) {
+			if (nodeIndex >= numLeafs) {
 				std::cout << "leaf node index " << nodeIndex << " out of bounds";
 			}
-			int parent = m_data->parents[nodeIndex];
+			int parent = parents[nodeIndex];
 			if (parent != -1) { // if not root
 				checkparent[parent]++;
 			}
@@ -469,9 +577,12 @@ void Bvh::checkTreeIntegrity()
 			}
 		}
 		else { // inner node
-			BvhNode node = m_nodesDebug[-(nodeIndex+1)];
-			int idx = m_numLeafs - (nodeIndex+1);
-			int parent = m_data->parents[idx];
+			if (-(nodeIndex+1) >= numNodes) {
+				std::cout << "leaf node index " << nodeIndex << " out of bounds";
+			}
+			BvhNode node = nodes[-(nodeIndex+1)];
+			int idx = numLeafs - (nodeIndex+1);
+			int parent = parents[idx];
 			if (parent != -1) { // if not root
 				checkparent[parent]++;
 			}

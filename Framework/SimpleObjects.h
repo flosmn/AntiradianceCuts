@@ -3,7 +3,7 @@
 
 #include <glm/glm.hpp>
 
-#include "Mesh.h"
+#include "Mesh.hpp"
 #include "Defines.h"
 
 #include <vector>

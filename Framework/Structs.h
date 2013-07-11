@@ -13,18 +13,6 @@ struct TRANSFORM
 	glm::mat4 MVP;
 };
 
-struct CUBE_MAP
-{
-	glm::mat4 T[6];
-	glm::mat4 LS;
-	float face;
-};
-
-struct MODEL
-{
-	glm::vec3 positionWS;
-};
-
 struct AVPL_STRUCT
 {
 	glm::mat4 ViewMatrix;
@@ -127,22 +115,11 @@ struct CONFIG
 	int padd1;
 };
 
-struct NORMALIZE
-{
-	float factor;
-};
-
 struct CAMERA
 {
 	glm::vec3 positionWS;
 	int width;
 	int height;
-};
-
-struct POINT_CLOUD_POINT
-{
-	glm::vec4 position;
-	glm::vec4 color;
 };
 
 struct INFO
@@ -158,26 +135,10 @@ struct INFO
 	float clusterRefinementThreshold;
 };
 
-struct AREA_LIGHT
-{
-	glm::vec4 radiance;
-};
-
-struct AVPL_POSITION
-{
-	glm::vec4 positionWS;
-};
-
 struct ATLAS_INFO
 {
 	int dim_atlas;
 	int dim_tile;
-};
-
-struct TEST_STRUCT
-{
-	glm::vec4 color1;
-	glm::vec4 color2;
 };
 
 struct CLUSTERING

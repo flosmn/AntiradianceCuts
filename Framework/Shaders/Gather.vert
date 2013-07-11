@@ -10,12 +10,12 @@ uniform transform
 	mat4 MVP;
 } uTransform;
 
-layout(location = 0) in vec4 position;
+layout(location = 0) in vec3 position;
 
 out vec3 direction;
 
 void main()
 {
-	direction = transpose(mat3(uTransform.V)) * normalize(vec3(position));
-	gl_Position = position;
+	direction = transpose(mat3(uTransform.V)) * normalize(position);
+	gl_Position = vec4(position, 1.f);
 }

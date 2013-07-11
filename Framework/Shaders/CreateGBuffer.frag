@@ -2,15 +2,15 @@
 
 layout(std140) uniform;
 
-smooth in vec4 normalWS;
-smooth in vec4 positionWS;
-flat in float materialIndex;
+in vec3 normalWS;
+in vec3 positionWS;
+flat in int materialIndex;
 
 layout(location = 0) out vec4 outputPositionWS;
 layout(location = 1) out vec4 outputNormalWS;
 
 void main()
 {
-	outputPositionWS = positionWS;
-	outputNormalWS = vec4(normalize(normalWS.xyz), materialIndex);
+	outputPositionWS = vec4(positionWS, 1.f);
+	outputNormalWS = vec4(normalize(normalWS), float(materialIndex));
 }

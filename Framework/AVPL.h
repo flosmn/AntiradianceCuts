@@ -29,6 +29,7 @@ public:
 	glm::vec3 GetAntiradiance(const glm::vec3& w) const;
 
 	glm::vec3 GetIncidentRadiance() const { return m_Radiance; }
+	glm::vec3 GetIncidentAntradiance() const { return m_Antiradiance; }
 
 	glm::vec3 GetDirection() const { return m_Direction; }
 	float GetConeAngle() const { return m_ConeAngle; }

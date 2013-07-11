@@ -17,6 +17,7 @@ struct AvplsGpuParam
 	float3* normal;
 	float3* incDirection;
 	float3* incRadiance;
+	float3* antiradiance;
 	int* materialIndex;
 	int* bounce;
 	int numAvpls;
@@ -32,6 +33,7 @@ struct AvplsGpu
 	thrust::device_vector<float3> normal;
 	thrust::device_vector<float3> incDirection;	// incoming direction
 	thrust::device_vector<float3> incRadiance;	// incident radiance
+	thrust::device_vector<float3> antiradiance;	// incident radiance
 	thrust::device_vector<int> materialIndex;
 	thrust::device_vector<int> bounce;
 	int numAvpls;

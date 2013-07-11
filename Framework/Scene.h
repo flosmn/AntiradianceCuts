@@ -28,7 +28,8 @@ class CReferenceImage;
 class COGLUniformBuffer;
 class COCLContext;
 
-class CModel;
+class Model;
+class Mesh;
 
 class Scene
 {
@@ -38,32 +39,19 @@ public:
 	
 	void ClearScene();
 	
-	void DrawScene(COGLUniformBuffer* ubTransform, COGLUniformBuffer* ubMaterial);
-	void DrawScene(COGLUniformBuffer* ubTransform);
-
-	void DrawScene(const glm::mat4& mView, const glm::mat4& mProj, COGLUniformBuffer* ubTransform);
-
-	void DrawAreaLight(COGLUniformBuffer* ubTransform, COGLUniformBuffer* ubAreaLight);
-	void DrawAreaLight(COGLUniformBuffer* ubTransform, COGLUniformBuffer* ubAreaLight, glm::vec3 color);
-
 	void UpdateAreaLights();
 
 	void LoadCornellBox();
-	void LoadCornellBoxSmall();
 	void LoadSibernik();
 	void LoadSimpleScene();
-	void LoadCornellBoxDragon();
 	void LoadBuddha();
 	void LoadCornellEmpty();
-	void LoadRoom();
 	void LoadConferenceRoom();
-	void LoadHouse();
 
 	bool HasLightSource() { return m_HasLightSource; }
 
 	bool IntersectRayScene(const Ray& ray, float* t, Intersection *pIntersection, Triangle::IsectMode isectMode);
-	bool IntersectRaySceneSimple(const Ray& ray, float* t, Intersection *pIntersection, Triangle::IsectMode isectMode);
-
+	
 	CCamera* GetCamera() { return m_camera; }
 
 	void ClearLighting();
@@ -84,18 +72,25 @@ public:
 
 	CReferenceImage* GetReferenceImage() { return m_referenceImage.get(); }
 
+	BBox getBoundingBox() { return m_bbox; }
+	float getSceneExtent() { return glm::length(m_bbox.getMax() - m_bbox.getMin()); }
+
+	std::vector<std::unique_ptr<Model>> const&  getModels() const { return m_models; }
+	AreaLight const* getAreaLight() const { return m_areaLight.get(); }
+
 private:
+	void loadSceneFromFile(std::string const& file);
+	void calcBoundingBox();
 	void ClearPath();
 		
-	void InitKdTree();
+	void initKdTree();
 	void ReleaseKdTree();
 	
 	bool ContinueAVPLPath(AVPL* pred, AVPL* newAVPL, glm::vec3 direction, float pdf);
 	void CreateAVPLs(AVPL* pred, std::vector<AVPL>& path, int nAVPLs);
 	
 private:
-	std::vector<std::unique_ptr<CModel>> m_models;
-	std::vector<Triangle> m_primitives;
+	BBox m_bbox;
 
 	CCamera* m_camera;		
 	CConfigManager* m_confManager;
@@ -105,6 +100,9 @@ private:
 
 	std::unique_ptr<CMaterialBuffer> m_materialBuffer;
 	std::unique_ptr<CReferenceImage> m_referenceImage;
+
+	std::vector<std::unique_ptr<Mesh>> m_meshes;
+	std::vector<std::unique_ptr<Model>> m_models;
 
 	uint m_NumCreatedAVPLs;
 

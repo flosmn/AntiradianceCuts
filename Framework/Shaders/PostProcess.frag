@@ -8,19 +8,16 @@ out vec4 outputColor;
 
 uniform sampler2D textureSampler;
 
-uniform postprocess
-{
-	float one_over_gamma;
-	float exposure;
-} uPostProcess;
+uniform float gamma;
+uniform float exposure;
 
 void main()
 {
 	vec4 color = texture2D(textureSampler, texCoord);
 	//color = 1 - exp(-uPostProcess.exposure * color);
-	color.r = pow(color.r, uPostProcess.one_over_gamma);
-	color.g = pow(color.g, uPostProcess.one_over_gamma);
-	color.b = pow(color.b, uPostProcess.one_over_gamma);
+	color.r = pow(color.r, 1.f / gamma);
+	color.g = pow(color.g, 1.f / gamma);
+	color.b = pow(color.b, 1.f / gamma);
 	
 	outputColor = color;
 }

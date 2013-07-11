@@ -2,7 +2,7 @@
 
 layout(std140) uniform;
 
-layout(location = 0) in vec4 position;
+layout(location = 0) in vec3 position;
 
 uniform transform
 {
@@ -14,5 +14,5 @@ uniform transform
 
 void main()
 {
-	gl_Position = uTransform.MVP * position;
+	gl_Position = uTransform.MVP * vec4(position, 1.f);
 }

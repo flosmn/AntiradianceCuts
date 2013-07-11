@@ -14,6 +14,8 @@
 #include <vector>
 #include <iostream>
 
+#define MC_SIZE uint32_t // size of morton code
+
 // negative numbers indicate pointers to inner nodes
 // positive numbers indicate pointers to leaf nodes
 struct BvhNode
@@ -27,7 +29,7 @@ struct BvhNode
 
 struct BvhData
 {
-	thrust::device_vector<uint64_t> morton;
+	thrust::device_vector<MC_SIZE> morton;
 	thrust::device_vector<int> parents;
 	int numLeafs;
 	int numNodes;
@@ -59,7 +61,7 @@ public:
 	void create();
 
 	void generateDebugInfo(int level);
-	void checkTreeIntegrity();
+	void checkTreeIntegrity(std::vector<BvhNode> const& nodes, std::vector<int> const& parents);
 	std::vector<glm::vec3>& getColors() { return m_colors; }
 	std::vector<glm::vec3>& getPositions() { return m_positions; }
 	std::vector<glm::vec3>& getBBMins() { return m_bbMins; }

@@ -2,17 +2,14 @@
 
 layout(std140) uniform;
 
-uniform norm
-{
-	float factor;
-} uNormalize;
-
 uniform camera
 {
 	vec3 vPositionWS;
 	int width;
 	int height;
 } uCamera;
+
+uniform float normFactor;
 
 out vec4 outputColor;
 
@@ -34,12 +31,12 @@ void main()
 	vec4 aRad = texture2D(accumRadiance, coord);
 	vec4 aAntirad = texture2D(accumAntiradiance, coord);
 	
-	normDiff = aDiff * uNormalize.factor;
+	normDiff = aDiff * normFactor;
 	normDiff.w = 1.0f;
 
-	normRadiance = aRad * uNormalize.factor;
+	normRadiance = aRad * normFactor;
 	normRadiance.w = 1.0f;
 
-	normAntiradiance = aAntirad * uNormalize.factor;
+	normAntiradiance = aAntirad * normFactor;
 	normAntiradiance.w = 1.0f;
 }

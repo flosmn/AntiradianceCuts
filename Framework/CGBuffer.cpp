@@ -16,9 +16,6 @@
 
 #include "Utils\ShaderUtil.h"
 
-#include "MeshResources\CFullScreenQuad.h"
-
-
 CGBuffer::CGBuffer(uint width, uint height, COGLTexture2D* pDepthBuffer)
 	: m_Width(width), m_Height(height)
 {

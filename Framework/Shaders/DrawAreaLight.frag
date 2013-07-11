@@ -1,13 +1,10 @@
 #version 420
 
-uniform arealight
-{
-	vec4 radiance;
-} uAreaLight;
-
 out vec4 outputColor;
+
+uniform vec3 radiance;
 
 void main()
 {
-	outputColor = uAreaLight.radiance;
+	outputColor = vec4(radiance, 1.f);
 }

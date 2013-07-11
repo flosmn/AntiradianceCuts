@@ -6,10 +6,15 @@ class Renderer;
 struct CONF_VARS
 {
 	int gatherWithCuda;
+	int useLightCuts;
 	int bvhLevel;
 	int considerNormals;
 	int DrawLights;
-	int DrawAABBs;
+	int DrawClusterLights;
+	int DrawClusterAABBs;
+
+	float lightRadiusScale;
+	float photonRadiusScale;
 
 	int DrawError;
 	int DrawReference;
