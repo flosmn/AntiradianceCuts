@@ -214,16 +214,14 @@ Renderer::Renderer(CCamera* m_camera, COGLContext* glContext, CConfigManager* co
 	m_cudaTargetTexture.reset(new COGLTexture2D(m_camera->GetWidth(), m_camera->GetWidth(), GL_RGBA32F,
 		GL_RGBA, GL_FLOAT, 1, false, "m_cudaTarget"));
 	
-	m_cudaGather.reset(new CudaGather(m_camera->GetWidth(), m_camera->GetHeight(),
+	m_cudaGather.reset(new CudaGather(m_camera,
 		m_gbuffer->GetPositionTextureWS()->GetResourceIdentifier(),
 		m_gbuffer->GetNormalTexture()->GetResourceIdentifier(),
 		m_cudaRenderTarget->GetTarget(0)->GetResourceIdentifier(),
 		m_cudaRenderTarget->GetTarget(1)->GetResourceIdentifier(),
 		m_cudaRenderTarget->GetTarget(2)->GetResourceIdentifier(),
 		m_scene->GetMaterialBuffer()->getMaterials(),
-		m_ubTransform.get(),
-		m_confManager
-	));
+		m_ubTransform.get(), m_confManager));
 	
 }
 
@@ -378,6 +376,8 @@ void Renderer::Render()
 		m_resultTimer->Start();
 		m_glTimer->Start();
 		CreateGBuffer();
+
+		m_cudaGather->rebuildVisiblePointsBvh();
 	}
 	
 	if (m_confManager->GetConfVars()->DrawDebugTextures) {
@@ -465,11 +465,18 @@ void Renderer::Render()
 	{
 		if (m_confManager->GetConfVars()->DrawClusterLights) {
 			CRenderTargetLock lock(m_resultRenderTarget.get());
-			m_cudaGather->getPointCloud()->Draw();
+			PointCloud pc(m_cudaGather->getVisiblePointsBvh()->centerPositions,
+				m_cudaGather->getVisiblePointsBvh()->colors, m_ubTransform.get(),
+				m_confManager->GetConfVars()->lightRadiusScale * m_scene->getSceneExtent() / 100.f);
+			pc.Draw();
+			//m_cudaGather->getPointCloud()->Draw();
 		}
 		if (m_confManager->GetConfVars()->DrawClusterAABBs) {
 			CRenderTargetLock lock(m_resultRenderTarget.get());
-			m_cudaGather->getAABBCloud()->Draw();
+			AABBCloud aabb(m_cudaGather->getVisiblePointsBvh()->clusterMin, 
+				m_cudaGather->getVisiblePointsBvh()->clusterMax, m_ubTransform.get());
+			aabb.Draw();
+			//m_cudaGather->getAABBCloud()->Draw();
 		}
 		
 		if (m_confManager->GetConfVars()->DrawLights) {
@@ -508,7 +515,6 @@ void Renderer::Render()
 		
 	m_ProfileFrame = false;
 	m_FinishedDebug = true;
-
 }
 
 void Renderer::GetAVPLs(std::vector<AVPL>& avpls_shadowmap, std::vector<AVPL>& avpls_antiradiance)

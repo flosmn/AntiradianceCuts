@@ -33,8 +33,8 @@
 typedef unsigned int uint;
 
 HDC g_HDC;
-int window_width = 1280;
-int window_height = 720;
+int window_width = 512;
+int window_height = 512;
 bool fullScreen = false;
 
 std::unique_ptr<CCamera> g_camera;

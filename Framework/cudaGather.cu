@@ -11,6 +11,7 @@
 #include "Utils/stream.h"
 
 #include "CConfigManager.h"
+#include "CCamera.h"
 
 #define THREADS_X 16
 #define THREADS_Y 16
@@ -123,9 +124,10 @@ inline __device__ float3 getAntiradiance(float3 const& pos,
 	if (dot(direction, avpl_norm) >= 0.f) {
 		return antirad;
 	}
-
+	
+	const float cos_theta = max(0.f, dot(norm, -direction));
 	const float3 brdf = f_r(avpl_pos, pos, camPos, norm, mat);
-	return avpl_A * brdf / (CUDA_PI * radius * radius);
+	return avpl_A * /*cos_theta **/ brdf / (CUDA_PI * radius * radius);
 }
 
 inline __device__ float3 getRadiance(float3 const& pos, float3 const& norm, MAT const& mat, MAT const& avpl_mat,
@@ -521,7 +523,7 @@ __global__ void kernel_combine(
 	surf2Dwrite(out, outResult, x * sizeof(float4), y);
 }
 
-CudaGather::CudaGather(int width, int height, 
+CudaGather::CudaGather(CCamera* camera, 
 	GLuint glPositonTexture, GLuint glNormalTexture,
 	GLuint glResultOutputTexture,
 	GLuint glRadianceOutputTexture,
@@ -529,7 +531,8 @@ CudaGather::CudaGather(int width, int height,
 	std::vector<MATERIAL> const& materials,
 	COGLUniformBuffer* ubTransform,
 	CConfigManager* confManager)
-	: m_width(width), m_height(height), m_ubTransform(ubTransform), m_confManager(confManager)
+	: m_camera(camera), m_width(camera->GetWidth()), m_height(camera->GetHeight()), 
+	  m_ubTransform(ubTransform), m_confManager(confManager)
 {
 	m_positionResource.reset(new CudaGraphicsResource(glPositonTexture, GL_TEXTURE_2D, 
 		cudaGraphicsRegisterFlagsNone));
@@ -700,4 +703,16 @@ void CudaGather::run(std::vector<AVPL> const& avpls, glm::vec3 const& cameraPosi
 		timer.stop();
 		if(profile) std::cout << "combine radiance and antiradiance took: " << timer.getTime() << "ms" << std::endl;
 	}
+}
+
+void CudaGather::rebuildVisiblePointsBvh()
+{
+	CudaGraphicsResourceMappedArray positionsMapped(m_positionResource.get());
+	CudaGraphicsResourceMappedArray normalsMapped(m_normalResource.get());
+
+	m_visiblePointsBvh.reset(new VisiblePointsBvh(
+		positionsMapped.getCudaSurfaceObject(),
+		normalsMapped.getCudaSurfaceObject(),
+		m_width, m_height, false,
+		make_float3(m_camera->GetPosition()), m_camera->getZNear(), m_camera->getTheta()));
 }

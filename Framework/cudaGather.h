@@ -20,11 +20,12 @@
 
 class CConfigManager;
 class SceneProbe;
+class CCamera;
 
 class CudaGather
 {
 public:
-	CudaGather(int width, int height, 
+	CudaGather(CCamera* camera, 
 		GLuint glPositonTexture, GLuint glNormalTexture,
 		GLuint glRadianceOutputTexture, GLuint glAntiradianceOutputTexture,
 		GLuint glResultOutputTexture,
@@ -42,6 +43,9 @@ public:
 	PointCloud* getPointCloud() { return m_pointCloud.get(); }
 	AABBCloud* getAABBCloud() { return m_aabbCloud.get(); }
 
+	void rebuildVisiblePointsBvh();
+	VisiblePointsBvh* getVisiblePointsBvh() { return m_visiblePointsBvh.get(); }
+
 private:
 	std::unique_ptr<cuda::CudaGraphicsResource> m_positionResource;
 	std::unique_ptr<cuda::CudaGraphicsResource> m_normalResource;
@@ -53,10 +57,13 @@ private:
 	std::unique_ptr<PointCloud> m_pointCloud;
 	std::unique_ptr<AABBCloud> m_aabbCloud;
 
+	std::unique_ptr<VisiblePointsBvh> m_visiblePointsBvh;
+
 	std::unique_ptr<MaterialsGpu> m_materialsGpu;
 
 	COGLUniformBuffer* m_ubTransform;
 	CConfigManager* m_confManager;
+	CCamera* m_camera;
 
 	int m_width;
 	int m_height;

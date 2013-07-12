@@ -61,7 +61,9 @@ public:
 	void create();
 
 	void generateDebugInfo(int level);
+	
 	void checkTreeIntegrity(std::vector<BvhNode> const& nodes, std::vector<int> const& parents);
+	
 	std::vector<glm::vec3>& getColors() { return m_colors; }
 	std::vector<glm::vec3>& getPositions() { return m_positions; }
 	std::vector<glm::vec3>& getBBMins() { return m_bbMins; }
@@ -149,13 +151,44 @@ class SimpleBvh : public Bvh
 {
 public:
 	SimpleBvh(std::vector<float3> const& positions,
-			std::vector<float3> const& normals,
-			bool considerNormals);
+		std::vector<float3> const& normals,
+		bool considerNormals);
 
 	~SimpleBvh();
 	
 	virtual void fillInnerNodes();
 	virtual void sort();
+};
+
+struct VisiblePointsBvhNodeDataParam
+{
+	uint2* pixel;
+};
+
+struct VisiblePointsBvhNodeData
+{
+	thrust::device_vector<uint2> pixel;
+	std::unique_ptr<cuda::CudaBuffer<VisiblePointsBvhNodeDataParam>> m_param; 
+};
+
+class VisiblePointsBvh : public Bvh
+{
+public:
+	VisiblePointsBvh(cudaSurfaceObject_t positionSurfaceObject,
+		cudaSurfaceObject_t normalSurfaceObject, int width, int height,
+		bool considerNormals, float3 const& cameraPos, float zNear, float cameraTheta);
+
+	~VisiblePointsBvh();
+	
+	virtual void fillInnerNodes();
+	virtual void sort();
+
+	std::vector<glm::vec3> centerPositions;
+	std::vector<glm::vec3> colors;
+	std::vector<glm::vec3> clusterMin;
+	std::vector<glm::vec3> clusterMax;
+private:
+	std::unique_ptr<VisiblePointsBvhNodeData> m_nodeData;
 };
 
 #endif // BVH_H_

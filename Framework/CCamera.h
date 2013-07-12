@@ -67,9 +67,13 @@ public:
 
 	void PrintConfig();
 
+	float getZNear() const { return m_zNear; }
+	float getTheta() const { return m_FOV / 2.f; }
+
 private:
 	uint m_Width, m_Height;
 	float m_Speed;
+	float m_zNear;
 
 	float m_FOV;
 	float m_Aspect;

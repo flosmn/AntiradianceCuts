@@ -164,10 +164,14 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
   <ItemGroup>
     <CudaCompile Include="bvh.cu">
       <FileType>CppCode</FileType>
-      <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
-      <HostDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</HostDebugInfo>
-      <FastMath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</FastMath>
-      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">O2</Optimization>
+      <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GPUDebugInfo>
+      <HostDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</HostDebugInfo>
+      <FastMath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</FastMath>
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Od</Optimization>
+      <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</GPUDebugInfo>
+      <HostDebugInfo Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</HostDebugInfo>
+      <FastMath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</FastMath>
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">O2</Optimization>
     </CudaCompile>
     <ClCompile Include="CCamera.cpp" />
     <ClCompile Include="CClusterTree.cpp" />
@@ -223,6 +227,10 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
       <FastMath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</FastMath>
       <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
       <GenerateLineInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GenerateLineInfo>
+      <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</GPUDebugInfo>
+      <HostDebugInfo Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</HostDebugInfo>
+      <FastMath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</FastMath>
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">O2</Optimization>
     </CudaCompile>
     <CudaCompile Include="data_gpu.cu" />
   </ItemGroup>

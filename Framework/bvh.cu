@@ -69,16 +69,6 @@ void printMortonCodes(thrust::device_vector<T> const& vector)
 	}
 	std::cout << "end morton codes" << std::endl;
 }
-	
-template<typename T>
-struct Max {
-	__host__ __device__ T operator()(T const& a, T const& b) const { return fmaxf(a, b) ;}
-};
-
-template<typename T>
-struct Min { 
-	__host__ __device__ T operator()(T const& a, T const& b) const { return fminf(a, b) ;}
-};
 
 struct Normalize {
 	Normalize(float3 const& min, float3 const& max) : m_min(min), m_max(max) {}
@@ -90,6 +80,38 @@ struct Normalize {
 	float3 m_min, m_max;
 };
 
+template<typename T>
+struct add_mul : public thrust::binary_function<T,T,T>
+{
+	add_mul(const T& _factor) : factor(_factor) {
+	}
+		__host__ __device__ T operator()(const T& a, const T& b) const 
+	{
+		return (a + b * factor);
+	}
+	const T factor;
+};
+
+template<typename T>
+struct Max : public thrust::binary_function<T,T,T> {
+	__host__ __device__ T operator()(const T& a, const T& b) const {
+		return max(a, b);
+	}
+};
+
+template<typename T>
+struct Min : public thrust::binary_function<T,T,T> {
+	__host__ __device__ T operator()(const T& a, const T& b) const {
+		return min(a, b);
+	}
+};
+
+template<typename T>
+struct Center : public thrust::binary_function<T,T,T> {
+	__host__ __device__ T operator()(const T& a, const T& b) const {
+		return (a + b) / 2;
+	}
+};
 
 inline __device__ int cuda_clz(uint32_t x) {
 	return __clz(x);
@@ -854,6 +876,10 @@ SimpleBvh::SimpleBvh(std::vector<float3> const& positions,
 	create();
 }
 
+// ----------------------------------------------------------------------
+// SimpleBvh --------------------------------------------------------------
+// ----------------------------------------------------------------------
+
 SimpleBvh::~SimpleBvh()
 { }
 
@@ -878,4 +904,301 @@ void SimpleBvh::fillInnerNodes()
 		thrust::raw_pointer_cast(&m_input->positions[0]), 
 		m_data->numLeafs,
 		0);
+}
+
+// ----------------------------------------------------------------------
+// VisiblePointsBvh --------------------------------------------------------------
+// ----------------------------------------------------------------------
+
+typedef thrust::zip_iterator<
+			thrust::tuple<
+				thrust::device_vector<int>::iterator, 
+				thrust::device_vector<int>::iterator
+			>
+		> ZipIterator;
+
+struct Predicate {
+	Predicate(int *bucketDelimiters) : m_bucketDelimiters(bucketDelimiters) {}
+
+	__host__ __device__
+	bool operator()(thrust::tuple<int, int> const& a, thrust::tuple<int, int> const& b) {
+		if (a.get<0>() == b.get<0>()) {
+ 			return true;
+		} else {
+ 			m_bucketDelimiters[b.get<1>()] = 1;
+			return false;
+		}
+	}
+
+	int* m_bucketDelimiters;
+};
+
+struct Mapping {
+	Mapping(int *mapping) : m_mapping(mapping) {}
+
+	__host__ __device__
+	void operator()(thrust::tuple<int, int> const& a) {
+		m_mapping[a.get<0>()] = a.get<1>();
+	}
+
+	int* m_mapping;
+};
+
+struct MaxFloat3 {
+	__host__ __device__ float3 operator()(float3 const& a, float3 const& b) const {
+		return max(a, b);
+	}
+};
+
+struct MinFloat3 {
+	__host__ __device__ float3 operator()(float3 const& a, float3 const& b) const {
+		return min(a, b);
+	}
+};
+
+__device__ __host__ void cluster(const int target, const int left, const int right, int numLeafs, VisiblePointsBvhNodeDataParam* param)
+{
+}
+
+__global__ void kernel_fillVisiblePoints(
+	cudaSurfaceObject_t inPositions, cudaSurfaceObject_t inNormals,
+	float3* positions, float3* normals, uint2* pixels, int width, int height)
+{
+	const int x = blockIdx.x * blockDim.x + threadIdx.x;
+	const int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+	if (x >= width || y >= height) {
+		return;
+	}
+	
+	float4 data;
+	surf2Dread(&data, inPositions, x * sizeof(float4), y);
+	const float3 pos = make_float3(data);
+	surf2Dread(&data, inNormals, x * sizeof(float4), y);
+	const float3 norm = make_float3(data);
+
+	int index = x + y * width;
+	positions[index] = pos;
+	normals[index] = norm;
+	pixels[index] = make_uint2(x, y);	
+}
+
+__global__ void kernel_initBuffers(dim3 dimensions, int* tileIdBuffer, int* pixelIdBuffer, int* bucketBuffer,
+		int* tempClusterIdBuffer, int* clusterIdBuffer, int* cluster_k, float3* positions,
+		float3 cameraPos, float zNear, float cameraTheta, cudaSurfaceObject_t positionTexture)
+{
+	const int x = threadIdx.x + blockIdx.x * blockDim.x;
+	const int y = threadIdx.y + blockIdx.y * blockDim.y;
+	
+	if (x >= dimensions.x || y >= dimensions.y)	{
+		return;
+	}
+
+	const int offset = x + y * dimensions.x;
+	const int tileId = blockIdx.y * gridDim.x + blockIdx.x;
+	
+	tileIdBuffer[offset] = tileId;
+	pixelIdBuffer[offset] = offset;
+	bucketBuffer[offset] = 0;
+	tempClusterIdBuffer[offset] = 0;
+	clusterIdBuffer[offset] = 0;
+
+	float4 temp;
+	surf2Dread(&temp, positionTexture, x * sizeof(float4), y);
+
+	const float3 position = make_float3(temp);
+	const float dist = length(cameraPos - position);
+
+	const int k = floor( 
+		log(dist / zNear) / 
+		log(1.f + (2.f * tan(cameraTheta)) / blockDim.y) );
+	
+	cluster_k[offset] = k;
+	positions[offset] = position;
+}
+
+VisiblePointsBvh::VisiblePointsBvh(cudaSurfaceObject_t positionSurfaceObject,
+		cudaSurfaceObject_t normalSurfaceObject, int width, int height, bool considerNormals,
+		float3 const& cameraPos, float zNear, float cameraTheta)
+	: Bvh(considerNormals)
+{
+	m_input.reset(new BvhInput());
+
+	const int bufferSize = width * height;
+	const int tileWidth = 16;
+	const int tileHeight = 16;
+
+	const int numTilesX = (width  + tileWidth  - 1) / tileWidth;
+	const int numTilesY = (height + tileHeight - 1) / tileHeight;
+	
+	dim3 dimensions(width, height, 1);
+	dim3 numBlocks(numTilesX, numTilesY, 1);
+	dim3 numThreads(tileWidth, tileHeight, 1);
+
+	thrust::device_vector<int> tileIdBuffer(bufferSize);
+	thrust::device_vector<int> pixelIdBuffer(bufferSize);
+	thrust::device_vector<int> bucketBuffer(bufferSize);
+	thrust::device_vector<int> tempClusterIdBuffer(bufferSize);
+	thrust::device_vector<int> clusterIdBuffer(bufferSize);
+	thrust::device_vector<int> clusterMinIdBuffer(bufferSize);
+	thrust::device_vector<int> clusterMaxIdBuffer(bufferSize);
+	thrust::device_vector<float3> positions(bufferSize);
+	thrust::device_vector<float3> clusterBBMin(bufferSize);
+	thrust::device_vector<float3> clusterBBMax(bufferSize);
+	thrust::device_vector<int> cluster_k(bufferSize);
+	
+	kernel_initBuffers<<<numBlocks, numThreads>>>(dimensions
+		, (int*) thrust::raw_pointer_cast(&tileIdBuffer[0])
+		, (int*) thrust::raw_pointer_cast(&pixelIdBuffer[0])
+		, (int*) thrust::raw_pointer_cast(&bucketBuffer[0])
+		, (int*) thrust::raw_pointer_cast(&tempClusterIdBuffer[0])
+		, (int*) thrust::raw_pointer_cast(&clusterIdBuffer[0])
+		, (int*) thrust::raw_pointer_cast(&cluster_k[0])
+		, (float3*) thrust::raw_pointer_cast(&positions[0])
+		, cameraPos, zNear, cameraTheta
+		, positionSurfaceObject
+	);
+
+	// determine the maximal depth value of all clusters
+	const int maxValue = *(thrust::max_element(
+		cluster_k.begin(), cluster_k.end()));
+
+	// transform the values of each tile block into its owm value domain 
+	thrust::transform(cluster_k.begin(), cluster_k.end(), 
+		tileIdBuffer.begin(), cluster_k.begin(), add_mul<int>(maxValue)); 
+	
+	// sort the transformed values and keep track of the corresponding
+	// tile and pixel id
+	thrust::sort_by_key(cluster_k.begin(), cluster_k.end(), 
+		thrust::make_zip_iterator(
+			thrust::make_tuple(
+				tileIdBuffer.begin(),
+				pixelIdBuffer.begin(),
+				positions.begin())),
+		thrust::less<int>());
+
+	// remove duplicate values and indicate the places where a new bucket starts
+	thrust::counting_iterator<int> iter(0);
+	thrust::device_vector<int> ids(bufferSize);
+	thrust::copy(iter, iter + ids.size(), ids.begin());
+	ZipIterator source_begin(thrust::make_tuple(
+		cluster_k.begin(), ids.begin()));
+	ZipIterator source_end(thrust::make_tuple(
+		cluster_k.end(), ids.end()));
+	
+	thrust::pair<ZipIterator, thrust::device_vector<int>::iterator> new_end = 
+		thrust::unique_by_key(source_begin, source_end, tileIdBuffer.begin(),
+			Predicate(thrust::raw_pointer_cast(&bucketBuffer[0])));
+	
+	// calculate the prefix sum of the bucket delimiters to determine the 
+	// "cluster-id" at the corresponding index
+	thrust::inclusive_scan(bucketBuffer.begin(), bucketBuffer.end(), 
+		tempClusterIdBuffer.begin());
+	
+	// determine AABB of the clusters in world space 
+	thrust::pair<thrust::device_vector<int>::iterator, thrust::device_vector<float3>::iterator> end_max = 
+		thrust::reduce_by_key(tempClusterIdBuffer.begin(), tempClusterIdBuffer.end(),
+			positions.begin(), clusterMaxIdBuffer.begin(), clusterBBMax.begin(),
+			thrust::equal_to<int>(), Max<float3>());
+	
+	thrust::pair<thrust::device_vector<int>::iterator, thrust::device_vector<float3>::iterator> end_min = 
+		thrust::reduce_by_key(tempClusterIdBuffer.begin(), tempClusterIdBuffer.end(),
+		positions.begin(), clusterMinIdBuffer.begin(), clusterBBMin.begin(), 
+		thrust::equal_to<int>(), Min<float3>());
+	
+	// transform the depth values back
+	const int numClusters = new_end.second - tileIdBuffer.begin();
+	thrust::transform(cluster_k.begin(), cluster_k.begin() + numClusters,
+		tileIdBuffer.begin(), cluster_k.begin(), add_mul<int>(-maxValue));
+	
+	// map the cluster-ids to the right pixel position (order was probably destroyed by the sorting step)
+	thrust::for_each(
+		thrust::make_zip_iterator(thrust::make_tuple(
+				pixelIdBuffer.begin(), tempClusterIdBuffer.begin())),
+		thrust::make_zip_iterator(thrust::make_tuple(
+				pixelIdBuffer.end(), tempClusterIdBuffer.end())),
+		Mapping(thrust::raw_pointer_cast(&clusterIdBuffer[0])));
+
+	// determine cluster centers
+	thrust::device_vector<float3> centers(numClusters);
+	thrust::transform(clusterBBMin.begin(), clusterBBMin.begin() + numClusters, clusterBBMax.begin(), centers.begin(),
+		Center<float3>());
+
+	std::vector<float3> tempPos(numClusters);
+	std::vector<float3> tempMin(numClusters);
+	std::vector<float3> tempMax(numClusters);
+	centerPositions.resize(numClusters);
+	clusterMin.resize(numClusters);
+	clusterMax.resize(numClusters);
+	colors.resize(numClusters);
+	thrust::copy(centers.begin(), centers.end(), tempPos.begin());
+	thrust::copy(clusterBBMin.begin(), clusterBBMin.begin() + numClusters, tempMin.begin());
+	thrust::copy(clusterBBMax.begin(), clusterBBMax.begin() + numClusters, tempMax.begin());
+
+	for (int i = 0; i < numClusters; ++i) {
+		centerPositions[i] = make_vec3(tempPos[i]);
+		clusterMin[i] = make_vec3(tempMin[i]);
+		clusterMax[i] = make_vec3(tempMax[i]);
+		colors[i] = glm::vec3(1.f, 1.f, 1.f);
+	}
+	
+	/*
+	m_input->positions.resize(width * height);
+	m_input->normals.resize(width * height);
+		
+	m_nodeData.reset(new VisiblePointsBvhNodeData());
+	m_nodeData->pixel.resize(width * height);
+	VisiblePointsBvhNodeDataParam param;
+	param.pixel = thrust::raw_pointer_cast(&m_nodeData->pixel[0]);
+	m_nodeData->m_param.reset(new cuda::CudaBuffer<VisiblePointsBvhNodeDataParam>(&param));
+	
+	// fill vectors with information
+	{
+		cuda::CudaTimer timer;
+		timer.start();
+		dim3 dimBlock(32, 32);
+		dim3 dimGrid((width  + dimBlock.x - 1) / dimBlock.x,
+			(height + dimBlock.y - 1) / dimBlock.y);
+
+		kernel_fillVisiblePoints<<<dimGrid, dimBlock>>>(
+			positionSurfaceObject, normalSurfaceObject,
+			thrust::raw_pointer_cast(&m_input->positions[0]), 
+			thrust::raw_pointer_cast(&m_input->normals[0]), 
+			thrust::raw_pointer_cast(&m_nodeData->pixel[0]), 
+			width, height);
+		timer.stop();
+		std::cout << "fill vectors with visible points: " << timer.getTime() << "ms" << std::endl;
+	}
+
+	create();
+	*/
+}
+
+
+VisiblePointsBvh::~VisiblePointsBvh()
+{
+}
+
+void VisiblePointsBvh::fillInnerNodes()
+{
+	dim3 dimBlock(128);
+	dim3 dimGrid((m_numLeafs + dimBlock.x - 1) / dimBlock.x);
+	kernel_innerNodes<VisiblePointsBvhNodeDataParam><<<dimGrid, dimBlock>>>(
+		thrust::raw_pointer_cast(&m_nodes[0]), 
+		thrust::raw_pointer_cast(&m_data->parents[0]), 
+		thrust::raw_pointer_cast(&m_input->positions[0]), 
+		m_data->numLeafs,
+		m_nodeData->m_param->getDevicePtr());
+}
+
+void VisiblePointsBvh::sort()
+{
+	thrust::sort_by_key(m_data->morton.begin(), m_data->morton.end(),
+		thrust::make_zip_iterator(thrust::make_tuple(
+				m_input->positions.begin(), 
+				m_input->normals.begin(),
+				m_nodeData->pixel.begin()
+			)	
+		)
+	);
 }

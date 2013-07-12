@@ -1174,6 +1174,19 @@ inline __host__ __device__ uint4 min(uint4 a, uint4 b)
     return make_uint4(min(a.x,b.x), min(a.y,b.y), min(a.z,b.z), min(a.w,b.w));
 }
 
+inline __host__ __device__ float2 min(float2 a, float2 b)
+{
+    return make_float2(min(a.x,b.x), min(a.y,b.y));
+}
+inline __host__ __device__ float3 min(float3 a, float3 b)
+{
+    return make_float3(min(a.x,b.x), min(a.y,b.y), min(a.z,b.z));
+}
+inline __host__ __device__ float4 min(float4 a, float4 b)
+{
+    return make_float4(min(a.x,b.x), min(a.y,b.y), min(a.z,b.z), min(a.w,b.w));
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // max
 ////////////////////////////////////////////////////////////////////////////////

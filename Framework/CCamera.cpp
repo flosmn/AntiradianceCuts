@@ -13,11 +13,12 @@ CCamera::CCamera(int w, int h, float zNear, float zFar)
 {
 	m_Width = w;
 	m_Height = h;
+	m_zNear = zNear;
 	
 	m_FOV = M_PI / 4.f;
 	m_Aspect = (float)m_Width / (float)m_Height;
 	 
-	m_ProjectionMatrix = glm::perspective(180.f/M_PI * m_FOV, m_Aspect, zNear, zFar);
+	m_ProjectionMatrix = glm::perspective(180.f/M_PI * m_FOV, m_Aspect, m_zNear, zFar);
 	m_Speed = 2.0f;
 		
 	m_Scale = 2.0f / m_Height * tanf(0.5f * m_FOV);
