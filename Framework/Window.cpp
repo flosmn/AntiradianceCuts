@@ -419,11 +419,6 @@ bool HandleKeyEvent(WPARAM wParam)
 			g_renderer->Export();
 			return true; break;
 
-		case 'T':
-
-			g_configManager->GetConfVarsGUI()->DrawDebugTextures = !g_configManager->GetConfVars()->DrawDebugTextures;
-			return true; break;
-
 		case 'X':
 
 			g_renderer->shootSceneProbe(g_MousePosX, 

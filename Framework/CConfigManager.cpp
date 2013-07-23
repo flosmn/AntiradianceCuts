@@ -13,14 +13,19 @@ CConfigManager::CConfigManager()
 
 	m_pConfVars->gatherWithCuda = m_pConfVarsGUI->gatherWithCuda = 1;
 	m_pConfVars->useLightCuts = m_pConfVarsGUI->useLightCuts = 0;
+	m_pConfVars->useClusteredDeferred = m_pConfVarsGUI->useClusteredDeferred = 1;
 	m_pConfVars->bvhLevel = m_pConfVarsGUI->bvhLevel = 0;
 	m_pConfVars->DrawClusterAABBs = m_pConfVarsGUI->DrawClusterAABBs = 0;
 	m_pConfVars->DrawClusterLights = m_pConfVarsGUI->DrawClusterLights = 0;
 	m_pConfVars->DrawLights = m_pConfVarsGUI->DrawLights = 0;
 	m_pConfVars->considerNormals = m_pConfVarsGUI->considerNormals = 1;
+	m_pConfVars->gatherClusterLightsSimple = m_pConfVarsGUI->gatherClusterLightsSimple = 0;
 	
 	m_pConfVars->lightRadiusScale = m_pConfVarsGUI->lightRadiusScale = 0.5f;
 	m_pConfVars->photonRadiusScale = m_pConfVarsGUI->photonRadiusScale = 1.0f;
+
+	m_pConfVars->drawRadianceTextures = m_pConfVarsGUI->drawRadianceTextures = 0;
+	m_pConfVars->drawGBufferTextures = m_pConfVarsGUI->drawGBufferTextures = 0;
 
 	m_pConfVars->UseAntiradiance = m_pConfVarsGUI->UseAntiradiance = 1;
 	m_pConfVars->SeparateDirectIndirectLighting = m_pConfVarsGUI->SeparateDirectIndirectLighting = 0;
@@ -54,7 +59,6 @@ CConfigManager::CConfigManager()
 	m_pConfVars->DrawAVPLAtlas = m_pConfVarsGUI->DrawAVPLAtlas = 0;
 	m_pConfVars->DrawAVPLClusterAtlas = m_pConfVarsGUI->DrawAVPLClusterAtlas = 0;
 
-	m_pConfVars->DrawDebugTextures = m_pConfVarsGUI->DrawDebugTextures = 0;
 	m_pConfVars->DrawLights = m_pConfVarsGUI->DrawLights = 0;
 	m_pConfVars->DrawCutSizes = m_pConfVarsGUI->DrawCutSizes = 0;
 	m_pConfVars->FilterAvplAtlasLinear = m_pConfVarsGUI->FilterAvplAtlasLinear = 1;
@@ -137,6 +141,11 @@ void CConfigManager::Update()
 		bool clearAccumBuffer = false;
 	}
 	
+	if(m_pConfVarsGUI->gatherClusterLightsSimple != m_pConfVars->gatherClusterLightsSimple)
+	{
+		m_pConfVars->gatherClusterLightsSimple = m_pConfVarsGUI->gatherClusterLightsSimple;
+	}
+
 	if(m_pConfVarsGUI->DrawClusterAABBs != m_pConfVars->DrawClusterAABBs)
 	{
 		m_pConfVars->DrawClusterAABBs = m_pConfVarsGUI->DrawClusterAABBs;
@@ -162,6 +171,14 @@ void CConfigManager::Update()
 	if(m_pConfVarsGUI->useLightCuts != m_pConfVars->useLightCuts)
 	{
 		m_pConfVars->useLightCuts = m_pConfVarsGUI->useLightCuts;
+		configureLighting = true;
+		clearAccumBuffer = true;
+		clearLighting = true;
+	}
+
+	if(m_pConfVarsGUI->useClusteredDeferred != m_pConfVars->useClusteredDeferred)
+	{
+		m_pConfVars->useClusteredDeferred = m_pConfVarsGUI->useClusteredDeferred;
 		configureLighting = true;
 		clearAccumBuffer = true;
 		clearLighting = true;
@@ -310,10 +327,14 @@ void CConfigManager::Update()
 		configureLighting = true;
 	}
 
-	if(m_pConfVarsGUI->DrawDebugTextures != m_pConfVars->DrawDebugTextures)
+	if(m_pConfVarsGUI->drawRadianceTextures != m_pConfVars->drawRadianceTextures)
 	{
-		m_pConfVars->DrawDebugTextures = m_pConfVarsGUI->DrawDebugTextures;
-		configureLighting = true;
+		m_pConfVars->drawRadianceTextures = m_pConfVarsGUI->drawRadianceTextures;
+	}
+
+	if(m_pConfVarsGUI->drawGBufferTextures != m_pConfVars->drawGBufferTextures)
+	{
+		m_pConfVars->drawGBufferTextures = m_pConfVarsGUI->drawGBufferTextures;
 	}
 
 	if(m_pConfVarsGUI->DrawCutSizes != m_pConfVars->DrawCutSizes)

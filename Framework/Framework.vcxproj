@@ -222,10 +222,10 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <ClCompile Include="Utils\Util.cpp" />
     <ClCompile Include="Window.cpp" />
     <CudaCompile Include="cudaGather.cu">
-      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">O2</Optimization>
-      <HostDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</HostDebugInfo>
-      <FastMath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</FastMath>
-      <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Od</Optimization>
+      <HostDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</HostDebugInfo>
+      <FastMath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</FastMath>
+      <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GPUDebugInfo>
       <GenerateLineInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GenerateLineInfo>
       <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</GPUDebugInfo>
       <HostDebugInfo Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</HostDebugInfo>

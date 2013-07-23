@@ -28,6 +28,8 @@ bool CGUI::Init(uint window_width, uint window_height)
 		
 	TwAddVarRW(m_pTwBar, "Gather with cuda", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->gatherWithCuda), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Use lightcuts", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->useLightCuts), "min=0 max=1 step=1");
+	TwAddVarRW(m_pTwBar, "Use clustered deferred", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->useClusteredDeferred), "min=0 max=1 step=1");
+	TwAddVarRW(m_pTwBar, "gather cluster lights simple", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->gatherClusterLightsSimple), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Use Antiradiance", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->UseAntiradiance), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Gather With AVPL Clustering", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->GatherWithAVPLClustering), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Sep D/I Lighting", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->SeparateDirectIndirectLighting), " min=0 max=1 step=1 ");
@@ -46,6 +48,8 @@ bool CGUI::Init(uint window_width, uint window_height)
 	TwAddVarRW(m_pTwBar, "Cone Factor", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->ConeFactor), " min=0.1 max=1000.0 step=0.1 ");
 	TwAddVarRW(m_pTwBar, "No Antiradiance", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NoAntiradiance), " min=0 max=1 step=1 ");
 	
+	TwAddVarRW(m_pTwBar, "Use GBuffer Textures", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->drawGBufferTextures), "min=0 max=1 step=1");
+
 	TwAddSeparator(m_pTwBar, "", "");
 
 	TwAddVarRW(m_pTwBar, "Clamp Radiance", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->GeoTermLimitRadiance), "min=0 max=100000 step=0.00001");
@@ -57,8 +61,7 @@ bool CGUI::Init(uint window_width, uint window_height)
 		
 	TwAddVarRW(m_pTwBar, "#AVPLs debug", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumAVPLsDebug), " min=1 max=100000 step=1 ");
 	TwAddVarRW(m_pTwBar, "Use Debug Mode", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->UseDebugMode), "min=0 max=1 step=1");
-	TwAddVarRW(m_pTwBar, "Use Debug Textures", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawDebugTextures), "min=0 max=1 step=1");
-	
+		
 	TwAddSeparator(m_pTwBar, "", "");
 	TwAddVarRW(m_pTwBar, "Photon Radius Scale", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->photonRadiusScale), " min=0.01 max=10.0 step=0.01 ");
 	TwAddVarRW(m_pTwBar, "Light Radius Scale", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->lightRadiusScale), " min=0.01 max=10.0 step=0.01 ");

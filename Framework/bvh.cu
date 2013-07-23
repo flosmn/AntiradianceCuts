@@ -1039,20 +1039,24 @@ VisiblePointsBvh::VisiblePointsBvh(cudaSurfaceObject_t positionSurfaceObject,
 	thrust::device_vector<int> pixelIdBuffer(bufferSize);
 	thrust::device_vector<int> bucketBuffer(bufferSize);
 	thrust::device_vector<int> tempClusterIdBuffer(bufferSize);
-	thrust::device_vector<int> clusterIdBuffer(bufferSize);
 	thrust::device_vector<int> clusterMinIdBuffer(bufferSize);
 	thrust::device_vector<int> clusterMaxIdBuffer(bufferSize);
 	thrust::device_vector<float3> positions(bufferSize);
-	thrust::device_vector<float3> clusterBBMin(bufferSize);
-	thrust::device_vector<float3> clusterBBMax(bufferSize);
 	thrust::device_vector<int> cluster_k(bufferSize);
+	
+	m_clusterBBMin.clear();
+	m_clusterBBMax.clear();
+	m_clusterIdBuffer.clear();
+	m_clusterBBMin.resize(bufferSize);
+	m_clusterBBMax.resize(bufferSize);
+	m_clusterIdBuffer.resize(bufferSize);
 	
 	kernel_initBuffers<<<numBlocks, numThreads>>>(dimensions
 		, (int*) thrust::raw_pointer_cast(&tileIdBuffer[0])
 		, (int*) thrust::raw_pointer_cast(&pixelIdBuffer[0])
 		, (int*) thrust::raw_pointer_cast(&bucketBuffer[0])
 		, (int*) thrust::raw_pointer_cast(&tempClusterIdBuffer[0])
-		, (int*) thrust::raw_pointer_cast(&clusterIdBuffer[0])
+		, (int*) thrust::raw_pointer_cast(&m_clusterIdBuffer[0])
 		, (int*) thrust::raw_pointer_cast(&cluster_k[0])
 		, (float3*) thrust::raw_pointer_cast(&positions[0])
 		, cameraPos, zNear, cameraTheta
@@ -1098,17 +1102,17 @@ VisiblePointsBvh::VisiblePointsBvh(cudaSurfaceObject_t positionSurfaceObject,
 	// determine AABB of the clusters in world space 
 	thrust::pair<thrust::device_vector<int>::iterator, thrust::device_vector<float3>::iterator> end_max = 
 		thrust::reduce_by_key(tempClusterIdBuffer.begin(), tempClusterIdBuffer.end(),
-			positions.begin(), clusterMaxIdBuffer.begin(), clusterBBMax.begin(),
+			positions.begin(), clusterMaxIdBuffer.begin(), m_clusterBBMax.begin(),
 			thrust::equal_to<int>(), Max<float3>());
 	
 	thrust::pair<thrust::device_vector<int>::iterator, thrust::device_vector<float3>::iterator> end_min = 
 		thrust::reduce_by_key(tempClusterIdBuffer.begin(), tempClusterIdBuffer.end(),
-		positions.begin(), clusterMinIdBuffer.begin(), clusterBBMin.begin(), 
+		positions.begin(), clusterMinIdBuffer.begin(), m_clusterBBMin.begin(), 
 		thrust::equal_to<int>(), Min<float3>());
 	
 	// transform the depth values back
-	const int numClusters = new_end.second - tileIdBuffer.begin();
-	thrust::transform(cluster_k.begin(), cluster_k.begin() + numClusters,
+	m_numClusters = new_end.second - tileIdBuffer.begin();
+	thrust::transform(cluster_k.begin(), cluster_k.begin() + m_numClusters,
 		tileIdBuffer.begin(), cluster_k.begin(), add_mul<int>(-maxValue));
 	
 	// map the cluster-ids to the right pixel position (order was probably destroyed by the sorting step)
@@ -1117,25 +1121,25 @@ VisiblePointsBvh::VisiblePointsBvh(cudaSurfaceObject_t positionSurfaceObject,
 				pixelIdBuffer.begin(), tempClusterIdBuffer.begin())),
 		thrust::make_zip_iterator(thrust::make_tuple(
 				pixelIdBuffer.end(), tempClusterIdBuffer.end())),
-		Mapping(thrust::raw_pointer_cast(&clusterIdBuffer[0])));
+		Mapping(thrust::raw_pointer_cast(&m_clusterIdBuffer[0])));
 
 	// determine cluster centers
-	thrust::device_vector<float3> centers(numClusters);
-	thrust::transform(clusterBBMin.begin(), clusterBBMin.begin() + numClusters, clusterBBMax.begin(), centers.begin(),
+	thrust::device_vector<float3> centers(m_numClusters);
+	thrust::transform(m_clusterBBMin.begin(), m_clusterBBMin.begin() + m_numClusters, m_clusterBBMax.begin(), centers.begin(),
 		Center<float3>());
 
-	std::vector<float3> tempPos(numClusters);
-	std::vector<float3> tempMin(numClusters);
-	std::vector<float3> tempMax(numClusters);
-	centerPositions.resize(numClusters);
-	clusterMin.resize(numClusters);
-	clusterMax.resize(numClusters);
-	colors.resize(numClusters);
+	std::vector<float3> tempPos(m_numClusters);
+	std::vector<float3> tempMin(m_numClusters);
+	std::vector<float3> tempMax(m_numClusters);
+	centerPositions.resize(m_numClusters);
+	clusterMin.resize(m_numClusters);
+	clusterMax.resize(m_numClusters);
+	colors.resize(m_numClusters);
 	thrust::copy(centers.begin(), centers.end(), tempPos.begin());
-	thrust::copy(clusterBBMin.begin(), clusterBBMin.begin() + numClusters, tempMin.begin());
-	thrust::copy(clusterBBMax.begin(), clusterBBMax.begin() + numClusters, tempMax.begin());
+	thrust::copy(m_clusterBBMin.begin(), m_clusterBBMin.begin() + m_numClusters, tempMin.begin());
+	thrust::copy(m_clusterBBMax.begin(), m_clusterBBMax.begin() + m_numClusters, tempMax.begin());
 
-	for (int i = 0; i < numClusters; ++i) {
+	for (int i = 0; i < m_numClusters; ++i) {
 		centerPositions[i] = make_vec3(tempPos[i]);
 		clusterMin[i] = make_vec3(tempMin[i]);
 		clusterMax[i] = make_vec3(tempMax[i]);

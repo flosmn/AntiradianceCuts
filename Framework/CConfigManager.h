@@ -7,6 +7,8 @@ struct CONF_VARS
 {
 	int gatherWithCuda;
 	int useLightCuts;
+	int useClusteredDeferred;
+	int gatherClusterLightsSimple;
 	int bvhLevel;
 	int considerNormals;
 	int DrawLights;
@@ -15,6 +17,9 @@ struct CONF_VARS
 
 	float lightRadiusScale;
 	float photonRadiusScale;
+
+	int drawRadianceTextures;
+	int drawGBufferTextures;
 
 	int DrawError;
 	int DrawReference;
@@ -25,7 +30,6 @@ struct CONF_VARS
 	int DrawAVPLClusterAtlas;
 	int GatherWithAVPLAtlas;
 	int GatherWithAVPLClustering;
-	int DrawDebugTextures;
 	int DrawCutSizes;
 	int FilterAvplAtlasLinear;
 	int FillAvplAltasOnGPU;

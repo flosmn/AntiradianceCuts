@@ -380,7 +380,7 @@ void Renderer::Render()
 		m_cudaGather->rebuildVisiblePointsBvh();
 	}
 	
-	if (m_confManager->GetConfVars()->DrawDebugTextures) {
+	if (m_confManager->GetConfVars()->drawGBufferTextures) {
 		int border = 10;
 		int width = (m_camera->GetWidth() - 4 * border) / 2;
 		int height = (m_camera->GetHeight() - 4 * border) / 2;
@@ -390,7 +390,7 @@ void Renderer::Render()
 		m_textureViewer->drawTexture(m_depthBuffer.get(),  3 * border + width, 3 * border + height, width, height);
 		return;
 	}
-
+	
 	std::vector<AVPL> avpls_shadowmap;
 	std::vector<AVPL> avpls_antiradiance;
 
@@ -674,17 +674,6 @@ void Renderer::DrawDebug()
 	{
 		if(m_scene->GetReferenceImage()) m_textureViewer->drawTexture(m_scene->GetReferenceImage()->GetOGLTexture(), 0, 0, m_camera->GetWidth(), m_camera->GetHeight());
 		else std::cout << "No reference image loaded" << std::endl;
-	}
-
-	if(m_confManager->GetConfVars()->DrawDebugTextures) 
-	{
-		int border = 10;
-		int width = (m_camera->GetWidth() - 4 * border) / 2;
-		int height = (m_camera->GetHeight() - 4 * border) / 2;
-		m_textureViewer->drawTexture(m_gbuffer->GetNormalTexture(),  border, border, width, height);
-		m_textureViewer->drawTexture(m_gbuffer->GetPositionTextureWS(),  3 * border + width, border, width, height);
-		m_textureViewer->drawTexture(m_normalizeAntiradianceRenderTarget->GetTarget(2),  border, 3 * border + height, width, height);
-		m_textureViewer->drawTexture(m_depthBuffer.get(),  3 * border + width, 3 * border + height, width, height);
 	}
 }
 

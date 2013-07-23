@@ -187,6 +187,11 @@ public:
 	std::vector<glm::vec3> colors;
 	std::vector<glm::vec3> clusterMin;
 	std::vector<glm::vec3> clusterMax;
+
+	thrust::device_vector<float3> m_clusterBBMin;
+	thrust::device_vector<float3> m_clusterBBMax;
+	thrust::device_vector<int> m_clusterIdBuffer;
+	int m_numClusters;
 private:
 	std::unique_ptr<VisiblePointsBvhNodeData> m_nodeData;
 };
