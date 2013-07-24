@@ -10,22 +10,15 @@
 
 class COGLTextureBuffer;
 
-class COCLContext;
-class COCLBuffer;
-
 class CMaterialBuffer
 {
 public:
-	CMaterialBuffer(COCLContext* pContext);
+	CMaterialBuffer();
 	~CMaterialBuffer();
 	
 	bool FillOGLMaterialBuffer();
-
-	bool InitOCLMaterialBuffer();
-	void ReleaseOCLMaterialBuffer();
-
+	
 	COGLTextureBuffer* GetOGLMaterialBuffer() { return m_oglMaterialBuffer.get(); }
-	COCLBuffer* GetOCLMaterialBuffer();
 	
 	// add the material mat to the material buffer and returns the index of the material in the buffer
 	int AddMaterial(std::string const& name, MATERIAL const& mat);
@@ -42,7 +35,6 @@ private:
 	std::vector<MATERIAL> m_Materials;
 
 	std::unique_ptr<COGLTextureBuffer> m_oglMaterialBuffer;
-	COCLBuffer* m_pOCLMaterialBuffer;
 };
 
 #endif _C_MATERIAL_BUFFER_H_

@@ -21,12 +21,10 @@ class AVPL;
 class AreaLight;
 class KdTreeAccelerator;
 class CConfigManager;
-class CAVPLImportanceSampling;
 class CMaterialBuffer;
 class CReferenceImage;
 
 class COGLUniformBuffer;
-class COCLContext;
 
 class Model;
 class Mesh;
@@ -34,7 +32,7 @@ class Mesh;
 class Scene
 {
 public:
-	Scene(CCamera* camera, CConfigManager* confManager, COCLContext* clContext);
+	Scene(CCamera* camera, CConfigManager* confManager);
 	~Scene();
 	
 	void ClearScene();

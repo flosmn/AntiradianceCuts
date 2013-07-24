@@ -1,7 +1,5 @@
 #include "CTimer.h"
 
-#include "OCLResources\COCLContext.h"
-
 #include "gl/glew.h"
 
 void CTimer::Start()
@@ -10,14 +8,7 @@ void CTimer::Start()
 	{
 		glFinish();
 	}
-	else if(m_Type == OCL)
-	{
-		if(!m_pContext)
-			std::cout << "OCLContext is null" << std::endl;
-		else
-			clFinish(*m_pContext->GetCLCommandQueue());
-	}
-
+	
 	m_ClockStartCPU = clock();
 }
 
@@ -27,13 +18,7 @@ void CTimer::Stop()
 	{
 		glFinish();
 	}
-	else if(m_Type == OCL)
-	{
-		if(!m_pContext)
-			std::cout << "OCLContext is null" << std::endl;
-		else
-			clFinish(*m_pContext->GetCLCommandQueue());
-	}
+	
 
 	m_ClockEndCPU = clock();
 	clock_t diff = m_ClockEndCPU - m_ClockStartCPU;

@@ -174,7 +174,6 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">O2</Optimization>
     </CudaCompile>
     <ClCompile Include="CCamera.cpp" />
-    <ClCompile Include="CClusterTree.cpp" />
     <ClCompile Include="CConfigManager.cpp" />
     <ClCompile Include="CExperimentData.cpp" />
     <ClCompile Include="CGBuffer.cpp" />
@@ -182,8 +181,6 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <ClCompile Include="CImage.cpp" />
     <ClCompile Include="CImagePlane.cpp" />
     <ClCompile Include="CMaterialBuffer.cpp" />
-    <ClCompile Include="COctahedronAtlas.cpp" />
-    <ClCompile Include="COctahedronMap.cpp" />
     <ClCompile Include="CPathTracingIntegrator.cpp" />
     <ClCompile Include="CProgram.cpp" />
     <ClCompile Include="CReferenceImage.cpp" />
@@ -193,16 +190,8 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <ClCompile Include="AVPL.cpp" />
     <ClCompile Include="guicon.cpp" />
     <ClCompile Include="KdTreeAccelerator.cpp" />
-    <ClCompile Include="LightTreeTypes.cpp" />
-    <ClCompile Include="OCLResources\COCLTexture2D.cpp" />
-    <ClCompile Include="OCLResources\COCLBuffer.cpp" />
-    <ClCompile Include="OCLResources\COCLContext.cpp" />
-    <ClCompile Include="OCLResources\COCLKernel.cpp" />
-    <ClCompile Include="OCLResources\COCLProgram.cpp" />
-    <ClCompile Include="OCLResources\COCLResource.cpp" />
-    <ClCompile Include="OCLResources\OCLUtil.cpp" />
-    <ClCompile Include="OGLResources\COGLCubeMap.cpp" />
     <ClCompile Include="OGLResources\COGLBindLock.cpp" />
+    <ClCompile Include="OGLResources\COGLCubeMap.cpp" />
     <ClCompile Include="OGLResources\COGLFrameBuffer.cpp" />
     <ClCompile Include="OGLResources\COGLProgram.cpp" />
     <ClCompile Include="OGLResources\COGLRenderBuffer.cpp" />
@@ -239,7 +228,6 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <ClInclude Include="BBox.h" />
     <ClInclude Include="bvh.h" />
     <ClInclude Include="CCamera.h" />
-    <ClInclude Include="CClusterTree.h" />
     <ClInclude Include="CConfigManager.h" />
     <ClInclude Include="CExperimentData.h" />
     <ClInclude Include="CGBuffer.h" />
@@ -247,8 +235,6 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <ClInclude Include="CImage.h" />
     <ClInclude Include="CImagePlane.h" />
     <ClInclude Include="CMaterialBuffer.h" />
-    <ClInclude Include="COctahedronAtlas.h" />
-    <ClInclude Include="COctahedronMap.h" />
     <ClInclude Include="CPathTracingIntegrator.h" />
     <ClInclude Include="CProgram.h" />
     <ClInclude Include="CReferenceImage.h" />
@@ -264,21 +250,12 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <ClInclude Include="AVPL.h" />
     <ClInclude Include="Intersection.h" />
     <ClInclude Include="KdTreeAccelerator.h" />
-    <ClInclude Include="LightTreeTypes.h" />
     <ClInclude Include="Macros.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="mesh.hpp" />
     <ClInclude Include="model.hpp" />
     <ClInclude Include="ObjectClouds.h" />
-    <ClInclude Include="OCLResources\COCLBuffer.h" />
-    <ClInclude Include="OCLResources\COCLContext.h" />
-    <ClInclude Include="OCLResources\COCLKernel.h" />
-    <ClInclude Include="OCLResources\COCLProgram.h" />
-    <ClInclude Include="OCLResources\COCLResource.h" />
-    <ClInclude Include="OCLResources\COCLTexture2D.h" />
-    <ClInclude Include="OCLResources\OCLUtil.h" />
     <ClInclude Include="GlmUtil.h" />
-    <ClInclude Include="OctahedronUtil.h" />
     <ClInclude Include="OGLResources\COGLCubeMap.h" />
     <ClInclude Include="OGLResources\COGLBindLock.h" />
     <ClInclude Include="OGLResources\COGLBindSlot.h" />
@@ -318,26 +295,18 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
   <ItemGroup>
     <None Include="Kernels\FillAVPLAtlas.cl" />
     <None Include="Shaders\Constants.glsl" />
-    <None Include="Shaders\CreateCubeShadowMap.frag" />
-    <None Include="Shaders\CreateCubeShadowMap.geom" />
-    <None Include="Shaders\CreateCubeShadowMap.vert" />
     <None Include="Shaders\CreateGBuffer.frag" />
     <None Include="Shaders\CreateGBuffer.vert" />
     <None Include="Shaders\CreateSM.frag" />
     <None Include="Shaders\CreateSM.vert" />
-    <None Include="Shaders\DirectEnvmapLighting.frag" />
     <None Include="Shaders\DrawAreaLight.frag" />
     <None Include="Shaders\DrawAreaLight.vert" />
-    <None Include="Shaders\DrawOctahedron.frag" />
-    <None Include="Shaders\DrawOctahedron.vert" />
     <None Include="Shaders\DrawTexture.frag" />
     <None Include="Shaders\DrawTexture.vert" />
     <None Include="Shaders\Error.frag" />
     <None Include="Shaders\Gather.frag" />
     <None Include="Shaders\Gather.vert" />
     <None Include="Shaders\GatherRadianceWithSM.frag" />
-    <None Include="Shaders\GatherWithAtlas.frag" />
-    <None Include="Shaders\GatherWithClustering.frag" />
     <None Include="Shaders\Normalize.frag" />
     <None Include="Shaders\Phong.glsl" />
     <None Include="Shaders\PointCloud.frag" />

@@ -34,13 +34,8 @@ class CProgram;
 class CLightViewer;
 class CExport;
 class CRenderTarget;
-class COctahedronMap;
-class COctahedronAtlas;
 class CModel;
-class CClusterTree;
 class CTimer;
-class CAVPLImportanceSampling;
-class CBidirInstantRadiosity;
 class CRenderTarget;
 class CExperimentData;
 
@@ -54,9 +49,6 @@ class COGLTextureBuffer;
 class COGLContext;
 class COGLRenderTarget;
 class COGLCubeMap;
-
-class COCLContext;
-class COCLBuffer;
 
 class Renderer {
 public:
@@ -86,11 +78,7 @@ public:
 	void shootSceneProbe(int x, int y);
 	void NewDebugLights();
 	
-	void ClusteringTestRender();
-
 	void ProfileFrame() { m_ProfileFrame = true; }
-
-	void TestClusteringSpeed();
 
 	void UpdateBvhDebug();
 	void RebuildBvh();
@@ -105,8 +93,6 @@ private:
 	void updateTransform(glm::mat4 const& world, glm::mat4 const& view, glm::mat4 const& proj);
 
 	void Gather(const std::vector<AVPL>& path, CRenderTarget* pRenderTarget);
-	void GatherWithAtlas(const std::vector<AVPL>& path, CRenderTarget* pRenderTarget);
-	void GatherWithClustering(const std::vector<AVPL>& path, CRenderTarget* pRenderTarget);
 	void Normalize(CRenderTarget* pTarget, CRenderTarget* source, int normFactor);
 	void Add(CRenderTarget* target, CRenderTarget* source1, CRenderTarget* source2);
 	void Add(CRenderTarget* target, CRenderTarget* source);
@@ -121,11 +107,6 @@ private:
 	void DrawDebug();
 	void CheckExport();
 
-	void FillLightBuffer(const std::vector<AVPL>& avpls);
-	void FillAVPLAtlas(const std::vector<AVPL>& avpls);
-	void FillClusterAtlas(const std::vector<AVPL>& avpls);
-	void CreateClustering(std::vector<AVPL>& avpls);
-	
 	bool UseAVPL(AVPL& avpl);
 	
 	void InitDebugLights();
@@ -167,8 +148,6 @@ private:
 	std::unique_ptr<CExport> m_export;
 	std::unique_ptr<TextureViewer> m_textureViewer;
 	std::unique_ptr<FullScreenQuad> m_fullScreenQuad;
-	std::unique_ptr<COCLContext> m_clContext;
-	std::unique_ptr<CClusterTree> m_clusterTree;
 	std::unique_ptr<CImagePlane> m_imagePlane;
 	std::unique_ptr<CPathTracingIntegrator> m_pathTracingIntegrator;
 	std::unique_ptr<CExperimentData> m_experimentData;
@@ -188,8 +167,6 @@ private:
 	std::unique_ptr<CRenderTarget> m_cudaRenderTargetSum;
 		
 	std::unique_ptr<CProgram> m_gatherProgram;
-	std::unique_ptr<CProgram> m_gatherWithAtlas;
-	std::unique_ptr<CProgram> m_gatherWithClustering;
 	std::unique_ptr<CProgram> m_normalizeProgram;
 	std::unique_ptr<CProgram> m_addProgram;
 	std::unique_ptr<CProgram> m_createGBufferProgram;
@@ -205,16 +182,12 @@ private:
 	std::unique_ptr<COGLTextureBuffer> m_clusterBuffer;
 	std::unique_ptr<COGLTextureBuffer> m_avplPositions;
 
-	std::unique_ptr<COctahedronAtlas> m_octahedronAtlas;
-	std::unique_ptr<COctahedronMap> m_octahedronMap;
-
 	std::unique_ptr<COGLUniformBuffer> m_ubTransform;
 	std::unique_ptr<COGLUniformBuffer> m_ubMaterial;
 	std::unique_ptr<COGLUniformBuffer> m_ubLight;
 	std::unique_ptr<COGLUniformBuffer> m_ubConfig;
 	std::unique_ptr<COGLUniformBuffer> m_ubCamera;
 	std::unique_ptr<COGLUniformBuffer> m_ubInfo;
-	std::unique_ptr<COGLUniformBuffer> m_ubAtlasInfo;
 	
 	std::unique_ptr<COGLTexture2D> m_depthBuffer;
 	std::unique_ptr<COGLTexture2D> m_testTexture;
@@ -231,10 +204,7 @@ private:
 	std::unique_ptr<COGLSampler> m_shadowMapSampler;
 	
 	std::vector<AVPL> m_DebugAVPLs;
-	std::vector<AVPL> m_ClusterTestAVPLs;
-	std::vector<AVPL> m_CollectedAVPLs;
-	std::vector<AVPL> m_CollectedImportanceSampledAVPLs;
-	
+		
 	std::unique_ptr<CTimer> m_clTimer;
 	std::unique_ptr<CTimer> m_glTimer;
 	std::unique_ptr<CTimer> m_cpuTimer;

@@ -20,8 +20,6 @@ typedef unsigned int uint;
 
 #include "OGLResources\COGLUniformBuffer.h"
 
-#include "OCLResources\COCLContext.h"
-
 #include "mesh.hpp"
 #include "model.hpp"
 
@@ -39,10 +37,10 @@ typedef unsigned int uint;
 #include <assimp/importer.hpp>
 
 
-Scene::Scene(CCamera* camera, CConfigManager* confManager, COCLContext* clContext)
+Scene::Scene(CCamera* camera, CConfigManager* confManager)
 	: m_camera(camera), m_confManager(confManager)
 {
-	m_materialBuffer.reset(new CMaterialBuffer(clContext));
+	m_materialBuffer.reset(new CMaterialBuffer());
 
 	m_CurrentBounce = 0;
 	m_NumCreatedAVPLs = 0;

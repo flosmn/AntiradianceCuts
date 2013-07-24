@@ -7,24 +7,15 @@
     <Filter Include="Utils">
       <UniqueIdentifier>{6f01f52a-125e-40ea-997a-e19e795fd562}</UniqueIdentifier>
     </Filter>
-    <Filter Include="OCLResources">
-      <UniqueIdentifier>{9a5b038a-1bcb-45db-9574-22c64f5a205e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Shaders">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
-    <Filter Include="Kernels">
-      <UniqueIdentifier>{4ed397e0-00fb-43d7-9ea0-4543885f7676}</UniqueIdentifier>
     </Filter>
     <Filter Include="RayTracingStuff">
       <UniqueIdentifier>{21e651b1-8013-402e-81d6-e4b97f0475c3}</UniqueIdentifier>
     </Filter>
     <Filter Include="GUI&amp;Config">
       <UniqueIdentifier>{850e1b01-daf4-4a30-ac16-c42ba3276e48}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Octahedron">
-      <UniqueIdentifier>{c7652556-9f69-4e86-89ab-bc716a3d161d}</UniqueIdentifier>
     </Filter>
     <Filter Include="Misc">
       <UniqueIdentifier>{23eab4a5-e565-4973-bb51-1534963e000a}</UniqueIdentifier>
@@ -55,7 +46,33 @@
     <ClCompile Include="Utils\CExport.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
-    <ClCompile Include="OGLResources\COGLBindLock.cpp">
+    <ClCompile Include="Window.cpp" />
+    <ClCompile Include="CConfigManager.cpp">
+      <Filter>GUI&amp;Config</Filter>
+    </ClCompile>
+    <ClCompile Include="CGUI.cpp">
+      <Filter>GUI&amp;Config</Filter>
+    </ClCompile>
+    <ClCompile Include="CTestFramework.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="guicon.cpp">
+      <Filter>GUI&amp;Config</Filter>
+    </ClCompile>
+    <ClCompile Include="CTimer.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="CCamera.cpp" />
+    <ClCompile Include="CImage.cpp" />
+    <ClCompile Include="CImagePlane.cpp" />
+    <ClCompile Include="CPathTracingIntegrator.cpp" />
+    <ClCompile Include="CMaterialBuffer.cpp" />
+    <ClCompile Include="CReferenceImage.cpp" />
+    <ClCompile Include="CExperimentData.cpp" />
+    <ClCompile Include="KdTreeAccelerator.cpp">
+      <Filter>RayTracingStuff</Filter>
+    </ClCompile>
+    <ClCompile Include="OGLResources\COGLCubeMap.cpp">
       <Filter>OGLResources</Filter>
     </ClCompile>
     <ClCompile Include="OGLResources\COGLFrameBuffer.cpp">
@@ -88,65 +105,8 @@
     <ClCompile Include="OGLResources\COGLVertexBuffer.cpp">
       <Filter>OGLResources</Filter>
     </ClCompile>
-    <ClCompile Include="OCLResources\COCLBuffer.cpp">
-      <Filter>OCLResources</Filter>
-    </ClCompile>
-    <ClCompile Include="OCLResources\COCLKernel.cpp">
-      <Filter>OCLResources</Filter>
-    </ClCompile>
-    <ClCompile Include="OCLResources\COCLProgram.cpp">
-      <Filter>OCLResources</Filter>
-    </ClCompile>
-    <ClCompile Include="OCLResources\COCLResource.cpp">
-      <Filter>OCLResources</Filter>
-    </ClCompile>
-    <ClCompile Include="OCLResources\OCLUtil.cpp">
-      <Filter>OCLResources</Filter>
-    </ClCompile>
-    <ClCompile Include="Window.cpp" />
-    <ClCompile Include="OCLResources\COCLTexture2D.cpp">
-      <Filter>OCLResources</Filter>
-    </ClCompile>
-    <ClCompile Include="OCLResources\COCLContext.cpp">
-      <Filter>OCLResources</Filter>
-    </ClCompile>
-    <ClCompile Include="CConfigManager.cpp">
-      <Filter>GUI&amp;Config</Filter>
-    </ClCompile>
-    <ClCompile Include="CGUI.cpp">
-      <Filter>GUI&amp;Config</Filter>
-    </ClCompile>
-    <ClCompile Include="COctahedronAtlas.cpp">
-      <Filter>Octahedron</Filter>
-    </ClCompile>
-    <ClCompile Include="COctahedronMap.cpp">
-      <Filter>Octahedron</Filter>
-    </ClCompile>
-    <ClCompile Include="CTestFramework.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="guicon.cpp">
-      <Filter>GUI&amp;Config</Filter>
-    </ClCompile>
-    <ClCompile Include="CClusterTree.cpp" />
-    <ClCompile Include="CTimer.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="LightTreeTypes.cpp">
-      <Filter>GUI&amp;Config</Filter>
-    </ClCompile>
-    <ClCompile Include="CCamera.cpp" />
-    <ClCompile Include="OGLResources\COGLCubeMap.cpp">
+    <ClCompile Include="OGLResources\COGLBindLock.cpp">
       <Filter>OGLResources</Filter>
-    </ClCompile>
-    <ClCompile Include="CImage.cpp" />
-    <ClCompile Include="CImagePlane.cpp" />
-    <ClCompile Include="CPathTracingIntegrator.cpp" />
-    <ClCompile Include="CMaterialBuffer.cpp" />
-    <ClCompile Include="CReferenceImage.cpp" />
-    <ClCompile Include="CExperimentData.cpp" />
-    <ClCompile Include="KdTreeAccelerator.cpp">
-      <Filter>RayTracingStuff</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -215,41 +175,11 @@
     <ClInclude Include="OGLResources\COGLVertexBuffer.h">
       <Filter>OGLResources</Filter>
     </ClInclude>
-    <ClInclude Include="OCLResources\COCLBuffer.h">
-      <Filter>OCLResources</Filter>
-    </ClInclude>
-    <ClInclude Include="OCLResources\COCLKernel.h">
-      <Filter>OCLResources</Filter>
-    </ClInclude>
-    <ClInclude Include="OCLResources\COCLProgram.h">
-      <Filter>OCLResources</Filter>
-    </ClInclude>
-    <ClInclude Include="OCLResources\COCLResource.h">
-      <Filter>OCLResources</Filter>
-    </ClInclude>
-    <ClInclude Include="OCLResources\OCLUtil.h">
-      <Filter>OCLResources</Filter>
-    </ClInclude>
-    <ClInclude Include="OCLResources\COCLTexture2D.h">
-      <Filter>OCLResources</Filter>
-    </ClInclude>
     <ClInclude Include="OGLResources\COGLContext.h">
       <Filter>OGLResources</Filter>
     </ClInclude>
-    <ClInclude Include="OCLResources\COCLContext.h">
-      <Filter>OCLResources</Filter>
-    </ClInclude>
     <ClInclude Include="CGUI.h">
       <Filter>GUI&amp;Config</Filter>
-    </ClInclude>
-    <ClInclude Include="COctahedronAtlas.h">
-      <Filter>Octahedron</Filter>
-    </ClInclude>
-    <ClInclude Include="COctahedronMap.h">
-      <Filter>Octahedron</Filter>
-    </ClInclude>
-    <ClInclude Include="OctahedronUtil.h">
-      <Filter>Octahedron</Filter>
     </ClInclude>
     <ClInclude Include="CTestFramework.h">
       <Filter>Utils</Filter>
@@ -272,8 +202,6 @@
     <ClInclude Include="guicon.h">
       <Filter>GUI&amp;Config</Filter>
     </ClInclude>
-    <ClInclude Include="CClusterTree.h" />
-    <ClInclude Include="LightTreeTypes.h" />
     <ClInclude Include="CTimer.h">
       <Filter>Utils</Filter>
     </ClInclude>
@@ -367,24 +295,6 @@
     <None Include="Shaders\Shade.frag">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Shaders\DrawOctahedron.vert">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\DrawOctahedron.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\GatherWithAtlas.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Kernels\FillAVPLAtlas.cl">
-      <Filter>Kernels</Filter>
-    </None>
-    <None Include="Shaders\GatherWithClustering.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\DirectEnvmapLighting.frag">
-      <Filter>Shaders</Filter>
-    </None>
     <None Include="Shaders\Phong.glsl">
       <Filter>Shaders\ShaderHeaders</Filter>
     </None>
@@ -397,15 +307,7 @@
     <None Include="Shaders\Error.frag">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Shaders\CreateCubeShadowMap.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\CreateCubeShadowMap.vert">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\CreateCubeShadowMap.geom">
-      <Filter>Shaders</Filter>
-    </None>
+    <None Include="Kernels\FillAVPLAtlas.cl" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="bvh.cu" />

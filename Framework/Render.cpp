@@ -22,8 +22,6 @@
 #include "CGBuffer.h"
 #include "CTimer.h"
 #include "CProgram.h"
-#include "COctahedronMap.h"
-#include "COctahedronAtlas.h"
 
 #include "AreaLight.h"
 #include "Material.h"
@@ -33,15 +31,12 @@
 #include "CShadowMap.h"
 #include "Postprocess.h"
 #include "CRenderTarget.h"
-#include "CClusterTree.h"
 #include "CImagePlane.h"
 #include "CPathTracingIntegrator.h"
 #include "CMaterialBuffer.h"
 #include "CReferenceImage.h"
 #include "CExperimentData.h"
 #include "CImage.h"
-
-#include "LightTreeTypes.h"
 
 #include "Utils\Util.h"
 #include "Utils\GLErrorUtil.h"
@@ -54,12 +49,6 @@
 #include "Model.hpp"
 
 #include "OGLResources\COGLResources.h"
-
-#include "OCLResources\COCLContext.h"
-#include "OCLResources\COCLProgram.h"
-#include "OCLResources\COCLKernel.h"
-#include "OCLResources\COCLBuffer.h"
-#include "OCLResources\COCLTexture2D.h"
 
 #include <memory>
 #include <string>
@@ -94,7 +83,6 @@ Renderer::Renderer(CCamera* m_camera, COGLContext* glContext, CConfigManager* co
 		SimpleBvh bvh(positions, normals, false);
 	}
 
-	m_clContext			.reset(new COCLContext(m_glContext));
 	m_cudaContext		.reset(new cuda::CudaContext());
 	m_textureViewer 	.reset(new TextureViewer());
 	m_postProcess		.reset(new Postprocess(m_confManager));
@@ -102,7 +90,6 @@ Renderer::Renderer(CCamera* m_camera, COGLContext* glContext, CConfigManager* co
 	m_shadowMap			.reset(new CShadowMap(512));
 	m_experimentData	.reset(new CExperimentData());
 	m_export			.reset(new CExport());
-	m_clusterTree		.reset(new CClusterTree());
 	
 	m_depthBuffer.reset(new COGLTexture2D(m_camera->GetWidth(), m_camera->GetHeight(), GL_DEPTH_COMPONENT32F,
 		GL_DEPTH_COMPONENT, GL_FLOAT, 1, false, "Renderer.m_pDepthBuffer"));
@@ -118,7 +105,6 @@ Renderer::Renderer(CCamera* m_camera, COGLContext* glContext, CConfigManager* co
 	m_ubConfig	 .reset(new COGLUniformBuffer(sizeof(CONFIG),		0, GL_DYNAMIC_DRAW	, "UBConfig"	));
 	m_ubCamera	 .reset(new COGLUniformBuffer(sizeof(CAMERA),		0, GL_DYNAMIC_DRAW	, "UBCamera"	));
 	m_ubInfo	 .reset(new COGLUniformBuffer(sizeof(INFO),			0, GL_DYNAMIC_DRAW	, "UBInfo"		));
-	m_ubAtlasInfo.reset(new COGLUniformBuffer(sizeof(ATLAS_INFO),	0, GL_DYNAMIC_DRAW	, "UBAtlasInfo"	));
 	
 	m_linearSampler		.reset(new COGLSampler(GL_LINEAR,	GL_LINEAR,	GL_CLAMP,			GL_CLAMP,			"LinearSampler"));
 	m_pointSampler		.reset(new COGLSampler(GL_NEAREST,	GL_NEAREST, GL_REPEAT,			GL_REPEAT,			"PointSampler"));
@@ -136,8 +122,6 @@ Renderer::Renderer(CCamera* m_camera, COGLContext* glContext, CConfigManager* co
 	m_cudaRenderTargetSum				.reset(new CRenderTarget(m_camera->GetWidth(), m_camera->GetHeight(), 4, 0));
 
 	m_gatherProgram					.reset(new CProgram("Shaders/Gather.vert"			, "Shaders/Gather.frag"					, "GatherProgram"				));
-	m_gatherWithAtlas				.reset(new CProgram("Shaders/Gather.vert"			, "Shaders/GatherWithAtlas.frag"		, "GatherProgram"				));
-	m_gatherWithClustering			.reset(new CProgram("Shaders/Gather.vert"			, "Shaders/GatherWithClustering.frag"	, "GatherProgram"				));
 	m_normalizeProgram				.reset(new CProgram("Shaders/Gather.vert"			, "Shaders/Normalize.frag"				, "NormalizeProgram"			));
 	m_errorProgram					.reset(new CProgram("Shaders/Gather.vert"			, "Shaders/Error.frag"					, "ErrorProgram"				));
 	m_addProgram					.reset(new CProgram("Shaders/Gather.vert"			, "Shaders/Add.frag"					, "AddProgram"					));
@@ -148,26 +132,14 @@ Renderer::Renderer(CCamera* m_camera, COGLContext* glContext, CConfigManager* co
 	m_drawSphere			 		.reset(new CProgram("Shaders/DrawSphere.vert"		, "Shaders/DrawSphere.frag"				, "DrawSphere"					));
 	m_debugProgram			 		.reset(new CProgram("Shaders/Debug.vert"			, "Shaders/Debug.frag"					, "Debug"					));
 
-	m_scene.reset(new Scene(m_camera, m_confManager, m_clContext.get()));
+	m_scene.reset(new Scene(m_camera, m_confManager));
 	m_scene->LoadCornellBox();
-	m_scene->GetMaterialBuffer()->InitOCLMaterialBuffer();
-	m_scene->GetMaterialBuffer()->FillOGLMaterialBuffer();
 
 	int dim_atlas = 3072;
 	int dim_tile = 16;
 		
-	ATLAS_INFO atlas_info;
-	atlas_info.dim_atlas = dim_atlas;
-	atlas_info.dim_tile = dim_tile;
-	m_ubAtlasInfo->UpdateData(&atlas_info);
-
 	m_MaxNumAVPLs = int(std::pow(float(dim_atlas) / float(dim_tile), 2.f));
 	std::cout << "max num avpls: " << m_MaxNumAVPLs << std::endl;
-
-	m_octahedronMap.reset(new COctahedronMap(dim_tile));
-	m_octahedronAtlas.reset(new COctahedronAtlas(m_clContext.get(), dim_atlas, dim_tile, 
-		m_MaxNumAVPLs, m_scene->GetMaterialBuffer()));
-	m_octahedronMap->FillWithDebugData();
 
 	m_cubeMap.reset(new COGLCubeMap(512, 512, GL_RGBA32F, 10, "CubeMap"));
 	m_cubeMap->LoadCubeMapFromPath("Resources\\CubeMaps\\Castle\\box\\");
@@ -185,8 +157,7 @@ Renderer::Renderer(CCamera* m_camera, COGLContext* glContext, CConfigManager* co
 	m_resultTimer		.reset(new CTimer(CTimer::CPU));
 	m_cpuFrameProfiler	.reset(new CTimer(CTimer::CPU));
 	m_gpuFrameProfiler	.reset(new CTimer(CTimer::OGL));
-	m_clTimer			.reset(new CTimer(CTimer::OCL, m_clContext.get()));
-
+	
 	m_Finished = false;
 	m_FinishedDirectLighting = false;
 	m_FinishedIndirectLighting = false;
@@ -227,7 +198,6 @@ Renderer::Renderer(CCamera* m_camera, COGLContext* glContext, CConfigManager* co
 
 Renderer::~Renderer() 
 {
-	m_scene->GetMaterialBuffer()->ReleaseOCLMaterialBuffer();
 }
 
 void Renderer::BindSamplers() 
@@ -256,30 +226,6 @@ void Renderer::BindSamplers()
 	m_gatherRadianceWithSMProgram->BindSampler(1, m_pointSampler.get());
 	m_gatherRadianceWithSMProgram->BindSampler(2, m_pointSampler.get());
 	m_gatherRadianceWithSMProgram->BindSampler(3, m_pointSampler.get());
-	
-	m_gatherWithAtlas->BindSampler(0, m_pointSampler.get());
-	m_gatherWithAtlas->BindSampler(1, m_pointSampler.get());
-	m_gatherWithAtlas->BindSampler(2, m_pointSampler.get());
-	m_gatherWithAtlas->BindSampler(3, m_pointSampler.get());
-	m_gatherWithAtlas->BindSampler(4, m_linearSampler.get());
-
-	m_gatherWithAtlas->BindUniformBuffer(m_ubInfo.get(), "info_block");
-	m_gatherWithAtlas->BindUniformBuffer(m_ubConfig.get(), "config");
-	m_gatherWithAtlas->BindUniformBuffer(m_ubCamera.get(), "camera");
-	m_gatherWithAtlas->BindUniformBuffer(m_ubAtlasInfo.get(), "atlas_info");
-
-	m_gatherWithClustering->BindSampler(0, m_pointSampler.get());
-	m_gatherWithClustering->BindSampler(1, m_pointSampler.get());
-	m_gatherWithClustering->BindSampler(2, m_pointSampler.get());
-	m_gatherWithClustering->BindSampler(3, m_pointSampler.get());
-	m_gatherWithClustering->BindSampler(4, m_pointSampler.get());
-	m_gatherWithClustering->BindSampler(5, m_pointSampler.get());
-	m_gatherWithClustering->BindSampler(6, m_pointSampler.get());
-	
-	m_gatherWithClustering->BindUniformBuffer(m_ubInfo.get(), "info_block");
-	m_gatherWithClustering->BindUniformBuffer(m_ubConfig.get(), "config");
-	m_gatherWithClustering->BindUniformBuffer(m_ubCamera.get(), "camera");
-	m_gatherWithClustering->BindUniformBuffer(m_ubAtlasInfo.get(), "atlas_info");
 		
 	m_normalizeProgram->BindSampler(0, m_pointSampler.get());
 	m_normalizeProgram->BindSampler(1, m_pointSampler.get());
@@ -294,49 +240,6 @@ void Renderer::BindSamplers()
 	m_addProgram->BindSampler(0, m_pointSampler.get());
 	m_addProgram->BindSampler(1, m_pointSampler.get());
 	m_addProgram->BindUniformBuffer(m_ubCamera.get(), "camera");
-}
-
-void Renderer::TestClusteringSpeed()
-{
-	CClusterTree tree;
-
-	for(int i = 0; i < 10; ++i)
-	{
-		int numAVPLs = 10000 * (i+1);
-		std::stringstream ss;
-		ss << "Build Tree (" << numAVPLs << ")"; 
-
-		std::vector<AVPL> randAVPLs;
-		CreateRandomAVPLs(randAVPLs, numAVPLs);
-
-		CTimer timer(CTimer::CPU);
-		timer.Start();
-		
-		tree.BuildTree(randAVPLs);
-		
-		timer.Stop(ss.str());
-		tree.Release();
-		randAVPLs.clear();
-
-		std::cout << std::endl;
-	}
-	std::cout << std::endl;
-	std::cout << std::endl;
-}
-
-void Renderer::ClusteringTestRender()
-{	
-	SetUpRender();
-	UpdateUniformBuffers();
-	
-	{
-		CRenderTargetLock lock(m_resultRenderTarget.get());
-		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	}
-	
-	DrawLights(m_ClusterTestAVPLs, m_resultRenderTarget.get());
-
-	m_textureViewer->drawTexture(m_resultRenderTarget->GetTarget(0), 0, 0, m_camera->GetWidth(), m_camera->GetHeight());
 }
 	
 void Renderer::Render() 
@@ -415,26 +318,6 @@ void Renderer::Render()
 	}
 	else
 	{
-		if(m_confManager->GetConfVars()->GatherWithAVPLClustering)
-		{
-			CreateClustering(avpls_antiradiance);
-			if(m_ProfileFrame) timer.Stop("clustering");
-			if(m_ProfileFrame) timer.Start();
-			FillAVPLAtlas(avpls_antiradiance);
-			if(m_ProfileFrame) timer.Stop("fill avpls atlas");
-			if(m_ProfileFrame) timer.Start();
-			FillClusterAtlas(avpls_antiradiance);
-			if(m_ProfileFrame) timer.Stop("fill cluster atlas");
-			if(m_ProfileFrame) timer.Start();
-		}
-
-		if(m_confManager->GetConfVars()->GatherWithAVPLAtlas)
-		{
-			FillAVPLAtlas(avpls_antiradiance);
-			if(m_ProfileFrame) timer.Stop("fill avpls atlas");
-			if(m_ProfileFrame) timer.Start();
-		}
-
 		Gather(avpls_shadowmap, avpls_antiradiance);
 		
 		if(m_ProfileFrame) timer.Stop("gather");
@@ -623,13 +506,7 @@ void Renderer::Gather(std::vector<AVPL>& avpls_shadowmap, std::vector<AVPL>& avp
 	if(m_confManager->GetConfVars()->UseDebugMode && m_FinishedDebug)
 		return;
 	
-	if(m_confManager->GetConfVars()->GatherWithAVPLClustering)
-		GatherWithClustering(avpls_antiradiance, m_gatherAntiradianceRenderTarget.get());
-	else if(m_confManager->GetConfVars()->GatherWithAVPLAtlas)
-		GatherWithAtlas(avpls_antiradiance, m_gatherAntiradianceRenderTarget.get());
-	else
-		Gather(avpls_antiradiance, m_gatherAntiradianceRenderTarget.get());
-
+	Gather(avpls_antiradiance, m_gatherAntiradianceRenderTarget.get());
 	GatherRadianceWithShadowMap(avpls_shadowmap, m_gatherShadowmapRenderTarget.get());
 }
 
@@ -658,18 +535,6 @@ void Renderer::DrawDebug()
 	if(m_confManager->GetConfVars()->DrawError) m_textureViewer->drawTexture(m_errorRenderTarget->GetTarget(0), 0, 0, m_camera->GetWidth(), m_camera->GetHeight());	
 	if(m_confManager->GetConfVars()->DrawCutSizes) m_textureViewer->drawTexture(m_gatherAntiradianceRenderTarget->GetTarget(3), 0, 0, m_camera->GetWidth(), m_camera->GetHeight());
 	
-	if(m_confManager->GetConfVars()->DrawAVPLAtlas)
-	{
-		if(m_confManager->GetConfVars()->FillAvplAltasOnGPU) m_textureViewer->drawTexture(m_octahedronAtlas->GetAVPLAtlas(), 0, 0, m_camera->GetWidth(), m_camera->GetHeight());
-		else m_textureViewer->drawTexture(m_octahedronAtlas->GetAVPLAtlasCPU(), 0, 0, m_camera->GetWidth(), m_camera->GetHeight());
-	}
-	
-	if(m_confManager->GetConfVars()->DrawAVPLClusterAtlas)
-	{
-		if(m_confManager->GetConfVars()->FillAvplAltasOnGPU) m_textureViewer->drawTexture(m_octahedronAtlas->GetAVPLClusterAtlas(), 0, 0, m_camera->GetWidth(), m_camera->GetHeight());
-		else m_textureViewer->drawTexture(m_octahedronAtlas->GetAVPLClusterAtlasCPU(), 0, 0, m_camera->GetWidth(), m_camera->GetHeight());
-	}
-		
 	if(m_confManager->GetConfVars()->DrawReference)
 	{
 		if(m_scene->GetReferenceImage()) m_textureViewer->drawTexture(m_scene->GetReferenceImage()->GetOGLTexture(), 0, 0, m_camera->GetWidth(), m_camera->GetHeight());
@@ -727,154 +592,7 @@ void Renderer::CheckExport()
 
 void Renderer::Gather(const std::vector<AVPL>& avpls, CRenderTarget* pRenderTarget)
 {
-	FillLightBuffer(avpls);	
-	
-	INFO info;
-	info.numLights = (int)avpls.size();
-	info.filterAVPLAtlas = m_confManager->GetConfVars()->FilterAvplAtlasLinear;
-	info.UseIBL = m_confManager->GetConfVars()->UseIBL;
-	m_ubInfo->UpdateData(&info);
-	
-	glDisable(GL_DEPTH_TEST);
-	glEnable(GL_BLEND);	
-	glBlendFunc(GL_ONE, GL_ONE);
-	
-	COGLBindLock lockProgram(m_gatherProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
-
-	CRenderTargetLock lock(pRenderTarget);
-
-	COGLBindLock lock0(m_gbuffer->GetPositionTextureWS(), COGL_TEXTURE0_SLOT);
-	COGLBindLock lock1(m_gbuffer->GetNormalTexture(), COGL_TEXTURE1_SLOT);
-	COGLBindLock lock2(m_lightBuffer.get(), COGL_TEXTURE2_SLOT);
-	COGLBindLock lock3(m_scene->GetMaterialBuffer()->GetOGLMaterialBuffer(), COGL_TEXTURE3_SLOT);
-
-	m_fullScreenQuad->draw();
-	
-	glEnable(GL_DEPTH_TEST);
-	glDisable(GL_BLEND);
-}
-
-void Renderer::GatherWithAtlas(const std::vector<AVPL>& avpls, CRenderTarget* pRenderTarget)
-{	
-	if((int)avpls.size() > m_MaxNumAVPLs)
-		std::cout << "To many avpls. Some are not considered" << std::endl;
-
-	FillLightBuffer(avpls);
-		
-	INFO info;
-	info.numLights = (int)avpls.size();
-	info.UseIBL = m_confManager->GetConfVars()->UseIBL;
-	info.filterAVPLAtlas = m_confManager->GetConfVars()->FilterAvplAtlasLinear;
-	m_ubInfo->UpdateData(&info);
-
-	glDisable(GL_DEPTH_TEST);
-	glEnable(GL_BLEND);	
-	glBlendFunc(GL_ONE, GL_ONE);
-	
-	CRenderTargetLock lockRenderTarget(pRenderTarget);
-
-	COGLBindLock lockProgram(m_gatherWithAtlas->GetGLProgram(), COGL_PROGRAM_SLOT);
-
-	COGLBindLock lock0(m_gbuffer->GetPositionTextureWS(), COGL_TEXTURE0_SLOT);
-	COGLBindLock lock1(m_gbuffer->GetNormalTexture(), COGL_TEXTURE1_SLOT);
-	COGLBindLock lock2(m_lightBuffer.get(), COGL_TEXTURE2_SLOT);
-	COGLBindLock lock3(m_scene->GetMaterialBuffer()->GetOGLMaterialBuffer(), COGL_TEXTURE3_SLOT);
-
-	if(m_confManager->GetConfVars()->FilterAvplAtlasLinear)
-	{
-		glBindSampler(4, m_linearSampler->GetResourceIdentifier());
-	}
-	else
-	{
-		glBindSampler(4, m_pointSampler->GetResourceIdentifier());
-	}
-	
-	if(m_confManager->GetConfVars()->FillAvplAltasOnGPU == 1)
-	{
-		COGLBindLock lock4(m_octahedronAtlas->GetAVPLAtlas(), COGL_TEXTURE4_SLOT);			
-		m_fullScreenQuad->draw();
-	}
-	else
-	{
-		COGLBindLock lock4(m_octahedronAtlas->GetAVPLAtlasCPU(), COGL_TEXTURE4_SLOT);
-		m_fullScreenQuad->draw();
-	}
-			
-	glEnable(GL_DEPTH_TEST);
-	glDisable(GL_BLEND);
-
-	glBindSampler(4, m_pointSampler->GetResourceIdentifier());
-}
-
-void Renderer::GatherWithClustering(const std::vector<AVPL>& avpls, CRenderTarget* pRenderTarget)
-{
-	if((int)avpls.size() > m_MaxNumAVPLs)
-		std::cout << "To many avpls. Some are not considered" << std::endl;
-	
-	FillLightBuffer(avpls);
-		
-	INFO info;
-	info.numLights = (int)avpls.size();
-	info.numClusters = m_clusterTree->GetClusteringSize();
-	info.UseIBL = m_confManager->GetConfVars()->UseIBL;
-	info.filterAVPLAtlas = m_confManager->GetConfVars()->FilterAvplAtlasLinear;
-	info.lightTreeCutDepth = m_confManager->GetConfVars()->LightTreeCutDepth;
-	info.clusterRefinementThreshold = m_confManager->GetConfVars()->ClusterRefinementThreshold;
-	info.clusterRefinementMaxRadiance = m_confManager->GetConfVars()->ClusterRefinementMaxRadiance;
-	info.clusterRefinementWeight = m_confManager->GetConfVars()->ClusterRefinementWeight;
-	m_ubInfo->UpdateData(&info);
-
-	glDisable(GL_DEPTH_TEST);
-	glEnable(GL_BLEND);	
-	glBlendFunc(GL_ONE, GL_ONE);
-	
-	CRenderTargetLock lockRenderTarget(pRenderTarget);
-
-	COGLBindLock lockProgram(m_gatherWithClustering->GetGLProgram(), COGL_PROGRAM_SLOT);
-
-	COGLBindLock lock0(m_gbuffer->GetPositionTextureWS(), COGL_TEXTURE0_SLOT);
-	COGLBindLock lock1(m_gbuffer->GetNormalTexture(), COGL_TEXTURE1_SLOT);
-	COGLBindLock lock2(m_lightBuffer.get(), COGL_TEXTURE2_SLOT);
-	COGLBindLock lock3(m_scene->GetMaterialBuffer()->GetOGLMaterialBuffer(), COGL_TEXTURE3_SLOT);
-	COGLBindLock lock4(m_clusterBuffer.get(), COGL_TEXTURE4_SLOT);
-
-	if(m_confManager->GetConfVars()->FilterAvplAtlasLinear)
-	{
-		glBindSampler(5, m_linearSampler->GetResourceIdentifier());
-		glBindSampler(6, m_linearSampler->GetResourceIdentifier());
-	}
-	else
-	{
-		glBindSampler(5, m_pointSampler->GetResourceIdentifier());
-		glBindSampler(6, m_pointSampler->GetResourceIdentifier());
-	}
-	
-	if(m_confManager->GetConfVars()->FillAvplAltasOnGPU == 1)
-	{
-		COGLBindLock lock5(m_octahedronAtlas->GetAVPLAtlas(), COGL_TEXTURE5_SLOT);
-		COGLBindLock lock6(m_octahedronAtlas->GetAVPLClusterAtlas(), COGL_TEXTURE6_SLOT);
-	
-		CTimer timer(CTimer::OGL);
-		if(m_ProfileFrame) timer.Start();
-		m_fullScreenQuad->draw();
-		if(m_ProfileFrame) timer.Stop("draw");
-	}
-	else
-	{
-		COGLBindLock lock5(m_octahedronAtlas->GetAVPLAtlasCPU(), COGL_TEXTURE5_SLOT);
-		COGLBindLock lock6(m_octahedronAtlas->GetAVPLClusterAtlasCPU(), COGL_TEXTURE6_SLOT);
-		
-		CTimer timer(CTimer::OGL);
-		if(m_ProfileFrame) timer.Start();
-		m_fullScreenQuad->draw();
-		if(m_ProfileFrame) timer.Stop("draw");
-	}
-			
-	glEnable(GL_DEPTH_TEST);
-	glDisable(GL_BLEND);
-
-	glBindSampler(5, m_pointSampler->GetResourceIdentifier());
-	glBindSampler(6, m_pointSampler->GetResourceIdentifier());
+	std::cout << "opengl gathering not implemented" << std::endl;
 }
 
 void Renderer::GatherRadianceWithShadowMap(const std::vector<AVPL>& path, CRenderTarget* pRenderTarget)
@@ -960,83 +678,6 @@ void Renderer::Normalize(CRenderTarget* pTarget, CRenderTarget* source, int norm
 	m_fullScreenQuad->draw();
 	
 	glEnable(GL_DEPTH_TEST);
-}
-
-void Renderer::FillLightBuffer(const std::vector<AVPL>& avpls)
-{
-	if(avpls.size() == 0) return;
-
-	AVPL_BUFFER* avplBuffer = new AVPL_BUFFER[avpls.size()];
-	memset(avplBuffer, 0, sizeof(AVPL_BUFFER) * avpls.size());
-	for(uint i = 0; i < avpls.size(); ++i)
-	{
-		AVPL_BUFFER buffer;
-		avpls[i].Fill(buffer);
-		avplBuffer[i] = buffer;
-	}
-	m_lightBuffer->SetContent(sizeof(AVPL_BUFFER) * avpls.size(), GL_DYNAMIC_READ, avplBuffer);
-	delete [] avplBuffer;
-}
-
-void Renderer::FillAVPLAtlas(const std::vector<AVPL>& avpls)
-{
-	if(avpls.size() == 0) return;
-
-	m_octahedronAtlas->Clear();
-	if(m_confManager->GetConfVars()->FillAvplAltasOnGPU)
-	{
-		m_octahedronAtlas->FillAtlasGPU(avpls, m_confManager->GetConfVars()->NumSqrtAtlasSamples,
-			float(m_confManager->GetConfVars()->ConeFactor), 
-			m_confManager->GetConfVars()->FilterAvplAtlasLinear == 1 ? true : false);
-	}
-	else
-	{
-		m_octahedronAtlas->FillAtlas(avpls, m_confManager->GetConfVars()->NumSqrtAtlasSamples,
-			float(m_confManager->GetConfVars()->ConeFactor), 
-			m_confManager->GetConfVars()->FilterAvplAtlasLinear == 1 ? true : false);
-	}
-}
-
-void Renderer::FillClusterAtlas(const std::vector<AVPL>& avpls)
-{
-	if(avpls.size() == 0) return;
-
-	if(m_confManager->GetConfVars()->FillAvplAltasOnGPU) {
-		m_octahedronAtlas->FillClusterAtlasGPU(m_clusterTree->GetClustering(), 
-			m_clusterTree->GetClusteringSize(), (int)avpls.size());
-	} else {
-		m_octahedronAtlas->FillClusterAtlas(avpls, m_clusterTree->GetClustering(),
-			m_clusterTree->GetClusteringSize());
-	}
-}
-
-void Renderer::CreateClustering(std::vector<AVPL>& avpls)
-{
-	if(avpls.size() == 0) return;
-
-	m_clusterTree->Release();		
-	m_clusterTree->BuildTree(avpls);
-
-	if(m_confManager->GetConfVars()->UseDebugMode)
-		m_clusterTree->Color(m_DebugAVPLs, m_confManager->GetConfVars()->ClusterDepth);
-
-	// fill cluster information
-	CLUSTER* clustering;
-	int clusteringSize;
-	
-	clustering = m_clusterTree->GetClustering();
-	clusteringSize = m_clusterTree->GetClusteringSize();
-	
-	CLUSTER_BUFFER* clusterBuffer = new CLUSTER_BUFFER[clusteringSize];
-	memset(clusterBuffer, 0, sizeof(CLUSTER_BUFFER) * clusteringSize);
-	for(int i = 0; i < clusteringSize; ++i)
-	{
-		CLUSTER_BUFFER buffer;
-		clustering[i].Fill(&buffer);
-		clusterBuffer[i] = buffer;
-	}
-	m_clusterBuffer->SetContent(sizeof(CLUSTER_BUFFER) * clusteringSize, GL_DYNAMIC_READ, clusterBuffer);
-	delete [] clusterBuffer;
 }
 
 bool Renderer::UseAVPL(AVPL& avpl)
