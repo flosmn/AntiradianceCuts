@@ -83,8 +83,8 @@ float G_A(glm::vec3 p_avpl, glm::vec3 n_avpl, glm::vec3 p_point, glm::vec3 n_poi
 float Average(glm::vec3 v);
 float Average(glm::vec4 v);
 
-glm::vec3 GetIrradiance(const AVPL& avpl, const SceneSample& ss);
-glm::vec3 GetAntiirradiance(const AVPL& avpl, const SceneSample& ss, float N);
+glm::vec3 GetIrradiance(const Avpl& avpl, const SceneSample& ss);
+glm::vec3 GetAntiirradiance(const Avpl& avpl, const SceneSample& ss, float N);
 
 template<typename T>
 inline bool is_nan(T value)

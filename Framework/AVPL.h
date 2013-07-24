@@ -1,71 +1,59 @@
-#ifndef _AVPL__H
-#define _AVPL__H
+#ifndef AVPL_H_
+#define AVPL_H_
 
 #include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
 
-#include "Structs.h"
-
-#include "Intersection.h"
-#include "SceneSample.h"
-
-class CConfigManager;
-class CMaterialBuffer;
-
-class AVPL
+class Avpl
 {
 public:
-	AVPL();
-	AVPL(glm::vec3 p, glm::vec3 n, glm::vec3 L_in, glm::vec3 A, glm::vec3 w, int bounce, int materialIndex, 
-		CMaterialBuffer* pMaterialBuffer, CConfigManager* pConfManager);
-	~AVPL();
+	Avpl() {}
 
-	glm::mat4 GetViewMatrix() const;
-	glm::mat4 GetProjectionMatrix() const;
+	Avpl(glm::vec3 position, glm::vec3 normal, glm::vec3 incRadiance, glm::vec3 antiradiance, 
+		glm::vec3 incDirection, int bounce, int materialIndex) 
+		: 
+		m_position(position), m_normal(normal), m_incRadiance(incRadiance), m_antiradiance(antiradiance),
+		m_incDirection(incDirection), m_bounce(bounce), m_materialIndex(materialIndex)
+	{ 
+		glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+		if(glm::abs(glm::dot(up, m_normal)) > 0.009) {
+			up = glm::vec3(0.0f, 0.0f, 1.0f); 
+		}
 
-	glm::vec3 GetPosition() const { return m_Position; }
-	glm::vec3 GetOrientation() const { return m_Orientation; }
+		m_view = glm::lookAt(m_position, m_position + m_normal, up); 
+
+		m_projection = glm::perspective(90.0f, 1.0f, 0.1f, 2000.0f);
+	}
 	
-	glm::vec3 GetRadiance(const glm::vec3& w) const;
-	glm::vec3 GetAntiradiance(const glm::vec3& w) const;
+	~Avpl() {}
+
+	// TODO: remove
+	glm::mat4 const& getViewMatrix() const { return m_view; }
+	glm::mat4 const& getProjectionMatrix() const { return m_projection; }
 	
-	glm::vec3 GetIncidentRadiance() const { return m_Radiance; }
-	glm::vec3 GetIncidentAntradiance() const { return m_Antiradiance; }
-
-	glm::vec3 GetDirection() const { return m_Direction; }
-	float GetConeAngle() const { return m_ConeAngle; }
-	int GetMaterialIndex() const { return m_MaterialIndex; }
+	glm::vec3 const& getPosition() const { return m_position; }
+	glm::vec3 const& getNormal() const { return m_normal; }
+	glm::vec3 const& getIncidentDirection() const { return m_incDirection; }
+	glm::vec3 const& getIncidentRadiance() const { return m_incRadiance; }
+	glm::vec3 const& getAntiradiance() const { return m_antiradiance; }
 	
-	void ScaleIncidentRadiance(float s) { m_Radiance *= s; }
-	void ScaleAntiradiance(float s) { m_Antiradiance *= s; }
+	int getMaterialIndex() const { return m_materialIndex; }
+	int getBounce() const { return m_bounce; } 
+
+	void setIncidentRadiance(glm::vec3 const& incRadiance) { m_incRadiance = incRadiance; }
+	void setAntiradiance(glm::vec3 const& antiradiance) { m_antiradiance = antiradiance; }
 	
-	glm::vec3 GetIrradiance(const SceneSample& ss) const;
-	glm::vec3 GetAntiirradiance(const SceneSample& ss) const;
+private:
+	glm::mat4 m_projection;
+	glm::mat4 m_view;
 
-	glm::vec3 SampleAntiradianceDirection();
-
-	int GetBounce() const { return m_Bounce; } 
-	
-	void Fill(AVPL_STRUCT& avpl) const;
-	void Fill(AVPL_BUFFER& avpl_buffer) const;
-
-	void SetColor(glm::vec3 c) { m_DebugColor = c; }
-	glm::vec3 GetColor() const { return m_DebugColor; }
-
-public:
-
-	glm::vec3 m_Position;
-	glm::vec3 m_Orientation;
-	glm::vec3 m_Radiance;
-	glm::vec3 m_Antiradiance;
-	glm::vec3 m_Direction;
-	glm::vec3 m_DebugColor;
-	float m_ConeAngle;
-	int m_Bounce;
-	int m_MaterialIndex;
-	int padd;
-
-	CConfigManager* m_confManager;
-	CMaterialBuffer* m_pMaterialBuffer;
+	glm::vec3 m_position;
+	glm::vec3 m_normal;
+	glm::vec3 m_incRadiance;
+	glm::vec3 m_incDirection;
+	glm::vec3 m_antiradiance;
+	int m_bounce;
+	int m_materialIndex;
 };
 
-#endif
+#endif // AVPL_H_

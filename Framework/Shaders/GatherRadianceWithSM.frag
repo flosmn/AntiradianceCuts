@@ -95,7 +95,7 @@ void main()
 	const vec3 direction = normalize(vPositionWS - vec3(uLight.pos));
 			
 	vec4 BRDF_light = f_r(-vec3(uLight.w_A), direction, vec3(uLight.norm), cDiffuseLight, cSpecularLight, exponentLight);
-	// check for light source AVPL
+	// check for light source Avpl
 	if(length(vec3(uLight.w_A)) == 0.f)
 		BRDF_light = vec4(1.f);
 		 

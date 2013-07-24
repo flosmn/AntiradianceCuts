@@ -17,7 +17,7 @@ typedef unsigned int uint;
 #include <memory>
 
 class CCamera;
-class AVPL;
+class Avpl;
 class AreaLight;
 class KdTreeAccelerator;
 class CConfigManager;
@@ -56,11 +56,11 @@ public:
 
 	int GetNumberOfLightPaths() { return m_NumLightPaths; }
 				
-	void CreatePaths(std::vector<AVPL>& avpls, std::vector<AVPL>& allAVPLs, std::vector<AVPL>& isAVPLs, bool profile, uint numPaths);
-	void CreatePath(std::vector<AVPL>& avpls);
-	void CreatePrimaryVpls(std::vector<AVPL>& avpls, int numVpls);
-	bool CreateAVPL(AVPL* pred, AVPL* newAVPL);
-	bool CreatePrimaryAVPL(AVPL* newAVPL);
+	void CreatePaths(std::vector<Avpl>& avpls, std::vector<Avpl>& allAVPLs, std::vector<Avpl>& isAVPLs, bool profile, uint numPaths);
+	void CreatePath(std::vector<Avpl>& avpls);
+	void CreatePrimaryVpls(std::vector<Avpl>& avpls, int numVpls);
+	bool CreateAVPL(Avpl* pred, Avpl* newAVPL);
+	bool CreatePrimaryAVPL(Avpl* newAVPL);
 
 	uint GetNumCreatedAVPLs() { return m_NumCreatedAVPLs; }
 
@@ -84,8 +84,8 @@ private:
 	void initKdTree();
 	void ReleaseKdTree();
 	
-	bool ContinueAVPLPath(AVPL* pred, AVPL* newAVPL, glm::vec3 direction, float pdf);
-	void CreateAVPLs(AVPL* pred, std::vector<AVPL>& path, int nAVPLs);
+	bool ContinueAVPLPath(Avpl* pred, Avpl* newAVPL, glm::vec3 direction, float pdf);
+	void CreateAVPLs(Avpl* pred, std::vector<Avpl>& path, int nAVPLs);
 	
 private:
 	BBox m_bbox;

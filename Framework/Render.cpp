@@ -25,7 +25,7 @@
 
 #include "AreaLight.h"
 #include "Material.h"
-#include "AVPL.h"
+#include "Avpl.h"
 #include "Scene.h"
 #include "CCamera.h"
 #include "CShadowMap.h"
@@ -141,9 +141,6 @@ Renderer::Renderer(CCamera* m_camera, COGLContext* glContext, CConfigManager* co
 	m_MaxNumAVPLs = int(std::pow(float(dim_atlas) / float(dim_tile), 2.f));
 	std::cout << "max num avpls: " << m_MaxNumAVPLs << std::endl;
 
-	m_cubeMap.reset(new COGLCubeMap(512, 512, GL_RGBA32F, 10, "CubeMap"));
-	m_cubeMap->LoadCubeMapFromPath("Resources\\CubeMaps\\Castle\\box\\");
-
 	m_lightBuffer	.reset(new COGLTextureBuffer(GL_RGBA32F, "LightBuffer"	));
 	m_clusterBuffer .reset(new COGLTextureBuffer(GL_RGBA32F, "ClusterBuffer"));
 	m_avplPositions .reset(new COGLTextureBuffer(GL_R32F, "AVPLPositions"));
@@ -193,7 +190,6 @@ Renderer::Renderer(CCamera* m_camera, COGLContext* glContext, CConfigManager* co
 		m_cudaRenderTarget->GetTarget(2)->GetResourceIdentifier(),
 		m_scene->GetMaterialBuffer()->getMaterials(),
 		m_ubTransform.get(), m_confManager));
-	
 }
 
 Renderer::~Renderer() 
@@ -294,13 +290,13 @@ void Renderer::Render()
 		return;
 	}
 	
-	std::vector<AVPL> avpls_shadowmap;
-	std::vector<AVPL> avpls_antiradiance;
+	std::vector<Avpl> avpls_shadowmap;
+	std::vector<Avpl> avpls_antiradiance;
 
 	if(m_ProfileFrame) timer.Start();
 
 	GetAVPLs(avpls_shadowmap, avpls_antiradiance);
-
+	
 	if(m_ProfileFrame) timer.Stop("get avpls");
 	if(m_ProfileFrame) timer.Start();
 
@@ -400,7 +396,7 @@ void Renderer::Render()
 	m_FinishedDebug = true;
 }
 
-void Renderer::GetAVPLs(std::vector<AVPL>& avpls_shadowmap, std::vector<AVPL>& avpls_antiradiance)
+void Renderer::GetAVPLs(std::vector<Avpl>& avpls_shadowmap, std::vector<Avpl>& avpls_antiradiance)
 {
 	if(m_confManager->GetConfVars()->UseDebugMode)
 	{
@@ -425,7 +421,7 @@ void Renderer::GetAVPLs(std::vector<AVPL>& avpls_shadowmap, std::vector<AVPL>& a
 			}
 		}
 		
-		std::vector<AVPL> avpls;
+		std::vector<Avpl> avpls;
 		int numAVPLs = m_confManager->GetConfVars()->NumAVPLsPerFrame;
 		int numAVPLsPerBatch = numAVPLs > 1000 ? 1000 : numAVPLs;
 		int numPaths = 0;
@@ -435,7 +431,7 @@ void Renderer::GetAVPLs(std::vector<AVPL>& avpls_shadowmap, std::vector<AVPL>& a
 			#pragma omp parallel
 			{
 				int num_threads = omp_get_num_threads();
-				std::vector<AVPL> avpls_thread;
+				std::vector<Avpl> avpls_thread;
 				int numPaths_thread = 0;
 				while(avpls_thread.size() < (numAVPLsPerBatch + num_threads - 1) / num_threads)
 				{
@@ -454,14 +450,14 @@ void Renderer::GetAVPLs(std::vector<AVPL>& avpls_shadowmap, std::vector<AVPL>& a
 	}
 }
 
-void Renderer::SeparateAVPLs(const std::vector<AVPL> avpls, 
-	std::vector<AVPL>& avpls_shadowmap, std::vector<AVPL>& avpls_antiradiance, int numPaths)
+void Renderer::SeparateAVPLs(const std::vector<Avpl> avpls, 
+	std::vector<Avpl>& avpls_shadowmap, std::vector<Avpl>& avpls_antiradiance, int numPaths)
 {
 	if(!m_confManager->GetConfVars()->UseAntiradiance)
 	{
 		for(int i = 0; i < avpls.size(); ++i)
 		{
-			AVPL avpl = avpls[i];
+			Avpl avpl = avpls[i];
 			if(UseAVPL(avpl))
 				avpls_shadowmap.push_back(avpl);
 		}
@@ -473,7 +469,7 @@ void Renderer::SeparateAVPLs(const std::vector<AVPL> avpls,
 	{
 		for(int i = 0; i < avpls.size(); ++i)
 		{
-			AVPL avpl = avpls[i];
+			Avpl avpl = avpls[i];
 			if(UseAVPL(avpl))
 				avpls_antiradiance.push_back(avpl);
 		}
@@ -484,13 +480,13 @@ void Renderer::SeparateAVPLs(const std::vector<AVPL> avpls,
 
 	for(int i = 0; i < avpls.size(); ++i)
 	{
-		AVPL avpl = avpls[i];
+		Avpl avpl = avpls[i];
 		
-		if(avpl.GetBounce() != 0)
+		if(avpl.getBounce() != 0)
 		{
-			if(avpl.GetBounce() == 1)
+			if(avpl.getBounce() == 1)
 			{
-				avpl.ScaleAntiradiance(0.f);
+				avpl.setAntiradiance(glm::vec3(0.f));
 			}
 
 			if(UseAVPL(avpl))
@@ -501,7 +497,7 @@ void Renderer::SeparateAVPLs(const std::vector<AVPL> avpls,
 	m_numPathsAntiradiance = numPaths;
 }
 
-void Renderer::Gather(std::vector<AVPL>& avpls_shadowmap, std::vector<AVPL>& avpls_antiradiance)
+void Renderer::Gather(std::vector<Avpl>& avpls_shadowmap, std::vector<Avpl>& avpls_antiradiance)
 {
 	if(m_confManager->GetConfVars()->UseDebugMode && m_FinishedDebug)
 		return;
@@ -589,12 +585,12 @@ void Renderer::CheckExport()
 	}
 }
 
-void Renderer::Gather(const std::vector<AVPL>& avpls, CRenderTarget* pRenderTarget)
+void Renderer::Gather(const std::vector<Avpl>& avpls, CRenderTarget* pRenderTarget)
 {
 	std::cout << "opengl gathering not implemented" << std::endl;
 }
 
-void Renderer::GatherRadianceWithShadowMap(const std::vector<AVPL>& path, CRenderTarget* pRenderTarget)
+void Renderer::GatherRadianceWithShadowMap(const std::vector<Avpl>& path, CRenderTarget* pRenderTarget)
 {
 	for(int i = 0; i < path.size(); ++i)
 	{
@@ -602,7 +598,7 @@ void Renderer::GatherRadianceWithShadowMap(const std::vector<AVPL>& path, CRende
 	}
 }
 
-void Renderer::GatherRadianceFromLightWithShadowMap(const AVPL& avpl, CRenderTarget* pRenderTarget)
+void Renderer::GatherRadianceFromLightWithShadowMap(const Avpl& avpl, CRenderTarget* pRenderTarget)
 {
 	FillShadowMap(avpl);
 	
@@ -614,7 +610,6 @@ void Renderer::GatherRadianceFromLightWithShadowMap(const AVPL& avpl, CRenderTar
 	COGLBindLock lockProgram(m_gatherRadianceWithSMProgram->GetGLProgram(), COGL_PROGRAM_SLOT);
 
 	AVPL_STRUCT light_info;
-	avpl.Fill(light_info);
 	m_ubLight->UpdateData(&light_info);
 
 	CRenderTargetLock lock(pRenderTarget);
@@ -630,7 +625,7 @@ void Renderer::GatherRadianceFromLightWithShadowMap(const AVPL& avpl, CRenderTar
 	glDisable(GL_BLEND);
 }
 
-void Renderer::FillShadowMap(const AVPL& avpl)
+void Renderer::FillShadowMap(const Avpl& avpl)
 {
 	glEnable(GL_DEPTH_TEST);
 
@@ -646,7 +641,7 @@ void Renderer::FillShadowMap(const AVPL& avpl)
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-	drawScene(avpl.GetViewMatrix(), avpl.GetProjectionMatrix());
+	drawScene(avpl.getViewMatrix(), avpl.getProjectionMatrix());
 
 	glViewport(0, 0, m_camera->GetWidth(), m_camera->GetHeight());
 	glDisable(GL_POLYGON_OFFSET_FILL);
@@ -679,7 +674,7 @@ void Renderer::Normalize(CRenderTarget* pTarget, CRenderTarget* source, int norm
 	glEnable(GL_DEPTH_TEST);
 }
 
-bool Renderer::UseAVPL(AVPL& avpl)
+bool Renderer::UseAVPL(Avpl& avpl)
 {
 	int mode = m_confManager->GetConfVars()->LightingMode;
 
@@ -688,23 +683,23 @@ bool Renderer::UseAVPL(AVPL& avpl)
 
 	if(mode == 1)
 	{
-		if(avpl.GetBounce() == 0) 
+		if(avpl.getBounce() == 0) 
 			return true;
 		
-		if(avpl.GetBounce() == 1)
+		if(avpl.getBounce() == 1)
 		{
-			avpl.ScaleIncidentRadiance(0.f);
+			avpl.setIncidentRadiance(glm::vec3(0.f));
 			return true;
 		}
 		
 		return false;
 	}
 	
-	if(mode == 2 && avpl.GetBounce() > 0)
+	if(mode == 2 && avpl.getBounce() > 0)
 	{
-		if(avpl.GetBounce() == 1)
+		if(avpl.getBounce() == 1)
 		{
-			avpl.ScaleAntiradiance(0.f);
+			avpl.setAntiradiance(glm::vec3(0.f));
 			return true;
 		}
 
@@ -763,7 +758,7 @@ void Renderer::CreateGBuffer()
 }
 
 
-void Renderer::DrawLights(const std::vector<AVPL>& avpls, CRenderTarget* target)
+void Renderer::DrawLights(const std::vector<Avpl>& avpls, CRenderTarget* target)
 {	
 	if(!m_confManager->GetConfVars()->DrawLights || avpls.size() == 0)
 		return;
@@ -771,7 +766,7 @@ void Renderer::DrawLights(const std::vector<AVPL>& avpls, CRenderTarget* target)
 	std::vector<glm::vec3> positions(avpls.size());
 	std::vector<glm::vec3> colors(avpls.size());
 	for (int i = 0; i < avpls.size(); ++i) {
-		positions[i] = avpls[i].GetPosition();
+		positions[i] = avpls[i].getPosition();
 		colors[i] = glm::vec3(1.f, 0.f, 1.f);
 	}
 	std::shared_ptr<PointCloud> pointCloud = std::make_shared<PointCloud>(positions, colors, m_ubTransform.get(), m_scene->getSceneExtent() / 100.f);
@@ -909,10 +904,10 @@ void Renderer::PrintCameraConfig()
 		<< m_scene->GetCamera()->GetPosition().z << ")" << std::endl;
 }
 
-glm::vec4 Renderer::ColorForLight(const AVPL& avpl)
+glm::vec4 Renderer::ColorForLight(const Avpl& avpl)
 {
 	glm::vec4 color;
-	switch(avpl.GetBounce()){
+	switch(avpl.getBounce()){
 		case 0: color = glm::vec4(0.8f, 0.8f, 0.8f, 1.f); break;
 		case 1: color = glm::vec4(0.8f, 0.0f, 0.0f, 1.f); break;
 		case 2: color = glm::vec4(0.0f, 0.8f, 0.0f, 1.f); break;
@@ -973,8 +968,8 @@ void Renderer::InitDebugLights()
 	std::vector<glm::vec3> colors;
 
 	for (int i = 0; i < m_DebugAVPLs.size(); ++i) {
-		positions.push_back(m_DebugAVPLs[i].GetPosition());
-		if (m_DebugAVPLs[i].GetBounce() == 0) {
+		positions.push_back(m_DebugAVPLs[i].getPosition());
+		if (m_DebugAVPLs[i].getBounce() == 0) {
 			colors.push_back(glm::vec3(0.f, 0.f, 0.f));
 		} else {
 			colors.push_back(glm::vec3(0.f, 1.f, 0.f));
@@ -1013,8 +1008,8 @@ void Renderer::RebuildBvh()
 	std::vector<glm::vec3> positions;
 	for (int i = 0; i < m_DebugAVPLs.size(); ++i)
 	{
-		if (m_DebugAVPLs[i].GetBounce() > 0) {
-			positions.push_back(m_DebugAVPLs[i].GetPosition());
+		if (m_DebugAVPLs[i].getBounce() > 0) {
+			positions.push_back(m_DebugAVPLs[i].getPosition());
 		}
 	}
 
@@ -1038,7 +1033,7 @@ void Renderer::CancelRender()
 	m_Finished = true;
 }
 
-void Renderer::CreateRandomAVPLs(std::vector<AVPL>& avpls, int numAVPLs)
+void Renderer::CreateRandomAVPLs(std::vector<Avpl>& avpls, int numAVPLs)
 {
 	for(int i = 0; i < numAVPLs; ++i)
 	{
@@ -1048,7 +1043,7 @@ void Renderer::CreateRandomAVPLs(std::vector<AVPL>& avpls, int numAVPLs)
 		const glm::vec3 A = glm::vec3(Rand01(), Rand01(), Rand01());
 		const glm::vec3 w = glm::vec3(Rand01(), Rand01(), Rand01());
 
-		AVPL a(position, normal, L, A, w, 0, 0, m_scene->GetMaterialBuffer(), m_confManager);
+		Avpl a(position, normal, L, A, w, 0, 0);
 		avpls.push_back(a);
 	}
 }

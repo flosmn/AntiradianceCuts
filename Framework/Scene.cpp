@@ -5,7 +5,7 @@ typedef unsigned int uint;
 #include "Defines.h"
 #include "Structs.h"
 
-#include "AVPL.h"
+#include "Avpl.h"
 #include "AreaLight.h"
 #include "CCamera.h"
 #include "KdTreeAccelerator.h"
@@ -68,11 +68,11 @@ void Scene::ClearScene()
 	m_NumCreatedAVPLs = 0;
 }
  
-bool Scene::CreateAVPL(AVPL* pred, AVPL* newAVPL)
+bool Scene::CreateAVPL(Avpl* pred, Avpl* newAVPL)
 {
 	float pdf = 0.f;
-	glm::vec3 direction = SamplePhong(pred->GetDirection(), pred->GetOrientation(), 
-		m_materialBuffer->GetMaterial(pred->GetMaterialIndex()), pdf);
+	glm::vec3 direction = SamplePhong(pred->getIncidentDirection(), pred->getNormal(), 
+		m_materialBuffer->GetMaterial(pred->getMaterialIndex()), pdf);
 	
 	if(pdf < 0.f)
 	{
@@ -88,7 +88,7 @@ bool Scene::CreateAVPL(AVPL* pred, AVPL* newAVPL)
 		return false;
 	}
 
-	AVPL avpl;
+	Avpl avpl;
 	if(ContinueAVPLPath(pred, &avpl, direction, pdf))
 	{
 		*newAVPL = avpl;
@@ -99,7 +99,7 @@ bool Scene::CreateAVPL(AVPL* pred, AVPL* newAVPL)
 	return false;
 }
 
-bool Scene::CreatePrimaryAVPL(AVPL* newAVPL)
+bool Scene::CreatePrimaryAVPL(Avpl* newAVPL)
 {
 	if(!m_areaLight)
 	{
@@ -110,25 +110,23 @@ bool Scene::CreatePrimaryAVPL(AVPL* newAVPL)
 	// create VPL on light source
 	float pdf;
 	glm::vec3 pos = m_areaLight->samplePos(pdf);
-
-	glm::vec3 ori = m_areaLight->getFrontDirection();
+	glm::vec3 normal = m_areaLight->getFrontDirection();
 	glm::vec3 I = m_areaLight->getRadiance();
 
 	if(!(pdf > 0.f))
 		std::cout << "Warning: pdf is 0" << std::endl;
 
-	AVPL avpl(pos, ori, I / pdf, glm::vec3(0), glm::vec3(0), 
-		0, m_areaLight->getMaterialIndex(), m_materialBuffer.get(), m_confManager);
+	Avpl avpl(pos, normal, I / pdf, glm::vec3(0), glm::vec3(0), 0, m_areaLight->getMaterialIndex());
 	*newAVPL = avpl;
 
 	return true;
 }
 
-bool Scene::ContinueAVPLPath(AVPL* pred, AVPL* newAVPL, glm::vec3 direction, float pdf)
+bool Scene::ContinueAVPLPath(Avpl* pred, Avpl* newAVPL, glm::vec3 direction, float pdf)
 {
-	glm::vec3 pred_pos = pred->GetPosition();
+	glm::vec3 pred_pos = pred->getPosition();
 
-	const glm::vec3 pred_norm = glm::normalize(pred->GetOrientation());
+	const glm::vec3 pred_norm = glm::normalize(pred->getNormal());
 	direction = glm::normalize(direction);
 
 	Ray ray(pred_pos + EPS * direction, direction);
@@ -144,19 +142,17 @@ bool Scene::ContinueAVPLPath(AVPL* pred, AVPL* newAVPL, glm::vec3 direction, flo
 		if(index > 100)
 			std::cout << "material index uob" << std::endl;
 		
-		MATERIAL* mat = m_materialBuffer->GetMaterial(index);
-		
 		const float cos_theta = glm::dot(pred_norm, direction);
+		glm::vec3 contrib = pred->getIncidentRadiance() * cos_theta / pdf;
 
-		glm::vec3 contrib = pred->GetRadiance(direction) * cos_theta / pdf;	
+		if (pred->getBounce() > 0) {
+			contrib *= glm::vec3(Phong(-pred->getIncidentDirection(), direction, 
+				pred->getNormal(), m_materialBuffer->GetMaterial(pred->getMaterialIndex())));
+		}
 		
-		float coneFactor = M_PI / 10.f;
-		const float area = 2 * M_PI * ( 1 - cos(M_PI/coneFactor) );
+		glm::vec3 antiradiance = 1.f/float(m_confManager->GetConfVars()->NumAdditionalAVPLs + 1.f) * contrib;
 
-		glm::vec3 antiradiance = 1.f/float(m_confManager->GetConfVars()->NumAdditionalAVPLs + 1.f) * contrib; // / area;
-
-		AVPL avpl(pos, norm, contrib, antiradiance, direction, pred->GetBounce() + 1,
-			intersection.getTriangle()->getMaterialIndex(), m_materialBuffer.get(), m_confManager);
+		Avpl avpl(pos, norm, contrib, antiradiance, direction, pred->getBounce() + 1, intersection.getTriangle()->getMaterialIndex());
 		*newAVPL = avpl;
 		return true;
 	}
@@ -165,7 +161,7 @@ bool Scene::ContinueAVPLPath(AVPL* pred, AVPL* newAVPL, glm::vec3 direction, flo
 	return false;
 }
 
-void Scene::CreatePaths(std::vector<AVPL>& avpls_res, std::vector<AVPL>& allAVPLs, std::vector<AVPL>& isAVPLs, bool profile, uint numPaths)
+void Scene::CreatePaths(std::vector<Avpl>& avpls_res, std::vector<Avpl>& allAVPLs, std::vector<Avpl>& isAVPLs, bool profile, uint numPaths)
 {
 	avpls_res.reserve(numPaths * 4);
 	allAVPLs.reserve(numPaths * 4);	
@@ -178,13 +174,13 @@ void Scene::CreatePaths(std::vector<AVPL>& avpls_res, std::vector<AVPL>& allAVPL
 	m_NumCreatedAVPLs += uint(avpls_res.size());
 }
 
-void Scene::CreatePath(std::vector<AVPL>& path) 
+void Scene::CreatePath(std::vector<Avpl>& path) 
 {
 	m_NumLightPaths++;
 
 	int currentBounce = 0;
 	
-	AVPL pred, succ;
+	Avpl pred, succ;
 		
 	// create new primary light on light source
 	CreatePrimaryAVPL(&pred);
@@ -207,10 +203,10 @@ void Scene::CreatePath(std::vector<AVPL>& path)
 			// create path-finishing Anti-VPLs
 			CreateAVPLs(&pred, path, m_confManager->GetConfVars()->NumAdditionalAVPLs);
 
-			AVPL avpl;
+			Avpl avpl;
 			if(CreateAVPL(&pred, &avpl))
 			{
-				avpl.ScaleIncidentRadiance(0.f);
+				avpl.setIncidentRadiance(glm::vec3(0.f));
 				path.push_back(avpl);
 			}
 			
@@ -225,7 +221,7 @@ void Scene::CreatePath(std::vector<AVPL>& path)
 			// if the ray hits geometry
 			if(CreateAVPL(&pred, &succ))
 			{
-				succ.ScaleIncidentRadiance(1.f / rrProb);
+				succ.setIncidentRadiance(1.f / rrProb * succ.getIncidentRadiance());
 				path.push_back(succ);
 
 				pred = succ;
@@ -242,9 +238,9 @@ void Scene::CreatePath(std::vector<AVPL>& path)
 	}
 }
 
-void Scene::CreateAVPLs(AVPL* pred, std::vector<AVPL>& path, int nAVPLs)
+void Scene::CreateAVPLs(Avpl* pred, std::vector<Avpl>& path, int nAVPLs)
 {
-	glm::vec3 pred_norm = pred->GetOrientation();
+	glm::vec3 pred_norm = pred->getNormal();
 
 	std::vector<glm::vec3> directions;
 	std::vector<float> pdfs;
@@ -261,21 +257,20 @@ void Scene::CreateAVPLs(AVPL* pred, std::vector<AVPL>& path, int nAVPLs)
 			continue;
 		}
 
-		AVPL avpl;
+		Avpl avpl;
 		if(ContinueAVPLPath(pred, &avpl, direction, pdf))		
 		{
-			avpl.ScaleIncidentRadiance(0.f);
-			avpl.SetColor(glm::vec3(1.f, 0.f, 0.f));
+			avpl.setIncidentRadiance(glm::vec3(0.f));
 			path.push_back(avpl);
 		}
 	}
 }
 
-void Scene::CreatePrimaryVpls(std::vector<AVPL>& avpls, int numVpls)
+void Scene::CreatePrimaryVpls(std::vector<Avpl>& avpls, int numVpls)
 {
 	for(int i = 0; i < numVpls; ++i)
 	{
-		AVPL avpl;
+		Avpl avpl;
 		if(CreatePrimaryAVPL(&avpl))
 			avpls.push_back(avpl);
 	}

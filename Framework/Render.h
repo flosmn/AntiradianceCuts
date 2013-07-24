@@ -5,7 +5,7 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
-#include "AVPL.h"
+#include "Avpl.h"
 
 #include <vector>
 #include <string>
@@ -48,8 +48,6 @@ class COGLTexture2D;
 class COGLTextureBuffer;
 class COGLContext;
 class COGLRenderTarget;
-class COGLCubeMap;
-
 class Renderer {
 public:
 	Renderer(CCamera* camera, COGLContext* glContext, CConfigManager* confManager);
@@ -90,43 +88,43 @@ private:
 	
 	void updateTransform(glm::mat4 const& world, glm::mat4 const& view, glm::mat4 const& proj);
 
-	void Gather(const std::vector<AVPL>& path, CRenderTarget* pRenderTarget);
+	void Gather(const std::vector<Avpl>& path, CRenderTarget* pRenderTarget);
 	void Normalize(CRenderTarget* pTarget, CRenderTarget* source, int normFactor);
 	void Add(CRenderTarget* target, CRenderTarget* source1, CRenderTarget* source2);
 	void Add(CRenderTarget* target, CRenderTarget* source);
 
 	void SetTransformToCamera();
 
-	void GetAVPLs(std::vector<AVPL>& avpls_shadowmap, std::vector<AVPL>& avpls_antiradiance);
-	void SeparateAVPLs(const std::vector<AVPL> avpls, std::vector<AVPL>& avpls_shadowmap, std::vector<AVPL>& avpls_antiradiance, int numPaths);
+	void GetAVPLs(std::vector<Avpl>& avpls_shadowmap, std::vector<Avpl>& avpls_antiradiance);
+	void SeparateAVPLs(const std::vector<Avpl> avpls, std::vector<Avpl>& avpls_shadowmap, std::vector<Avpl>& avpls_antiradiance, int numPaths);
 	
-	void Gather(std::vector<AVPL>& avpls_shadowmap, std::vector<AVPL>& avpls_antiradiance);
+	void Gather(std::vector<Avpl>& avpls_shadowmap, std::vector<Avpl>& avpls_antiradiance);
 	void CalculateError();
 	void DrawDebug();
 	void CheckExport();
 
-	bool UseAVPL(AVPL& avpl);
+	bool UseAVPL(Avpl& avpl);
 	
 	void InitDebugLights();
 
 	void ClearAccumulationBuffer();
 	void ClearLighting();
 
-	void CreateRandomAVPLs(std::vector<AVPL>& avpls, int numAVPLs);
+	void CreateRandomAVPLs(std::vector<Avpl>& avpls, int numAVPLs);
 	
-	void DetermineUsedAvpls(const std::vector<AVPL>& avpls, std::vector<AVPL>& used);
+	void DetermineUsedAvpls(const std::vector<Avpl>& avpls, std::vector<Avpl>& used);
 	
-	void GatherRadianceWithShadowMap(const std::vector<AVPL>& path, CRenderTarget* pRenderTarget);	
+	void GatherRadianceWithShadowMap(const std::vector<Avpl>& path, CRenderTarget* pRenderTarget);	
 	
 	void CreatePlaneHammersleySamples(int i);
 		
-	void GatherRadianceFromLightWithShadowMap(const AVPL& avpl, CRenderTarget* pRenderTarget);
-	void FillShadowMap(const AVPL& avpl);
-	void DrawLights(const std::vector<AVPL>& avpls, CRenderTarget* target);
+	void GatherRadianceFromLightWithShadowMap(const Avpl& avpl, CRenderTarget* pRenderTarget);
+	void FillShadowMap(const Avpl& avpl);
+	void DrawLights(const std::vector<Avpl>& avpls, CRenderTarget* target);
 	void DrawSceneSamples(CRenderTarget* target);
 	void DrawBidirSceneSamples(CRenderTarget* target);
 		
-	glm::vec4 ColorForLight(const AVPL& light);
+	glm::vec4 ColorForLight(const Avpl& light);
 	
 	void ExportPartialResult();
 		
@@ -191,14 +189,13 @@ private:
 	std::unique_ptr<cuda::CudaContext> m_cudaContext;
 	std::unique_ptr<CudaGather> m_cudaGather;
 
-	std::unique_ptr<COGLCubeMap> m_cubeMap;
 	std::unique_ptr<SceneProbe> m_sceneProbe;
 
 	std::unique_ptr<COGLSampler> m_linearSampler;
 	std::unique_ptr<COGLSampler> m_pointSampler;
 	std::unique_ptr<COGLSampler> m_shadowMapSampler;
 	
-	std::vector<AVPL> m_DebugAVPLs;
+	std::vector<Avpl> m_DebugAVPLs;
 		
 	std::unique_ptr<CTimer> m_clTimer;
 	std::unique_ptr<CTimer> m_glTimer;

@@ -187,7 +187,6 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <ClCompile Include="CRenderTarget.cpp" />
     <ClCompile Include="CTestFramework.cpp" />
     <ClCompile Include="CTimer.cpp" />
-    <ClCompile Include="AVPL.cpp" />
     <ClCompile Include="guicon.cpp" />
     <ClCompile Include="KdTreeAccelerator.cpp" />
     <ClCompile Include="OGLResources\COGLBindLock.cpp" />
@@ -225,6 +224,7 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AreaLight.h" />
+    <ClInclude Include="Avpl.h" />
     <ClInclude Include="BBox.h" />
     <ClInclude Include="bvh.h" />
     <ClInclude Include="CCamera.h" />
@@ -247,7 +247,6 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <ClInclude Include="Defines.h" />
     <ClInclude Include="FullScreenQuad.h" />
     <ClInclude Include="guicon.h" />
-    <ClInclude Include="AVPL.h" />
     <ClInclude Include="Intersection.h" />
     <ClInclude Include="KdTreeAccelerator.h" />
     <ClInclude Include="Macros.h" />

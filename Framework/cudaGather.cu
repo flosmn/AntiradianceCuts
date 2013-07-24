@@ -84,7 +84,7 @@ inline __device__ float3 getRadiance(float3 const& pos,
 			
 	float3 brdf_light = f_r(-avpl_w, direction, avpl_norm, avpl_mat);
 
-	// check for light source AVPL
+	// check for light source Avpl
 	if(length(avpl_w) == 0.f)
 		brdf_light = make_float3(1.f);
 		 
@@ -831,7 +831,7 @@ CudaGather::~CudaGather()
 {
 }
 
-void CudaGather::run(std::vector<AVPL> const& avpls, glm::vec3 const& cameraPosition, 
+void CudaGather::run(std::vector<Avpl> const& avpls, glm::vec3 const& cameraPosition, 
 	SceneProbe* sceneProbe, float sceneExtent, bool profile)
 {
 	CudaGraphicsResourceMappedArray positionsMapped(m_positionResource.get());

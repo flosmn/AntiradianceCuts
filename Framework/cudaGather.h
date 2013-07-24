@@ -9,7 +9,7 @@
 #include "ObjectClouds.h"
 
 #include "CMaterialBuffer.h"
-#include "AVPL.h"
+#include "Avpl.h"
 #include "data_gpu.h"
 
 #include "bvh.h"
@@ -36,8 +36,8 @@ public:
 
 	~CudaGather();
 
-	void gatherAntiradiance(std::vector<AVPL> const& avpls, glm::vec3 const& cameraPosition, float photonRadius);
-	void run(std::vector<AVPL> const& avpls, glm::vec3 const& cameraPosition, 
+	void gatherAntiradiance(std::vector<Avpl> const& avpls, glm::vec3 const& cameraPosition, float photonRadius);
+	void run(std::vector<Avpl> const& avpls, glm::vec3 const& cameraPosition, 
 		SceneProbe* sceneProbe, float sceneExtent, bool profile);
 	
 	PointCloud* getPointCloud() { return m_pointCloud.get(); }

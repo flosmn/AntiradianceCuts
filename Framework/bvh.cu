@@ -670,7 +670,7 @@ BvhNode Bvh::getNode(int i)
 // AvplBvh --------------------------------------------------------------
 // ----------------------------------------------------------------------
 	
-AvplBvhNodeData::AvplBvhNodeData(std::vector<AVPL> const& avpls)
+AvplBvhNodeData::AvplBvhNodeData(std::vector<Avpl> const& avpls)
 {
 	const int numLeafs = avpls.size();
 	const int numElements = 2 * numLeafs - 1;
@@ -684,11 +684,11 @@ AvplBvhNodeData::AvplBvhNodeData(std::vector<AVPL> const& avpls)
 
 	for (int i = 0; i < numLeafs; ++i) {
 		temp_size[i] = 1;
-		temp_materialIndex[i] = avpls[i].m_MaterialIndex;
-		temp_position[i] = make_float3(avpls[i].GetPosition());
-		temp_normal[i] = make_float3(avpls[i].GetOrientation());
-		temp_incRadiance[i] = make_float3(avpls[i].GetIncidentRadiance());
-		temp_incDirection[i] = make_float3(avpls[i].m_Direction);
+		temp_materialIndex[i] = avpls[i].getMaterialIndex();
+		temp_position[i] = make_float3(avpls[i].getPosition());
+		temp_normal[i] = make_float3(avpls[i].getNormal());
+		temp_incRadiance[i] = make_float3(avpls[i].getIncidentRadiance());
+		temp_incDirection[i] = make_float3(avpls[i].getIncidentDirection());
 	}
 	
 	std::vector<float> temp_rand(numElements);
@@ -743,7 +743,7 @@ __device__ __host__ void cluster(const int target, const int left, const int rig
 	param->normal[targetId] = param->normal[repr];
 }
 
-AvplBvh::AvplBvh(std::vector<AVPL> const& avpls, bool considerNormals)
+AvplBvh::AvplBvh(std::vector<Avpl> const& avpls, bool considerNormals)
 	: Bvh(considerNormals)
 {
 	m_input.reset(new BvhInput());
@@ -752,9 +752,9 @@ AvplBvh::AvplBvh(std::vector<AVPL> const& avpls, bool considerNormals)
 	std::vector<float3> norm;
 	for (int i = 0; i < avpls.size(); ++i)
 	{
-		if (avpls[i].GetBounce() > 0) {
-			pos.push_back(make_float3(avpls[i].GetPosition()));
-			norm.push_back(make_float3(avpls[i].GetOrientation()));
+		if (avpls[i].getBounce() > 0) {
+			pos.push_back(make_float3(avpls[i].getPosition()));
+			norm.push_back(make_float3(avpls[i].getNormal()));
 		}
 	}
 	

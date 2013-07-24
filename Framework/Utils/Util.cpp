@@ -12,7 +12,7 @@
 #include <algorithm>
 #include <math.h>
 
-#include "..\AVPL.h"
+#include "..\Avpl.h"
 
 glm::mat4 IdentityMatrix() 
 {

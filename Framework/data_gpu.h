@@ -1,7 +1,7 @@
 #ifndef DATAGPU_H_
 #define DATAGPU_H_
 
-#include "AVPL.h"
+#include "Avpl.h"
 #include "Material.h"
 
 #include "CudaResources/cudaBuffer.hpp"
@@ -25,7 +25,7 @@ struct AvplsGpuParam
 
 struct AvplsGpu
 {
-	AvplsGpu(std::vector<AVPL> const& avpls);
+	AvplsGpu(std::vector<Avpl> const& avpls);
 
 	std::unique_ptr<cuda::CudaBuffer<AvplsGpuParam>> param;
 

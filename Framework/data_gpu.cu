@@ -2,7 +2,7 @@
 
 #include <thrust/host_vector.h>
 
-AvplsGpu::AvplsGpu(std::vector<AVPL> const& avpls)
+AvplsGpu::AvplsGpu(std::vector<Avpl> const& avpls)
 {
 	numAvpls = avpls.size();
 	thrust::host_vector<float3> position_h(numAvpls);
@@ -14,13 +14,13 @@ AvplsGpu::AvplsGpu(std::vector<AVPL> const& avpls)
 	thrust::host_vector<int> bounce_h(numAvpls);
 
 	for (int i = 0; i < avpls.size(); ++i) {
-		position_h[i] = make_float3(avpls[i].GetPosition());
-		normal_h[i] = make_float3(avpls[i].GetOrientation());
-		incDirection_h[i] = make_float3(avpls[i].GetDirection());
-		incRadiance_h[i] = make_float3(avpls[i].GetIncidentRadiance());
-		antiradiance_h[i] = make_float3(avpls[i].GetIncidentAntradiance());
-		materialIndex_h[i] = avpls[i].GetMaterialIndex();
-		bounce_h[i] = avpls[i].GetBounce();
+		position_h[i] = make_float3(avpls[i].getPosition());
+		normal_h[i] = make_float3(avpls[i].getNormal());
+		incDirection_h[i] = make_float3(avpls[i].getIncidentDirection());
+		incRadiance_h[i] = make_float3(avpls[i].getIncidentRadiance());
+		antiradiance_h[i] = make_float3(avpls[i].getAntiradiance());
+		materialIndex_h[i] = avpls[i].getMaterialIndex();
+		bounce_h[i] = avpls[i].getBounce();
 	}
 
 	position.resize(numAvpls);

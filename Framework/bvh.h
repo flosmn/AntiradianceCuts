@@ -7,7 +7,7 @@
 #include "CudaResources/cudaUtil.hpp"
 #include "CudaResources/cudaBuffer.hpp"
 
-#include "AVPL.h"
+#include "Avpl.h"
 
 #include <glm/glm.hpp>
 
@@ -114,7 +114,7 @@ struct AvplBvhNodeDataParam
 
 struct AvplBvhNodeData
 {
-	AvplBvhNodeData(std::vector<AVPL> const& avpls);
+	AvplBvhNodeData(std::vector<Avpl> const& avpls);
 
 	thrust::device_vector<int> size;
 	thrust::device_vector<int> materialIndex;
@@ -129,7 +129,7 @@ struct AvplBvhNodeData
 class AvplBvh : public Bvh
 {
 public:
-	AvplBvh(std::vector<AVPL> const& avpls, bool considerNormals);
+	AvplBvh(std::vector<Avpl> const& avpls, bool considerNormals);
 
 	~AvplBvh();
 	
