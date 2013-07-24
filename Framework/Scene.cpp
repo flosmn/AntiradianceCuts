@@ -70,11 +70,9 @@ void Scene::ClearScene()
  
 bool Scene::CreateAVPL(AVPL* pred, AVPL* newAVPL)
 {
-	bool mis = m_confManager->GetConfVars()->UseMIS == 1 ? true : false;
-
 	float pdf = 0.f;
 	glm::vec3 direction = SamplePhong(pred->GetDirection(), pred->GetOrientation(), 
-		m_materialBuffer->GetMaterial(pred->GetMaterialIndex()), pdf, mis);
+		m_materialBuffer->GetMaterial(pred->GetMaterialIndex()), pdf);
 	
 	if(pdf < 0.f)
 	{
@@ -119,7 +117,7 @@ bool Scene::CreatePrimaryAVPL(AVPL* newAVPL)
 	if(!(pdf > 0.f))
 		std::cout << "Warning: pdf is 0" << std::endl;
 
-	AVPL avpl(pos, ori, I / pdf, glm::vec3(0), glm::vec3(0), m_confManager->GetConfVars()->ConeFactor, 
+	AVPL avpl(pos, ori, I / pdf, glm::vec3(0), glm::vec3(0), 
 		0, m_areaLight->getMaterialIndex(), m_materialBuffer.get(), m_confManager);
 	*newAVPL = avpl;
 
@@ -152,19 +150,12 @@ bool Scene::ContinueAVPLPath(AVPL* pred, AVPL* newAVPL, glm::vec3 direction, flo
 
 		glm::vec3 contrib = pred->GetRadiance(direction) * cos_theta / pdf;	
 		
-		float coneFactor = m_confManager->GetConfVars()->ConeFactor;
-		const int clamp_cone_mode = m_confManager->GetConfVars()->ClampConeMode;
-		if(m_confManager->GetConfVars()->ClampConeMode == 1)
-		{
-			const float cone_min = M_PI / (M_PI/2.f - acos(glm::dot(norm, -direction)));
-			coneFactor = std::max(cone_min, m_confManager->GetConfVars()->ConeFactor);
-		}
-		
+		float coneFactor = M_PI / 10.f;
 		const float area = 2 * M_PI * ( 1 - cos(M_PI/coneFactor) );
 
 		glm::vec3 antiradiance = 1.f/float(m_confManager->GetConfVars()->NumAdditionalAVPLs + 1.f) * contrib; // / area;
 
-		AVPL avpl(pos, norm, contrib, antiradiance, direction, coneFactor, pred->GetBounce() + 1,
+		AVPL avpl(pos, norm, contrib, antiradiance, direction, pred->GetBounce() + 1,
 			intersection.getTriangle()->getMaterialIndex(), m_materialBuffer.get(), m_confManager);
 		*newAVPL = avpl;
 		return true;
@@ -205,14 +196,13 @@ void Scene::CreatePath(std::vector<AVPL>& path)
 	// follow light path until it is terminated
 	// by RR with termination probability 1-rrProb
 	bool terminate = false;
-	int bl = m_confManager->GetConfVars()->LimitBounces;
-	const float rrProb = (bl == -1 ? 0.8f : 1.0f);
+	const float rrProb = 0.8f;
 	while(!terminate)
 	{
 		// decide whether to terminate path
 		float rand_01 = glm::linearRand(0.f, 1.f);
 
-		if(bl == -1 ? rand_01 > rrProb : currentBounce > bl)
+		if(rand_01 > rrProb)
 		{
 			// create path-finishing Anti-VPLs
 			CreateAVPLs(&pred, path, m_confManager->GetConfVars()->NumAdditionalAVPLs);
@@ -383,9 +373,7 @@ void Scene::LoadCornellBox()
 		Orthogonal(areaLightFrontDir),
 		glm::vec3(100.f, 100.f, 100.f),
 		m_materialBuffer.get()));
-
-	m_confManager->GetConfVars()->UseIBL = m_confManager->GetConfVarsGUI()->UseIBL = 0;
-		
+	
 	initKdTree();
 	calcBoundingBox();
 }
@@ -426,9 +414,7 @@ void Scene::LoadCornellEmpty()
 		Orthogonal(areaLightFrontDir),
 		AreaLightRadianceScale * glm::vec3(100.f, 100.f, 100.f),
 		m_materialBuffer.get()));
-
-	m_confManager->GetConfVars()->UseIBL = m_confManager->GetConfVarsGUI()->UseIBL = 0;
-		
+	
 	initKdTree();
 	calcBoundingBox();
 }
@@ -479,9 +465,7 @@ void Scene::LoadBuddha()
 		Orthogonal(areaLightFrontDir),
 		glm::vec3(100.f, 100.f, 100.f),
 		m_materialBuffer.get()));
-
-	m_confManager->GetConfVars()->UseIBL = m_confManager->GetConfVarsGUI()->UseIBL = 0;
-		
+	
 	initKdTree();
 	calcBoundingBox();
 }
@@ -519,9 +503,7 @@ void Scene::LoadConferenceRoom()
 		Orthogonal(areaLightFrontDir),
 		AreaLightRadianceScale * glm::vec3(1.f, 1.f, 1.f),
 		m_materialBuffer.get()));
-
-	m_confManager->GetConfVars()->UseIBL = m_confManager->GetConfVarsGUI()->UseIBL = 0;
-		
+	
 	initKdTree();
 	calcBoundingBox();
 }
@@ -566,8 +548,6 @@ void Scene::LoadSibernik()
 	m_confManager->GetConfVars()->AreaLightPosX = m_confManager->GetConfVarsGUI()->AreaLightPosX = areaLightPosition.x;
 	m_confManager->GetConfVars()->AreaLightPosY = m_confManager->GetConfVarsGUI()->AreaLightPosY = areaLightPosition.y;
 	m_confManager->GetConfVars()->AreaLightPosZ = m_confManager->GetConfVarsGUI()->AreaLightPosZ = areaLightPosition.z;
-
-	m_confManager->GetConfVars()->ClampConeMode = m_confManager->GetConfVarsGUI()->ClampConeMode = 0;
 
 	float AreaLightRadianceScale = 3000.f;
 	m_confManager->GetConfVars()->AreaLightRadianceScale = m_confManager->GetConfVarsGUI()->AreaLightRadianceScale = AreaLightRadianceScale;

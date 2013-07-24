@@ -56,8 +56,6 @@ public:
 	~Renderer();
 
 	void Render();
-	void RenderPathTracingReference();
-
 	void CancelRender();
 	void WindowChanged();
 
@@ -131,10 +129,7 @@ private:
 	glm::vec4 ColorForLight(const AVPL& light);
 	
 	void ExportPartialResult();
-
-	float GetAntiradFilterNormFactor();
-	float IntegrateGauss();
-	
+		
 	// pointers to externally managed resources
 	CCamera* m_camera;
 	COGLContext* m_glContext;

@@ -18,7 +18,7 @@ CPathTracingIntegrator::~CPathTracingIntegrator()
 {
 }
 
-void CPathTracingIntegrator::Integrate(uint numPaths, bool MIS)
+void CPathTracingIntegrator::Integrate(uint numPaths)
 {	
 	//omp_set_num_threads(8);
 
@@ -71,7 +71,7 @@ void CPathTracingIntegrator::Integrate(uint numPaths, bool MIS)
 				if(i > 1)
 				{
 					const float pdfSA = PhongPdf(y[i-2].position, y[i-1].position, y[i].position, y[i-1].normal, 
-						m_scene->GetMaterial(y[i-1]), MIS);
+						m_scene->GetMaterial(y[i-1]));
 					
 					if(pdfSA <= 0.f)
 					{
@@ -96,7 +96,7 @@ void CPathTracingIntegrator::Integrate(uint numPaths, bool MIS)
 			if(m_scene->Visible(y[i], ls_sample))
 			{
 				const float pdfSA = PhongPdf(y[i-1].position, y[i].position, ls_sample.position, y[i].normal, 
-					m_scene->GetMaterial(y[i]), MIS);
+					m_scene->GetMaterial(y[i]));
 				
 				if(pdfSA <= 0.f)
 				{
@@ -128,7 +128,7 @@ void CPathTracingIntegrator::Integrate(uint numPaths, bool MIS)
 				#pragma omp critical
 				{
 					direction = SamplePhong(glm::normalize(y[i-1].position - y[i].position), y[i].normal, 
-						m_scene->GetMaterial(y[i]), pdf, MIS);
+						m_scene->GetMaterial(y[i]), pdf);
 				}
 				
 				if(glm::dot(direction, y[i].normal) <= 0.f)

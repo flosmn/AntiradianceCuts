@@ -15,7 +15,7 @@ class AVPL
 {
 public:
 	AVPL();
-	AVPL(glm::vec3 p, glm::vec3 n, glm::vec3 L_in, glm::vec3 A, glm::vec3 w, float m_ConeAngle, int bounce, int materialIndex, 
+	AVPL(glm::vec3 p, glm::vec3 n, glm::vec3 L_in, glm::vec3 A, glm::vec3 w, int bounce, int materialIndex, 
 		CMaterialBuffer* pMaterialBuffer, CConfigManager* pConfManager);
 	~AVPL();
 
@@ -27,7 +27,7 @@ public:
 	
 	glm::vec3 GetRadiance(const glm::vec3& w) const;
 	glm::vec3 GetAntiradiance(const glm::vec3& w) const;
-
+	
 	glm::vec3 GetIncidentRadiance() const { return m_Radiance; }
 	glm::vec3 GetIncidentAntradiance() const { return m_Antiradiance; }
 
@@ -52,7 +52,6 @@ public:
 	glm::vec3 GetColor() const { return m_DebugColor; }
 
 public:
-	glm::vec3 GetAntiradiance(const glm::vec3& w, const float angleFactor) const;
 
 	glm::vec3 m_Position;
 	glm::vec3 m_Orientation;

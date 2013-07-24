@@ -45,10 +45,10 @@ glm::vec3 reflect(const glm::vec3& v, const glm::vec3& norm);
 glm::vec4 Phong(const glm::vec3& from, const glm::vec3& over, const glm::vec3& to, const glm::vec3& n, MATERIAL* mat);
 glm::vec4 Phong(const glm::vec3& w_i, const glm::vec3& w_o, const glm::vec3& n, MATERIAL* mat);
 
-float PhongPdf(const glm::vec3& w_i, const glm::vec3& w_o, const glm::vec3& n, MATERIAL* mat, bool MIS);
-float PhongPdf(const glm::vec3& from, const glm::vec3& over, const glm::vec3& to, const glm::vec3& n, MATERIAL* mat, bool MIS);
+float PhongPdf(const glm::vec3& w_i, const glm::vec3& w_o, const glm::vec3& n, MATERIAL* mat);
+float PhongPdf(const glm::vec3& from, const glm::vec3& over, const glm::vec3& to, const glm::vec3& n, MATERIAL* mat);
 
-glm::vec3 SamplePhong(const glm::vec3& w_o, const glm::vec3& n, MATERIAL* mat, float& pdf, bool MIS);
+glm::vec3 SamplePhong(const glm::vec3& w_o, const glm::vec3& n, MATERIAL* mat, float& pdf);
 
 void GetStratifiedSamples2D(std::vector<glm::vec2>& samples, const glm::vec2& range, const uint numSamples);
 glm::vec2 GetUniformSample2D(const glm::vec2& range);

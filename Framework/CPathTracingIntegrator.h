@@ -15,7 +15,7 @@ public:
 	CPathTracingIntegrator(Scene* pScene, CImagePlane* pImagePlane);
 	~CPathTracingIntegrator();
 
-	void Integrate(uint numPaths, bool MIS);
+	void Integrate(uint numPaths);
 
 private:
 	Scene* m_scene;

@@ -15,7 +15,7 @@
 static glm::mat4 projMatrix = glm::perspective(90.0f, 1.0f, 0.1f, 100.0f);
 
 AVPL::AVPL(glm::vec3 p, glm::vec3 n, glm::vec3 L,
-	glm::vec3 A, glm::vec3 w, float coneAngle, 
+	glm::vec3 A, glm::vec3 w, 
 	int bounce, int materialIndex, 
 	CMaterialBuffer* pMaterialBuffer, CConfigManager* pConfManager)
 	: m_pMaterialBuffer(pMaterialBuffer), m_confManager(pConfManager)
@@ -25,7 +25,7 @@ AVPL::AVPL(glm::vec3 p, glm::vec3 n, glm::vec3 L,
 	m_Radiance = L;
 	m_Antiradiance= A;
 	m_Direction = w;
-	m_ConeAngle = coneAngle;
+	m_ConeAngle = M_PI / 10.f;
 	m_Bounce = bounce;
 	m_MaterialIndex = materialIndex;
 	m_DebugColor = glm::vec3(0.2f, 0.2f, 0.2f);
@@ -84,7 +84,7 @@ void AVPL::Fill(AVPL_BUFFER& avpl) const
 
 glm::vec3 AVPL::GetAntiradiance(const glm::vec3& w) const
 {
-	return GetAntiradiance(w, m_ConeAngle);
+	return m_Antiradiance;
 }
 
 glm::vec3 AVPL::GetRadiance(const glm::vec3& w) const
@@ -106,7 +106,7 @@ glm::vec3 AVPL::GetIrradiance(const SceneSample& ss) const
 glm::vec3 AVPL::GetAntiirradiance(const SceneSample& ss) const
 {
 	const glm::vec3 w = glm::normalize(ss.position - m_Position);
-	return G_A(m_Position, m_Orientation, ss.position, ss.normal) * GetAntiradiance(w, m_ConeAngle);
+	return G_A(m_Position, m_Orientation, ss.position, ss.normal) * GetAntiradiance(w);
 }
 
 glm::vec3 AVPL::SampleAntiradianceDirection()
@@ -114,36 +114,4 @@ glm::vec3 AVPL::SampleAntiradianceDirection()
 	float pdf = 0.f;
 	glm::vec3 dir = SampleConeDirection(m_Direction, M_PI/m_ConeAngle, Rand01(), Rand01(), &pdf);
 	return dir;
-}
-
-glm::vec3 AVPL::GetAntiradiance(const glm::vec3& direction, const float angleFactor) const
-{
-	glm::vec3 res = glm::vec3(0.f);
-	glm::vec3 antiradDirection = m_Direction;
-
-	if(glm::dot(direction, antiradDirection) <= 0.f + EPSILON)
-		return res;
-	
-	if(glm::dot(m_Orientation, direction) >= 0.f - EPSILON)
-		return res;
-	
-	const float theta = acos(clamp(glm::dot(direction, antiradDirection), 0, 1));
-
-	if(theta < M_PI/angleFactor)
-	{
-		res = m_Antiradiance;
-
-		if(m_confManager->GetConfVars()->AntiradFilterMode == 1)
-		{
-			res = - 2.f * res * m_confManager->GetConfVars()->AntiradFilterK * (angleFactor / M_PI * theta - 1);
-		}
-		if(m_confManager->GetConfVars()->AntiradFilterMode == 2)
-		{
-			const float M = m_confManager->GetConfVars()->AntiradFilterGaussFactor;
-			const float s = M_PI / (M * angleFactor);
-			res = m_confManager->GetConfVars()->AntiradFilterK * ( exp(-(theta*theta)/(s*s)) - exp(-(M*M)) ) * res;
-		}
-	}
-
-	return res;
 }

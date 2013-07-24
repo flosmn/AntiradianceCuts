@@ -26,56 +26,21 @@ struct CONF_VARS
 
 	int UseAntiradiance;
 	int UseDebugMode;
-	int DrawAVPLAtlas;
-	int DrawAVPLClusterAtlas;
-	int GatherWithAVPLAtlas;
-	int GatherWithAVPLClustering;
-	int DrawCutSizes;
-	int FilterAvplAtlasLinear;
-	int FillAvplAltasOnGPU;
+	
 	int SeparateDirectIndirectLighting;
 	int LightingMode;
-	int DrawDirectLighting;
-	int DrawIndirectLighting;
+	
 	int NumVPLsDirectLight;
 	int NumVPLsDirectLightPerFrame;
-	int AntiradFilterMode;
-	float AntiradFilterGaussFactor;
-	float AntiradFilterK;
-	int LimitBounces;
-	int NoAntiradiance;
-
-	int UsePathTracing;
-	int UseMIS;
-	int GaussianBlur;
-	int NumSamples;
-
-	int UseIBL;
-
-	float GeoTermLimitRadiance;
-	float GeoTermLimitAntiradiance;
-	int ClampGeoTerm;
-	int ClampConeMode;
-	
-	int UseToneMapping;
+		
 	int UseGammaCorrection;
 	float Gamma;
 	float Exposure;
-	int Intersection_BFC;
 	
 	int NumAVPLsPerFrame;
 	int NumAVPLsDebug;
 	int NumAdditionalAVPLs;
-	int RenderBounce;
-	int NumSqrtAtlasSamples;
-	float ConeFactor;
-	float DisplacePCP;
-
-	int LightTreeCutDepth;
-	int ClusterDepth;
-	int ClusterMethod;
-	float ClusterRefinementMaxRadiance;
-	float ClusterRefinementWeight;
+	
 	float ClusterRefinementThreshold;
 
 	float AreaLightFrontDirection[3];
@@ -83,8 +48,6 @@ struct CONF_VARS
 	float AreaLightPosY;
 	float AreaLightPosZ;
 	float AreaLightRadianceScale;
-
-	int DrawCubeMapFace;
 };
 
 class CConfigManager

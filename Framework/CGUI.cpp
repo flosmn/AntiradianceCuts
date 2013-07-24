@@ -31,31 +31,17 @@ bool CGUI::Init(uint window_width, uint window_height)
 	TwAddVarRW(m_pTwBar, "Use clustered deferred", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->useClusteredDeferred), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "gather cluster lights simple", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->gatherClusterLightsSimple), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Use Antiradiance", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->UseAntiradiance), "min=0 max=1 step=1");
-	TwAddVarRW(m_pTwBar, "Gather With AVPL Clustering", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->GatherWithAVPLClustering), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Sep D/I Lighting", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->SeparateDirectIndirectLighting), " min=0 max=1 step=1 ");
 	TwAddVarRW(m_pTwBar, "Lighting Mode", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->LightingMode), " min=0 max=2 step=1 ");
-	TwAddVarRW(m_pTwBar, "Draw Direct Lighting", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawDirectLighting), " min=0 max=1 step=1 ");
-	TwAddVarRW(m_pTwBar, "Draw Indirect Lighting", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawIndirectLighting), " min=0 max=1 step=1 ");
 	TwAddVarRW(m_pTwBar, "#AVPLs per frame", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumAVPLsPerFrame), " min=1 max=200000 step=1 ");
 	TwAddVarRW(m_pTwBar, "#add. AVPL", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumAdditionalAVPLs), " min=0 max=2048 step=1 ");
 	TwAddVarRW(m_pTwBar, "#VPLs DL", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumVPLsDirectLight), " min=0 max=10000 step=1 ");
 	TwAddVarRW(m_pTwBar, "#VPLs DL Per Frame", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NumVPLsDirectLightPerFrame), " min=0 max=10000 step=1 ");
 	TwAddVarRW(m_pTwBar, "Cluster Refinement Threshold", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->ClusterRefinementThreshold), "min=0.0 max=7.0 step=0.01");
-	TwAddVarRW(m_pTwBar, "Cluster Refinement Max Radiance", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->ClusterRefinementMaxRadiance), "min=0.0 max=10000.0 step=1.f");
-	TwAddVarRW(m_pTwBar, "Cluster Refinement Weight", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->ClusterRefinementWeight), "min=0.0 max=1.f step=0.05f");
 	TwAddVarRW(m_pTwBar, "Draw Error", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawError), " min=0 max=1 step=1 ");
 	TwAddVarRW(m_pTwBar, "Draw Reference", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawReference), " min=0 max=1 step=1 ");
-	TwAddVarRW(m_pTwBar, "Cone Factor", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->ConeFactor), " min=0.1 max=1000.0 step=0.1 ");
-	TwAddVarRW(m_pTwBar, "No Antiradiance", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->NoAntiradiance), " min=0 max=1 step=1 ");
 	
 	TwAddVarRW(m_pTwBar, "Use GBuffer Textures", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->drawGBufferTextures), "min=0 max=1 step=1");
-
-	TwAddSeparator(m_pTwBar, "", "");
-
-	TwAddVarRW(m_pTwBar, "Clamp Radiance", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->GeoTermLimitRadiance), "min=0 max=100000 step=0.00001");
-	TwAddVarRW(m_pTwBar, "Clamp Antiradiance", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->GeoTermLimitAntiradiance), "min=0 max=100000 step=0.00001");
-	TwAddVarRW(m_pTwBar, "Clamp Geo-Term", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->ClampGeoTerm), "min=0 max=1 step=1");
-	TwAddVarRW(m_pTwBar, "Clamp Cone", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->ClampConeMode), "min=0 max=2 step=1");
 
 	TwAddSeparator(m_pTwBar, "", "");
 		
@@ -68,14 +54,6 @@ bool CGUI::Init(uint window_width, uint window_height)
 
 	TwAddSeparator(m_pTwBar, "", "");
 
-	TwAddVarRW(m_pTwBar, "Antirad Filter Mode", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->AntiradFilterMode), " min=0 max=2 step=1 ");
-	TwAddVarRW(m_pTwBar, "Antirad Filter Gauss Factor", TW_TYPE_FLOAT, &(m_pConfigManager->GetConfVarsGUI()->AntiradFilterGaussFactor), " min=1.0 max=4.0 step=0.1 ");
-		
-	TwAddSeparator(m_pTwBar, "", "");
-	
-	TwAddVarRW(m_pTwBar, "Draw cut sizes", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawCutSizes), "min=0 max=1 step=1");
-	TwAddVarRW(m_pTwBar, "Draw AVPL atlas", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawAVPLAtlas), "min=0 max=1 step=1");
-	TwAddVarRW(m_pTwBar, "Draw AVPL cluster atlas", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawAVPLClusterAtlas), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Draw Lights", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawLights), " min=0 max=1 step=1 ");
 	TwAddVarRW(m_pTwBar, "Draw ClusterLights", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawClusterLights), " min=0 max=1 step=1 ");
 	TwAddVarRW(m_pTwBar, "Draw ClusterAABBs", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->DrawClusterAABBs), " min=0 max=1 step=1 ");

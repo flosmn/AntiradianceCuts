@@ -533,7 +533,6 @@ void Renderer::CalculateError()
 void Renderer::DrawDebug()
 {
 	if(m_confManager->GetConfVars()->DrawError) m_textureViewer->drawTexture(m_errorRenderTarget->GetTarget(0), 0, 0, m_camera->GetWidth(), m_camera->GetHeight());	
-	if(m_confManager->GetConfVars()->DrawCutSizes) m_textureViewer->drawTexture(m_gatherAntiradianceRenderTarget->GetTarget(3), 0, 0, m_camera->GetWidth(), m_camera->GetHeight());
 	
 	if(m_confManager->GetConfVars()->DrawReference)
 	{
@@ -736,12 +735,6 @@ void Renderer::UpdateUniformBuffers()
 	m_ubCamera->UpdateData(&cam);
 	
 	CONFIG conf;
-	conf.GeoTermLimitRadiance = m_confManager->GetConfVars()->GeoTermLimitRadiance;
-	conf.GeoTermLimitAntiradiance = m_confManager->GetConfVars()->GeoTermLimitAntiradiance;
-	conf.ClampGeoTerm = m_confManager->GetConfVars()->ClampGeoTerm;
-	conf.AntiradFilterK = GetAntiradFilterNormFactor();
-	conf.AntiradFilterMode = m_confManager->GetConfVars()->AntiradFilterMode;
-	conf.AntiradFilterGaussFactor = m_confManager->GetConfVars()->AntiradFilterGaussFactor;
 	m_ubConfig->UpdateData(&conf);
 
 	SetTransformToCamera();
@@ -1040,76 +1033,9 @@ void Renderer::UpdateAreaLights()
 	m_scene->UpdateAreaLights();
 }
 
-float Renderer::GetAntiradFilterNormFactor()
-{
-	float coneFactor = m_confManager->GetConfVars()->ConeFactor;
-	float K = 0.f;
-	float a = 1-cos(M_PI/coneFactor);
-	if(m_confManager->GetConfVars()->AntiradFilterMode == 1)
-	{		
-		float b = 2*(coneFactor/M_PI*sin(M_PI/coneFactor)-1);
-		K = - a / b;
-	}
-	else if(m_confManager->GetConfVars()->AntiradFilterMode == 2)
-	{
-		float b = IntegrateGauss();
-		K = a / b;
-	}
-
-	m_confManager->GetConfVars()->AntiradFilterK = K;
-
-	return K;
-}
-
-float Renderer::IntegrateGauss()
-{
-	const float coneFactor = float(m_confManager->GetConfVars()->ConeFactor);
-	const float M = float(m_confManager->GetConfVars()->AntiradFilterGaussFactor);
-	const float s = M_PI / (M*coneFactor);
-	const int numSteps = 1000;
-	const float stepSize = M_PI / (numSteps * coneFactor);
-	
-	float res = 0.f;
-	for(int i = 0; i < numSteps; ++i)
-	{
-		const float t = stepSize * (float(i) + 0.5f);
-		const float val = (glm::exp(-(t*t)/(s*s)) - glm::exp(-(M*M))) * glm::sin(t);
-		res += val * stepSize;
-	}
-
-	return res;
-}
-
 void Renderer::CancelRender()
 {
 	m_Finished = true;
-}
-
-void Renderer::RenderPathTracingReference()
-{
-	static long num = 1;
-
-	bool mis = m_confManager->GetConfVars()->UseMIS == 1 ? true : false;
-	m_pathTracingIntegrator->Integrate(m_confManager->GetConfVars()->NumSamples, mis);
-	m_textureViewer->drawTexture(m_imagePlane->GetOGLTexture(), 0, 0, m_scene->GetCamera()->GetWidth(), m_scene->GetCamera()->GetHeight());
-		
-	if(num % 1000 == 0)
-	{
-		double time = m_globalTimer->GetTime();
-		std::stringstream ss;
-		ss << "ref-" << m_CurrentPathAntiradiance << num << "-" <<time << "ms" << ".pfm";
-		m_export->ExportPFM(m_imagePlane->GetOGLTexture(), ss.str());
-	}
-
-	if(m_confManager->GetConfVars()->DrawReference)
-	{
-		if(m_scene->GetReferenceImage())
-			m_textureViewer->drawTexture(m_scene->GetReferenceImage()->GetOGLTexture(), 0, 0, m_camera->GetWidth(), m_camera->GetHeight());
-		else
-			std::cout << "No reference image loaded" << std::endl;
-	}
-
-	num++;
 }
 
 void Renderer::CreateRandomAVPLs(std::vector<AVPL>& avpls, int numAVPLs)
@@ -1122,7 +1048,7 @@ void Renderer::CreateRandomAVPLs(std::vector<AVPL>& avpls, int numAVPLs)
 		const glm::vec3 A = glm::vec3(Rand01(), Rand01(), Rand01());
 		const glm::vec3 w = glm::vec3(Rand01(), Rand01(), Rand01());
 
-		AVPL a(position, normal, L, A, w, 10.f, 0, 0, m_scene->GetMaterialBuffer(), m_confManager);
+		AVPL a(position, normal, L, A, w, 0, 0, m_scene->GetMaterialBuffer(), m_confManager);
 		avpls.push_back(a);
 	}
 }

@@ -293,7 +293,6 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Kernels\FillAVPLAtlas.cl" />
     <None Include="Shaders\Constants.glsl" />
     <None Include="Shaders\CreateGBuffer.frag" />
     <None Include="Shaders\CreateGBuffer.vert" />

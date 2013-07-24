@@ -55,11 +55,7 @@ float CalcFPS();
 
 void Render()
 {
-	if(g_configManager->GetConfVars()->UsePathTracing) {
-		g_renderer->RenderPathTracingReference();
-	} else {
-		g_renderer->Render();
-	}
+	g_renderer->Render();
 
 	g_gui->Render(CalcFPS());
 

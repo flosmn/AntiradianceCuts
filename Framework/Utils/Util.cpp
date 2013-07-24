@@ -446,9 +446,9 @@ glm::vec3 reflect(const glm::vec3& v, const glm::vec3& n)
 	return glm::normalize(2 * cos_theta * n - v);
 }
 
-glm::vec3 SamplePhong(const glm::vec3& w_o, const glm::vec3& n, MATERIAL* mat, float& pdf, bool MIS)
+glm::vec3 SamplePhong(const glm::vec3& w_o, const glm::vec3& n, MATERIAL* mat, float& pdf)
 {
-	if(!MIS)
+	if(true)
 	{
 		glm::vec3 direction = GetRandomSampleDirectionCosCone(n, Rand01(), Rand01(), pdf, 1);
 		if(pdf <= 0.f)
@@ -509,9 +509,9 @@ glm::vec3 SamplePhong(const glm::vec3& w_o, const glm::vec3& n, MATERIAL* mat, f
 	}
 }
 
-float PhongPdf(const glm::vec3& w_i, const glm::vec3& w_o, const glm::vec3& n, MATERIAL* mat, bool MIS)
+float PhongPdf(const glm::vec3& w_i, const glm::vec3& w_o, const glm::vec3& n, MATERIAL* mat)
 {
-	if(!MIS)
+	if(true)
 	{
 		float p = 0.f;
 		GetRandomSampleDirectionProbability(n, w_o, p, 1);
@@ -542,9 +542,9 @@ float PhongPdf(const glm::vec3& w_i, const glm::vec3& w_o, const glm::vec3& n, M
 	}
 }
 
-float PhongPdf(const glm::vec3& from, const glm::vec3& over, const glm::vec3& to, const glm::vec3& n, MATERIAL* mat, bool MIS)
+float PhongPdf(const glm::vec3& from, const glm::vec3& over, const glm::vec3& to, const glm::vec3& n, MATERIAL* mat)
 {
 	const glm::vec3 w_i = glm::normalize(from - over);
 	const glm::vec3 w_o = glm::normalize(to - over);
-	return PhongPdf(w_i, w_o, n, mat, MIS);
+	return PhongPdf(w_i, w_o, n, mat);
 }
