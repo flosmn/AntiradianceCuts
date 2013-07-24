@@ -171,10 +171,6 @@ private:
 	std::unique_ptr<CProgram> m_drawSphere;
 	std::unique_ptr<CProgram> m_debugProgram;
 
-	std::unique_ptr<COGLTextureBuffer> m_lightBuffer;
-	std::unique_ptr<COGLTextureBuffer> m_clusterBuffer;
-	std::unique_ptr<COGLTextureBuffer> m_avplPositions;
-
 	std::unique_ptr<COGLUniformBuffer> m_ubTransform;
 	std::unique_ptr<COGLUniformBuffer> m_ubMaterial;
 	std::unique_ptr<COGLUniformBuffer> m_ubLight;
@@ -209,7 +205,6 @@ private:
 	int m_CurrentPathShadowmap;
 	int m_numPathsAntiradiance;
 	int m_CurrentPathAntiradiance;
-	int m_MaxNumAVPLs;
 	int m_NumPathsDebug;
 	int m_NumAVPLsForNextDataExport;
 	int m_NumAVPLsForNextImageExport;

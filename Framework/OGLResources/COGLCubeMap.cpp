@@ -1,9 +1,6 @@
 #include "..\CImage.h"
 #include "COGLCubeMap.h"
 
-#include "..\Macros.h"
-#include "..\Utils\GLErrorUtil.h"
-
 GLenum cube[6] = { 
 	GL_TEXTURE_CUBE_MAP_POSITIVE_X, 
 	GL_TEXTURE_CUBE_MAP_NEGATIVE_X,

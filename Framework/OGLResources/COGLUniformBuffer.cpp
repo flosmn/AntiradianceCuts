@@ -1,14 +1,8 @@
 #include "COGLUniformBuffer.h"
 
-#include "..\Macros.h"
-
-#include "..\Utils\GLErrorUtil.h"
-
 #include <assert.h>
 
-
 uint COGLUniformBuffer::static_GlobalBindingPoint = 0;
-
 
 COGLUniformBuffer::COGLUniformBuffer(uint size, void* data, GLenum usage, std::string const& debugName)
 	: COGLResource(COGL_UNIFORMBUFFER, debugName), m_Size(0)

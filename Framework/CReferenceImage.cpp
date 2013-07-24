@@ -4,7 +4,6 @@
 
 #include "CImage.h"
 
-#include "Macros.h"
 #include "Defines.h"
 #include "Utils\Util.h"
 

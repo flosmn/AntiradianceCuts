@@ -3,10 +3,6 @@
 #include "COGLRenderBuffer.h"
 #include "COGLTexture2D.h"
 
-#include "..\Macros.h"
-
-#include "..\Utils\GLErrorUtil.h"
-
 #include <assert.h>
 #include <iostream>
 

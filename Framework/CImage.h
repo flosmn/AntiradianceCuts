@@ -3,6 +3,8 @@
 
 #include <glm/glm.hpp>
 
+#include <vector>
+
 class CImage
 {
 public:
@@ -25,7 +27,7 @@ private:
 	int m_Width;
 	int m_Height;
 
-	glm::vec4* m_pData;
+	std::vector<glm::vec4> m_data;
 };
 
 #endif _C_IMAGE_H_

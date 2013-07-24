@@ -1,9 +1,6 @@
 #include "COGLProgram.h"
 
-#include "..\Macros.h"
 #include "..\Defines.h"
-
-#include "..\Utils\GLErrorUtil.h"
 
 #include "COGLUniformBuffer.h"
 #include "COGLSampler.h"

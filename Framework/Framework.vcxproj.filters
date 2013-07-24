@@ -30,9 +30,6 @@
     <ClCompile Include="CGBuffer.cpp" />
     <ClCompile Include="CProgram.cpp" />
     <ClCompile Include="CRenderTarget.cpp" />
-    <ClCompile Include="Utils\GLErrorUtil.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
     <ClCompile Include="Utils\mtrand.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
@@ -116,9 +113,6 @@
     <ClInclude Include="CProgram.h" />
     <ClInclude Include="CShadowMap.h" />
     <ClInclude Include="CRenderTarget.h" />
-    <ClInclude Include="Utils\GLErrorUtil.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
     <ClInclude Include="Utils\mtrand.h">
       <Filter>Utils</Filter>
     </ClInclude>
@@ -182,16 +176,7 @@
     <ClInclude Include="CTestFramework.h">
       <Filter>Utils</Filter>
     </ClInclude>
-    <ClInclude Include="uniforms.h">
-      <Filter>Misc</Filter>
-    </ClInclude>
     <ClInclude Include="Structs.h">
-      <Filter>Misc</Filter>
-    </ClInclude>
-    <ClInclude Include="Macros.h">
-      <Filter>Misc</Filter>
-    </ClInclude>
-    <ClInclude Include="GlmUtil.h">
       <Filter>Misc</Filter>
     </ClInclude>
     <ClInclude Include="Defines.h">
@@ -241,6 +226,9 @@
     <ClInclude Include="FullScreenQuad.h" />
     <ClInclude Include="Postprocess.h" />
     <ClInclude Include="Avpl.h" />
+    <ClInclude Include="OGLResources\COGLErrorUtil.h">
+      <Filter>OGLResources</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">

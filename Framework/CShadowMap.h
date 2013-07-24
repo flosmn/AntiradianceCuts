@@ -7,8 +7,6 @@ typedef unsigned int uint;
 
 #include <glm/gtc/type_ptr.hpp>
 
-#include "Macros.h"
-
 #include "OGLResources\COGLTexture2D.h"
 #include "OGLResources\COGLFrameBuffer.h"
 

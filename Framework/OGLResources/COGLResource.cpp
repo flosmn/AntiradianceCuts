@@ -1,7 +1,5 @@
 #include "COGLResource.h"
 
-#include "..\Utils\GLErrorUtil.h"
-
 #include <iostream>
 #include <string>
 

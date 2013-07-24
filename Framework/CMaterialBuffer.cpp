@@ -1,9 +1,6 @@
 #include "CMaterialBuffer.h"
 
-#include "Macros.h"
-
 #include "OGLResources\COGLTextureBuffer.h"
-
 
 /*
 material index is counted from 1 to numMaterials.

@@ -1,7 +1,5 @@
 #include "CProgram.h"
 
-#include "Macros.h"
-
 #include "OGLResources\COGLProgram.h"
 #include "OGLResources\COGLUniformBuffer.h"
 #include "OGLResources\COGLSampler.h"

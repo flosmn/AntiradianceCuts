@@ -256,15 +256,6 @@ void CConfigManager::Update()
 		clearLighting = true;
 	}
 
-
-	if(m_pConfVarsGUI->NumAdditionalAVPLs != m_pConfVars->NumAdditionalAVPLs)
-	{
-		m_pConfVars->NumAdditionalAVPLs = m_pConfVarsGUI->NumAdditionalAVPLs;
-		configureLighting = true;
-		clearAccumBuffer = true;
-		clearLighting = true;
-	}
-
 	if(m_pConfVarsGUI->ClusterRefinementThreshold != m_pConfVars->ClusterRefinementThreshold)
 	{
 		m_pConfVars->ClusterRefinementThreshold = m_pConfVarsGUI->ClusterRefinementThreshold;

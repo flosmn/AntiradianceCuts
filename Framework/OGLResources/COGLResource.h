@@ -7,6 +7,7 @@
 #include <string>
 #include <map>
 
+#include "COGLErrorUtil.h"
 #include "COGLBindLock.h"
 #include "COGLBindSlot.h"
 

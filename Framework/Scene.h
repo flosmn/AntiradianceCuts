@@ -56,7 +56,7 @@ public:
 
 	int GetNumberOfLightPaths() { return m_NumLightPaths; }
 				
-	void CreatePaths(std::vector<Avpl>& avpls, std::vector<Avpl>& allAVPLs, std::vector<Avpl>& isAVPLs, bool profile, uint numPaths);
+	void CreatePaths(std::vector<Avpl>& avpls, uint numPaths);
 	void CreatePath(std::vector<Avpl>& avpls);
 	void CreatePrimaryVpls(std::vector<Avpl>& avpls, int numVpls);
 	bool CreateAVPL(Avpl* pred, Avpl* newAVPL);
@@ -85,8 +85,7 @@ private:
 	void ReleaseKdTree();
 	
 	bool ContinueAVPLPath(Avpl* pred, Avpl* newAVPL, glm::vec3 direction, float pdf);
-	void CreateAVPLs(Avpl* pred, std::vector<Avpl>& path, int nAVPLs);
-	
+
 private:
 	BBox m_bbox;
 

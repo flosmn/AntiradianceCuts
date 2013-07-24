@@ -39,7 +39,6 @@ struct CONF_VARS
 	
 	int NumAVPLsPerFrame;
 	int NumAVPLsDebug;
-	int NumAdditionalAVPLs;
 	
 	float ClusterRefinementThreshold;
 

@@ -1,7 +1,5 @@
 #include "CRenderTarget.h"
 
-#include "Macros.h"
-
 #include "OGLResources\COGLFrameBuffer.h"
 #include "OGLResources\COGLTexture2D.h"
 

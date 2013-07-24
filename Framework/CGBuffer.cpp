@@ -2,8 +2,6 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
-#include "Macros.h"
-
 #include "Scene.h"
 #include "CProgram.h"
 #include "CShadowMap.h"

@@ -1,7 +1,5 @@
 #include "COGLSampler.h"
 
-#include "..\Macros.h"
-
 COGLSampler::COGLSampler(GLenum minFilter, GLenum magFilter, GLenum clampS, 
 	GLenum clampT, std::string const& debugName)
 	:COGLResource(COGL_SAMPLER, debugName)

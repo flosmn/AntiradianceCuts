@@ -1,11 +1,6 @@
 #include "COGLRenderBuffer.h"
 
-#include "..\Macros.h"
-
-#include "..\Utils\GLErrorUtil.h"
-
 #include <assert.h>
-
 
 COGLRenderBuffer::COGLRenderBuffer(GLuint width, GLuint height, 
 	GLenum internalFormat, std::string const& debugName)

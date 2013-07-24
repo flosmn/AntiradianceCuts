@@ -1,9 +1,5 @@
 #include "COGLTextureBuffer.h"
 
-#include "..\Macros.h"
-
-#include "..\Utils\GLErrorUtil.h"
-
 COGLTextureBuffer::COGLTextureBuffer(GLenum type, std::string const& debugName)
 	: COGLResource(COGL_TEXTURE_BUFFER, debugName), m_Type(type)
 {

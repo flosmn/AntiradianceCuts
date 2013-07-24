@@ -111,12 +111,12 @@ bool Scene::CreatePrimaryAVPL(Avpl* newAVPL)
 	float pdf;
 	glm::vec3 pos = m_areaLight->samplePos(pdf);
 	glm::vec3 normal = m_areaLight->getFrontDirection();
-	glm::vec3 I = m_areaLight->getRadiance();
+	glm::vec3 rad = m_areaLight->getRadiance();
 
 	if(!(pdf > 0.f))
 		std::cout << "Warning: pdf is 0" << std::endl;
 
-	Avpl avpl(pos, normal, I / pdf, glm::vec3(0), glm::vec3(0), 0, m_areaLight->getMaterialIndex());
+	Avpl avpl(pos, normal, rad / pdf, glm::vec3(0), glm::vec3(0), 0, m_areaLight->getMaterialIndex());
 	*newAVPL = avpl;
 
 	return true;
@@ -150,9 +150,7 @@ bool Scene::ContinueAVPLPath(Avpl* pred, Avpl* newAVPL, glm::vec3 direction, flo
 				pred->getNormal(), m_materialBuffer->GetMaterial(pred->getMaterialIndex())));
 		}
 		
-		glm::vec3 antiradiance = 1.f/float(m_confManager->GetConfVars()->NumAdditionalAVPLs + 1.f) * contrib;
-
-		Avpl avpl(pos, norm, contrib, antiradiance, direction, pred->getBounce() + 1, intersection.getTriangle()->getMaterialIndex());
+		Avpl avpl(pos, norm, contrib, contrib, direction, pred->getBounce() + 1, intersection.getTriangle()->getMaterialIndex());
 		*newAVPL = avpl;
 		return true;
 	}
@@ -161,16 +159,15 @@ bool Scene::ContinueAVPLPath(Avpl* pred, Avpl* newAVPL, glm::vec3 direction, flo
 	return false;
 }
 
-void Scene::CreatePaths(std::vector<Avpl>& avpls_res, std::vector<Avpl>& allAVPLs, std::vector<Avpl>& isAVPLs, bool profile, uint numPaths)
+void Scene::CreatePaths(std::vector<Avpl>& avpls_res, uint numPaths)
 {
 	avpls_res.reserve(numPaths * 4);
-	allAVPLs.reserve(numPaths * 4);	
-	isAVPLs.reserve(numPaths * 4);
-
+	
 	for(uint i = 0; i < numPaths; ++i)
 	{
 		CreatePath(avpls_res);
 	}
+
 	m_NumCreatedAVPLs += uint(avpls_res.size());
 }
 
@@ -200,9 +197,6 @@ void Scene::CreatePath(std::vector<Avpl>& path)
 
 		if(rand_01 > rrProb)
 		{
-			// create path-finishing Anti-VPLs
-			CreateAVPLs(&pred, path, m_confManager->GetConfVars()->NumAdditionalAVPLs);
-
 			Avpl avpl;
 			if(CreateAVPL(&pred, &avpl))
 			{
@@ -214,9 +208,6 @@ void Scene::CreatePath(std::vector<Avpl>& path)
 		}
 		else
 		{
-			// create additional avpls
-			CreateAVPLs(&pred, path, m_confManager->GetConfVars()->NumAdditionalAVPLs);
-
 			// follow the path with cos-sampled direction (importance sample diffuse surface)
 			// if the ray hits geometry
 			if(CreateAVPL(&pred, &succ))
@@ -235,34 +226,6 @@ void Scene::CreatePath(std::vector<Avpl>& path)
 		}
 
 		currentBounce++;
-	}
-}
-
-void Scene::CreateAVPLs(Avpl* pred, std::vector<Avpl>& path, int nAVPLs)
-{
-	glm::vec3 pred_norm = pred->getNormal();
-
-	std::vector<glm::vec3> directions;
-	std::vector<float> pdfs;
-	GetStratifiedDirections(directions, pdfs, nAVPLs, pred_norm, 1);
-
-	for(int i = 0; i < nAVPLs; ++i)
-	{
-		float pdf = pdfs[i]; //0.f; //
-		glm::vec3 direction = directions[i]; // GetRandomSampleDirectionCosCone(pred_norm, Rand01(), Rand01(), pdf, 1);
-		
-		if(pdf <= 0.f)
-		{
-			std::cout << "pdf <= 0.f" << std::endl;
-			continue;
-		}
-
-		Avpl avpl;
-		if(ContinueAVPLPath(pred, &avpl, direction, pdf))		
-		{
-			avpl.setIncidentRadiance(glm::vec3(0.f));
-			path.push_back(avpl);
-		}
 	}
 }
 
@@ -316,7 +279,7 @@ void Scene::LoadCornellBox()
 {
 	ClearScene();
 
-	loadSceneFromFile("cb-diffuse.obj");
+	loadSceneFromFile("cb-specular.obj");
 	
 	m_referenceImage.reset(new CReferenceImage(m_camera->GetWidth(), m_camera->GetHeight()));
 	m_referenceImage->LoadFromFile("References/cb-diffuse-closeup-ref.hdr", true);

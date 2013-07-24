@@ -9,13 +9,10 @@
 #include "CudaGather.h"
 #include "bvh.h"
 
-#include "CL/cl.h"
-
-#include <glm/gtc/type_ptr.hpp>
 #include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "Macros.h"
 #include "Structs.h"
 
 #include "CConfigManager.h"
@@ -39,7 +36,6 @@
 #include "CImage.h"
 
 #include "Utils\Util.h"
-#include "Utils\GLErrorUtil.h"
 #include "Utils\ShaderUtil.h"
 #include "Utils\TextureViewer.h"
 #include "Utils\CExport.h"
@@ -134,16 +130,6 @@ Renderer::Renderer(CCamera* m_camera, COGLContext* glContext, CConfigManager* co
 
 	m_scene.reset(new Scene(m_camera, m_confManager));
 	m_scene->LoadCornellBox();
-
-	int dim_atlas = 3072;
-	int dim_tile = 16;
-		
-	m_MaxNumAVPLs = int(std::pow(float(dim_atlas) / float(dim_tile), 2.f));
-	std::cout << "max num avpls: " << m_MaxNumAVPLs << std::endl;
-
-	m_lightBuffer	.reset(new COGLTextureBuffer(GL_RGBA32F, "LightBuffer"	));
-	m_clusterBuffer .reset(new COGLTextureBuffer(GL_RGBA32F, "ClusterBuffer"));
-	m_avplPositions .reset(new COGLTextureBuffer(GL_R32F, "AVPLPositions"));
 
 	m_imagePlane				.reset(new CImagePlane(m_scene->GetCamera()));
 	m_pathTracingIntegrator		.reset(new CPathTracingIntegrator(m_scene.get(), m_imagePlane.get()));

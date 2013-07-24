@@ -2,12 +2,7 @@
 
 #include "COGLBindLock.h"
 
-#include "..\Macros.h"
-
-#include "..\Utils\GLErrorUtil.h"
-
 #include <assert.h>
-
 
 COGLVertexBuffer::COGLVertexBuffer(std::string const& debugName)
 	: COGLResource(COGL_VERTEXBUFFER, debugName)
@@ -29,9 +24,7 @@ bool COGLVertexBuffer::SetContent(GLuint size, void* data, GLenum usage)
 	COGLBindLock lock(this, COGL_ARRAY_BUFFER_SLOT);
 	glBufferData(GL_ARRAY_BUFFER, size, data, usage);
 
-	V_RET_FOT(CheckGLError(m_DebugName, "COGLVertexBuffer::SetContent()"));
-
-	return true;
+	return CheckGLError(m_DebugName, "COGLVertexBuffer::SetContent()");
 }
 
 void COGLVertexBuffer::Bind(COGLBindSlot slot)

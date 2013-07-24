@@ -8,7 +8,7 @@
 #include <algorithm>
 
 CImage::CImage(int width, int height)
-	: m_Width(width), m_Height(height), m_pData(nullptr)
+	: m_Width(width), m_Height(height)
 {
 	ilInit();
 	iluInit();
@@ -16,7 +16,6 @@ CImage::CImage(int width, int height)
 
 CImage::~CImage()
 {
-	SAFE_DELETE_ARRAY(m_pData);
 }
 
 void CImage::LoadFromFile(const char* path, bool flipImage)
@@ -80,11 +79,10 @@ void CImage::LoadFromFile(const char* path, bool flipImage)
 		}
 	}
 		
-	m_pData = new glm::vec4[m_Width * m_Height];
-	memset(m_pData, 0, m_Width * m_Height * sizeof(glm::vec4));
-
+	m_data.resize(m_Width * m_Height, glm::vec4(0.f));
+	
 	//copy data
-	ilCopyPixels(0, 0, 0, m_Width, m_Height, 1, convertFormat, convertType, m_pData);
+	ilCopyPixels(0, 0, 0, m_Width, m_Height, 1, convertFormat, convertType, m_data.data());
 	ILenum err = ilGetError();
 	if (err != IL_NO_ERROR)
 	{
@@ -98,10 +96,9 @@ void CImage::LoadFromFile(const char* path, bool flipImage)
 
 void CImage::SetData(glm::vec4* pData)
 {
-	if(!m_pData)
-		m_pData = new glm::vec4[m_Width * m_Height];
-
-	memcpy(m_pData, pData, m_Width * m_Height * sizeof(glm::vec4));
+	m_data.clear();
+	m_data.resize(m_Width * m_Height);
+	memcpy(m_data.data(), pData, m_Width * m_Height * sizeof(glm::vec4));
 }
 
 void CImage::GaussianBlur(int interations)
@@ -111,7 +108,7 @@ void CImage::GaussianBlur(int interations)
 		
 	ilBindImage(handle);
 
-	ilTexImage(m_Width, m_Height, 1, 4,	IL_RGBA, IL_FLOAT, m_pData);
+	ilTexImage(m_Width, m_Height, 1, 4,	IL_RGBA, IL_FLOAT, m_data.data());
 
 	ILenum err = ilGetError();
 	if (err != IL_NO_ERROR)
@@ -129,7 +126,7 @@ void CImage::GaussianBlur(int interations)
 		std::cout << "error gaussian blur: " <<  err_str << std::endl;
 	}
 
-	ilCopyPixels(0, 0, 0, m_Width, m_Height, 1, IL_RGBA, IL_FLOAT, m_pData);
+	ilCopyPixels(0, 0, 0, m_Width, m_Height, 1, IL_RGBA, IL_FLOAT, m_data.data());
 	err = ilGetError();
 	if (err != IL_NO_ERROR)
 	{
@@ -140,7 +137,7 @@ void CImage::GaussianBlur(int interations)
 
 glm::vec4* CImage::GetData()
 {
-	return m_pData;
+	return m_data.data();
 }
 
 void CImage::SaveAsPNG(const char* path, bool flipImage)
@@ -153,9 +150,9 @@ void CImage::SaveAsPNG(const char* path, bool flipImage)
 	unsigned char* pData = new unsigned char[3 * m_Width * m_Height];
 	for(int i = 0; i < m_Width * m_Height; ++i)
 	{
-		pData[3 * i + 0] = (unsigned char)(std::min(std::max(255.f * m_pData[i].x, 0.f), 255.f));
-		pData[3 * i + 1] = (unsigned char)(std::min(std::max(255.f * m_pData[i].y, 0.f), 255.f));
-		pData[3 * i + 2] = (unsigned char)(std::min(std::max(255.f * m_pData[i].z, 0.f), 255.f));
+		pData[3 * i + 0] = (unsigned char)(std::min(std::max(255.f * m_data[i].x, 0.f), 255.f));
+		pData[3 * i + 1] = (unsigned char)(std::min(std::max(255.f * m_data[i].y, 0.f), 255.f));
+		pData[3 * i + 2] = (unsigned char)(std::min(std::max(255.f * m_data[i].z, 0.f), 255.f));
 	}
 
 	ilTexImage(m_Width, m_Height, 1, 3,	IL_RGB, IL_UNSIGNED_BYTE, pData);
@@ -192,7 +189,7 @@ void CImage::SaveAsHDR(const char* path, bool flipImage)
 		
 	ilBindImage(handle);
 
-	ilTexImage(m_Width, m_Height, 1, 4,	IL_RGBA, IL_FLOAT, m_pData);
+	ilTexImage(m_Width, m_Height, 1, 4,	IL_RGBA, IL_FLOAT, m_data.data());
 
 	ILenum err = ilGetError();
 	if (err != IL_NO_ERROR)

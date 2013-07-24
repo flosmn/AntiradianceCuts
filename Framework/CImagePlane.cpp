@@ -1,7 +1,6 @@
 #include "CImagePlane.h"
 
 #include "Defines.h"
-#include "Macros.h"
 
 #include "CCamera.h"
 

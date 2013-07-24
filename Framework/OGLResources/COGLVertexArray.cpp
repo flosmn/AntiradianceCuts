@@ -3,13 +3,8 @@
 #include "COGLVertexBuffer.h"
 #include "COGLBindLock.h"
 
-#include "..\Macros.h"
-
-#include "..\Utils\GLErrorUtil.h"
-
 #include <assert.h>
 #include <iostream>
-
 
 COGLVertexArray::COGLVertexArray(GLenum primitiveType, std::string const& debugName)
 	: COGLResource(COGL_VERTEXARRAY, debugName), 
@@ -52,9 +47,7 @@ bool COGLVertexArray::AddVertexData(uint index, uint elements, uint size, void* 
 	m_VertexDataChannelInfo.push_back(info);
 	m_VertexDataChannels.emplace_back(std::unique_ptr<COGLVertexBuffer>(new COGLVertexBuffer()));
 	
-	V_RET_FOF(m_VertexDataChannels.back()->SetContent(size, pData, GL_STATIC_DRAW));
-	
-	return true;
+	return m_VertexDataChannels.back()->SetContent(size, pData, GL_STATIC_DRAW);
 }
 
 bool COGLVertexArray::AddIndexData(GLuint size, void* pData)
@@ -62,7 +55,7 @@ bool COGLVertexArray::AddIndexData(GLuint size, void* pData)
 	CheckNotBound("COGLVertexArray::AddIndexData()");
 
 	m_IndexData.reset(new COGLVertexBuffer());
-	V_RET_FOF(m_IndexData->SetContent(size, pData, GL_STATIC_DRAW));
+	m_IndexData->SetContent(size, pData, GL_STATIC_DRAW);
 
 	CheckGLError(m_DebugName, "COGLVertexArray::AddIndexData()");
 	

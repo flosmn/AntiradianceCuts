@@ -58,12 +58,11 @@ inline __device__ float G(float3 const& p1, float3 const& n1, float3 const& p2, 
 
 inline __device__ float3 f_r(float3 const& w_i, float3 const& w_o, float3 const& n, MAT const& mat)
 {
-	return CUDA_ONE_OVER_PI * mat.diffuse;
-	//const float3 d = CUDA_ONE_OVER_PI * mat.diffuse;
-	//const float cos_theta = max(0.f, dot(reflect(-w_i, n), w_o));
-	//const float3 s = 0.5f * CUDA_ONE_OVER_PI * (mat.exponent+2.f)
-	//	* pow(cos_theta, mat.exponent) * mat.specular;
-	//return d + s;
+	const float3 d = CUDA_ONE_OVER_PI * mat.diffuse;
+	const float cos_theta = max(0.f, dot(reflect(-w_i, n), w_o));
+	const float3 s = 0.5f * CUDA_ONE_OVER_PI * (mat.exponent+2.f)
+		* pow(cos_theta, mat.exponent) * mat.specular;
+	return d + s;
 }
 
 inline __device__ float3 f_r(float3 const& from, float3 const& over, float3 const& to,
