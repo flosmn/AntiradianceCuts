@@ -229,6 +229,11 @@
     <ClInclude Include="OGLResources\COGLErrorUtil.h">
       <Filter>OGLResources</Filter>
     </ClInclude>
+    <ClInclude Include="AvplShooter.h" />
+    <ClInclude Include="Sampler.h" />
+    <ClInclude Include="Timer.h" />
+    <ClInclude Include="Util.h" />
+    <ClInclude Include="Brdf.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\DrawAreaLight.vert">

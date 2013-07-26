@@ -248,13 +248,13 @@ bool KdTreeAccelerator::intersect(const Ray& ray, float *t, Intersection* pInter
 			// process kd-tree interior node
 
 			// compute parametric distance along ray to split plane
-			int axis = node->getSplitAxis();
+			const int axis = node->getSplitAxis();
 			
 			// get node children pointers for ray
 			const KdAccelNode* firstChild;
 			const KdAccelNode* secondChild;
 			
-			int belowFirst = (ray.getOrigin()[axis] < node->getSplitPosition()) || 
+			const int belowFirst = (ray.getOrigin()[axis] < node->getSplitPosition()) || 
 				(ray.getOrigin()[axis] == node->getSplitPosition() && ray.getDirection()[axis] >= 0);
 			
 			if(belowFirst)
@@ -292,7 +292,7 @@ bool KdTreeAccelerator::intersect(const Ray& ray, float *t, Intersection* pInter
 		else
 		{
 			// check for intersection inside leaf node
-			uint numPrimitives = node->getNumPrimitives();
+			const uint numPrimitives = node->getNumPrimitives();
 			if(numPrimitives == 1)
 			{
 				Triangle const& primitive = m_primitives[node->m_onePrimitive];

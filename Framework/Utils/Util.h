@@ -11,6 +11,8 @@ typedef unsigned int uint;
 #include "..\SceneSample.h"
 #include "..\Scene.h"
 
+#include "../Sampler.h"
+
 #include "..\Utils\rand.h"
 #include <limits>
 
@@ -30,6 +32,8 @@ void GetRandomSampleDirectionProbability(glm::vec3 orientation, glm::vec3 direct
 glm::vec3 GetRandomSampleDirectionCosCone(glm::vec3 orientation, const float u1, const float u2, float&pdf, uint order);
 void GetStratifiedDirections(std::vector<glm::vec3>& directions, std::vector<float>& pdfs, int numDirections, glm::vec3 orientation, uint order);
 
+glm::vec3 sampleCosCone(glm::vec3 const& normal, const float u1, const float u2, float&pdf, int order);
+
 glm::vec3 SampleConeDirection(const glm::vec3& axis, const float& theta, const float& u1, const float& u2, float* pdf);
 
 glm::vec2 ConcentricSampleDisk(float u1, float u2);
@@ -42,13 +46,13 @@ float G(const SceneSample& ss1, const SceneSample& ss2);
 
 glm::vec3 reflect(const glm::vec3& v, const glm::vec3& norm);
 
-glm::vec4 Phong(const glm::vec3& from, const glm::vec3& over, const glm::vec3& to, const glm::vec3& n, MATERIAL* mat);
-glm::vec4 Phong(const glm::vec3& w_i, const glm::vec3& w_o, const glm::vec3& n, MATERIAL* mat);
+glm::vec3 Phong(const glm::vec3& from, const glm::vec3& over, const glm::vec3& to, const glm::vec3& n, MATERIAL* mat);
+glm::vec3 Phong(const glm::vec3& w_i, const glm::vec3& w_o, const glm::vec3& n, MATERIAL* mat);
 
 float PhongPdf(const glm::vec3& w_i, const glm::vec3& w_o, const glm::vec3& n, MATERIAL* mat);
 float PhongPdf(const glm::vec3& from, const glm::vec3& over, const glm::vec3& to, const glm::vec3& n, MATERIAL* mat);
 
-glm::vec3 SamplePhong(const glm::vec3& w_o, const glm::vec3& n, MATERIAL* mat, float& pdf);
+glm::vec3 SamplePhong(const glm::vec3& w_o, const glm::vec3& n, MATERIAL* mat, float& pdf, Sampler& sampler);
 
 void GetStratifiedSamples2D(std::vector<glm::vec2>& samples, const glm::vec2& range, const uint numSamples);
 glm::vec2 GetUniformSample2D(const glm::vec2& range);

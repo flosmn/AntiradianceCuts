@@ -71,8 +71,9 @@ void Scene::ClearScene()
 bool Scene::CreateAVPL(Avpl* pred, Avpl* newAVPL)
 {
 	float pdf = 0.f;
+	Sampler sampler;
 	glm::vec3 direction = SamplePhong(pred->getIncidentDirection(), pred->getNormal(), 
-		m_materialBuffer->GetMaterial(pred->getMaterialIndex()), pdf);
+		m_materialBuffer->GetMaterial(pred->getMaterialIndex()), pdf, sampler);
 	
 	if(pdf < 0.f)
 	{
@@ -713,21 +714,21 @@ void Scene::loadSceneFromFile(std::string const& file)
 		if(AI_SUCCESS == mtl->Get(AI_MATKEY_NAME, matName))
 			name = std::string(matName.C_Str());
 
-        glm::vec4 diffuse = glm::vec4(0.f);
+        glm::vec3 diffuse = glm::vec3(0.f);
 		if(AI_SUCCESS == mtl->Get(AI_MATKEY_COLOR_DIFFUSE, d))
-            diffuse = glm::vec4(d.r, d.g, d.b, d.a);
+            diffuse = glm::vec3(d.r, d.g, d.b);
 
-		glm::vec4 specular = glm::vec4(0.f);
+		glm::vec3 specular = glm::vec3(0.f);
 		if(AI_SUCCESS == mtl->Get(AI_MATKEY_COLOR_SPECULAR, d))
-			specular = glm::vec4(d.r, d.g, d.b, d.a);
+			specular = glm::vec3(d.r, d.g, d.b);
 
 		float exponent = 0.f;
 		if(AI_SUCCESS == mtl->Get(AI_MATKEY_SHININESS, e))
 			exponent = e;
 		
-		glm::vec4 emissive = glm::vec4(0.f);
+		glm::vec3 emissive = glm::vec3(0.f);
 		if(AI_SUCCESS == mtl->Get(AI_MATKEY_COLOR_EMISSIVE, d))
-            emissive = glm::vec4(d.r, d.g, d.b, d.a);
+            emissive = glm::vec3(d.r, d.g, d.b);
         
 		MATERIAL mat;
 		mat.emissive = emissive;

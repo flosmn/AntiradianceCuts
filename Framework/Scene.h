@@ -66,7 +66,8 @@ public:
 
 	CMaterialBuffer* GetMaterialBuffer() { return m_materialBuffer.get(); }
 	bool Visible(const SceneSample& ss1, const SceneSample& ss2);
-	void SampleLightSource(SceneSample& ss);	MATERIAL* GetMaterial(const SceneSample& ss);
+	void SampleLightSource(SceneSample& ss);	
+	MATERIAL* GetMaterial(const SceneSample& ss);
 
 	CReferenceImage* GetReferenceImage() { return m_referenceImage.get(); }
 
@@ -74,7 +75,7 @@ public:
 	float getSceneExtent() { return glm::length(m_bbox.getMax() - m_bbox.getMin()); }
 
 	std::vector<std::unique_ptr<Model>> const&  getModels() const { return m_models; }
-	AreaLight const* getAreaLight() const { return m_areaLight.get(); }
+	AreaLight* getAreaLight() const { return m_areaLight.get(); }
 
 private:
 	void loadSceneFromFile(std::string const& file);

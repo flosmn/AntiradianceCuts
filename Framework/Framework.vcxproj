@@ -164,10 +164,10 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
   <ItemGroup>
     <CudaCompile Include="bvh.cu">
       <FileType>CppCode</FileType>
-      <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GPUDebugInfo>
-      <HostDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</HostDebugInfo>
-      <FastMath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</FastMath>
-      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Od</Optimization>
+      <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
+      <HostDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</HostDebugInfo>
+      <FastMath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</FastMath>
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">O2</Optimization>
       <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</GPUDebugInfo>
       <HostDebugInfo Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</HostDebugInfo>
       <FastMath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</FastMath>
@@ -209,10 +209,10 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <ClCompile Include="Utils\Util.cpp" />
     <ClCompile Include="Window.cpp" />
     <CudaCompile Include="cudaGather.cu">
-      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Od</Optimization>
-      <HostDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</HostDebugInfo>
-      <FastMath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</FastMath>
-      <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GPUDebugInfo>
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">O2</Optimization>
+      <HostDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</HostDebugInfo>
+      <FastMath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</FastMath>
+      <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
       <GenerateLineInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GenerateLineInfo>
       <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</GPUDebugInfo>
       <HostDebugInfo Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</HostDebugInfo>
@@ -224,7 +224,9 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
   <ItemGroup>
     <ClInclude Include="AreaLight.h" />
     <ClInclude Include="Avpl.h" />
+    <ClInclude Include="AvplShooter.h" />
     <ClInclude Include="BBox.h" />
+    <ClInclude Include="Brdf.h" />
     <ClInclude Include="bvh.h" />
     <ClInclude Include="CCamera.h" />
     <ClInclude Include="CConfigManager.h" />
@@ -270,9 +272,12 @@ xcopy "$(ASSIMP)\bin\Release\assimp.dll" "$(Outdir)" /Y
     <ClInclude Include="Postprocess.h" />
     <ClInclude Include="Ray.h" />
     <ClInclude Include="Render.h" />
+    <ClInclude Include="Sampler.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="Structs.h" />
+    <ClInclude Include="Timer.h" />
     <ClInclude Include="Triangle.h" />
+    <ClInclude Include="Util.h" />
     <ClInclude Include="Utils\CExport.h" />
     <ClInclude Include="Utils\CLightViewer.h" />
     <ClInclude Include="Utils\mtrand.h" />

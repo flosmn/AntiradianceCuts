@@ -29,6 +29,7 @@ bool CGUI::Init(uint window_width, uint window_height)
 	TwAddVarRW(m_pTwBar, "Gather with cuda", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->gatherWithCuda), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Use lightcuts", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->useLightCuts), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Use clustered deferred", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->useClusteredDeferred), "min=0 max=1 step=1");
+	TwAddVarRW(m_pTwBar, "explicit direct illum", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->explicitDirectIllum), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "gather cluster lights simple", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->gatherClusterLightsSimple), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Use Antiradiance", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->UseAntiradiance), "min=0 max=1 step=1");
 	TwAddVarRW(m_pTwBar, "Sep D/I Lighting", TW_TYPE_INT32, &(m_pConfigManager->GetConfVarsGUI()->SeparateDirectIndirectLighting), " min=0 max=1 step=1 ");

@@ -12,7 +12,7 @@ CConfigManager::CConfigManager()
 	m_pConfVarsGUI = new CONF_VARS[1];
 
 	m_pConfVars->gatherWithCuda = m_pConfVarsGUI->gatherWithCuda = 1;
-	m_pConfVars->useLightCuts = m_pConfVarsGUI->useLightCuts = 0;
+	m_pConfVars->useLightCuts = m_pConfVarsGUI->useLightCuts = 1;
 	m_pConfVars->useClusteredDeferred = m_pConfVarsGUI->useClusteredDeferred = 1;
 	m_pConfVars->bvhLevel = m_pConfVarsGUI->bvhLevel = 0;
 	m_pConfVars->DrawClusterAABBs = m_pConfVarsGUI->DrawClusterAABBs = 0;
@@ -20,9 +20,10 @@ CConfigManager::CConfigManager()
 	m_pConfVars->DrawLights = m_pConfVarsGUI->DrawLights = 0;
 	m_pConfVars->considerNormals = m_pConfVarsGUI->considerNormals = 1;
 	m_pConfVars->gatherClusterLightsSimple = m_pConfVarsGUI->gatherClusterLightsSimple = 0;
+	m_pConfVars->explicitDirectIllum = m_pConfVarsGUI->explicitDirectIllum = 1;
 	
 	m_pConfVars->lightRadiusScale = m_pConfVarsGUI->lightRadiusScale = 0.5f;
-	m_pConfVars->photonRadiusScale = m_pConfVarsGUI->photonRadiusScale = 1.0f;
+	m_pConfVars->photonRadiusScale = m_pConfVarsGUI->photonRadiusScale = 2.0f;
 
 	m_pConfVars->drawRadianceTextures = m_pConfVarsGUI->drawRadianceTextures = 0;
 	m_pConfVars->drawGBufferTextures = m_pConfVarsGUI->drawGBufferTextures = 0;
@@ -30,11 +31,10 @@ CConfigManager::CConfigManager()
 	m_pConfVars->UseAntiradiance = m_pConfVarsGUI->UseAntiradiance = 1;
 	m_pConfVars->SeparateDirectIndirectLighting = m_pConfVarsGUI->SeparateDirectIndirectLighting = 0;
 	m_pConfVars->LightingMode = m_pConfVarsGUI->LightingMode = 0;
-	m_pConfVars->NumAVPLsPerFrame = m_pConfVarsGUI->NumAVPLsPerFrame = 100;
-	m_pConfVars->NumAdditionalAVPLs = m_pConfVarsGUI->NumAdditionalAVPLs = 0;
+	m_pConfVars->NumAVPLsPerFrame = m_pConfVarsGUI->NumAVPLsPerFrame = 1000;
 	m_pConfVars->NumVPLsDirectLight = m_pConfVarsGUI->NumVPLsDirectLight = 500;
 	m_pConfVars->NumVPLsDirectLightPerFrame = m_pConfVarsGUI->NumVPLsDirectLightPerFrame = 5;
-	m_pConfVars->ClusterRefinementThreshold = m_pConfVarsGUI->ClusterRefinementThreshold = M_PI / 10.f;
+	m_pConfVars->ClusterRefinementThreshold = m_pConfVarsGUI->ClusterRefinementThreshold = PI / 10.f;
 	
 	m_pConfVars->DrawError = m_pConfVarsGUI->DrawError = 0;
 	m_pConfVars->DrawReference = m_pConfVarsGUI->DrawReference = 0;
@@ -76,6 +76,13 @@ void CConfigManager::Update()
 	if(m_pConfVarsGUI->lightRadiusScale != m_pConfVars->lightRadiusScale)
 	{
 		m_pConfVars->lightRadiusScale = m_pConfVarsGUI->lightRadiusScale;
+		bool clearLighting = false;
+		bool clearAccumBuffer = false;
+	}
+
+	if(m_pConfVarsGUI->explicitDirectIllum != m_pConfVars->explicitDirectIllum)
+	{
+		m_pConfVars->explicitDirectIllum = m_pConfVarsGUI->explicitDirectIllum;
 		bool clearLighting = false;
 		bool clearAccumBuffer = false;
 	}

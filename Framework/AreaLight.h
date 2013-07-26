@@ -42,7 +42,7 @@ public:
 		indices.push_back(glm::uvec3(0, 2, 3));
 
 		MATERIAL m;
-		m.emissive = glm::vec4(m_radiance, 1.f);
+		m.emissive = m_radiance;
 		m_materialIndex = m_materialBuffer->AddMaterial("LightSource", m);
 		
 		m_mesh.reset(new Mesh(positions, normals, indices, m_materialIndex));
@@ -71,7 +71,7 @@ public:
 	
 	void setRadiance(glm::vec3 radiance) { 
 		m_radiance = radiance;  
-		m_materialBuffer->GetMaterial(m_materialIndex)->emissive =  glm::vec4(m_radiance, 1.f);
+		m_materialBuffer->GetMaterial(m_materialIndex)->emissive = m_radiance;
 	}
 	
 	glm::vec3 samplePos(float& pdf) const {

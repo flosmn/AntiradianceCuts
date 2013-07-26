@@ -15,6 +15,8 @@ struct CONF_VARS
 	int DrawClusterLights;
 	int DrawClusterAABBs;
 
+	int explicitDirectIllum;
+
 	float lightRadiusScale;
 	float photonRadiusScale;
 

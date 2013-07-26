@@ -20,6 +20,7 @@ class CShadowMap;
 class Postprocess;
 class CImagePlane;
 class CPathTracingIntegrator;
+class AvplShooter;
 
 class PointCloud;
 class AABBCloud;
@@ -184,6 +185,8 @@ private:
 	std::unique_ptr<COGLTexture2D> m_cudaTargetTexture;
 	std::unique_ptr<cuda::CudaContext> m_cudaContext;
 	std::unique_ptr<CudaGather> m_cudaGather;
+
+	std::unique_ptr<AvplShooter> m_avplShooter;
 
 	std::unique_ptr<SceneProbe> m_sceneProbe;
 

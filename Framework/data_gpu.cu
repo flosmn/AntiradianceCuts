@@ -60,9 +60,9 @@ MaterialsGpu::MaterialsGpu(std::vector<MATERIAL> const& materials)
 	thrust::host_vector<float> exponent_h(numMaterials);
 
 	for (int i = 0; i < materials.size(); ++i) {
-		emissive_h[i] = make_float3(glm::vec3(materials[i].emissive));
-		diffuse_h[i] = make_float3(glm::vec3(materials[i].diffuse));
-		specular_h[i] = make_float3(glm::vec3(materials[i].specular));
+		emissive_h[i] = make_float3(materials[i].emissive);
+		diffuse_h[i] = make_float3(materials[i].diffuse);
+		specular_h[i] = make_float3(materials[i].specular);
 		exponent_h[i] = materials[i].exponent;
 	}
 

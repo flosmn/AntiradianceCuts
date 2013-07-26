@@ -36,8 +36,8 @@ void CPathTracingIntegrator::Integrate(uint numPaths)
 		SceneSample y[100];
 		float p_A[100];
 
-		glm::vec4 f_x = glm::vec4(0.f);
-		glm::vec4 color = glm::vec4(0.f);
+		glm::vec3 f_x = glm::vec3(0.f);
+		glm::vec3 color = glm::vec3(0.f);
 
 		float t = 0;
 		Intersection intersection;
@@ -50,7 +50,7 @@ void CPathTracingIntegrator::Integrate(uint numPaths)
 			y[1] = ss;
 			p_A[1] = 1.f; //m_scene->GetCamera()->GetProbWrtArea(ss);
 
-			f_x = glm::vec4(1.f); //glm::vec4(G(y[0], y[1]) / p_A[1]);
+			f_x = glm::vec3(1.f); //glm::vec4(G(y[0], y[1]) / p_A[1]);
 		}
 		else
 		{
@@ -106,9 +106,9 @@ void CPathTracingIntegrator::Integrate(uint numPaths)
 				
 				const float p_A = ProbA(y[i], ls_sample, pdfSA);
 				const float w = ls_sample.pdf / (ls_sample.pdf + p_A);
-				const glm::vec4 L_e = m_scene->GetMaterial(ls_sample)->emissive;
+				const glm::vec3 L_e = m_scene->GetMaterial(ls_sample)->emissive;
 			
-				const glm::vec4 BRDF = Phong(y[i-1].position, y[i].position, ls_sample.position, y[i].normal, 
+				const glm::vec3 BRDF = Phong(y[i-1].position, y[i].position, ls_sample.position, y[i].normal, 
 					m_scene->GetMaterial(y[i]));
 							
 				color += w * f_x * BRDF * G(ls_sample, y[i]) * L_e/ls_sample.pdf;
@@ -125,12 +125,10 @@ void CPathTracingIntegrator::Integrate(uint numPaths)
 				float pdf = 0;
 				glm::vec3 direction;
 				
-				#pragma omp critical
-				{
-					direction = SamplePhong(glm::normalize(y[i-1].position - y[i].position), y[i].normal, 
-						m_scene->GetMaterial(y[i]), pdf);
-				}
-				
+				Sampler sampler;
+				direction = SamplePhong(glm::normalize(y[i-1].position - y[i].position), y[i].normal, 
+					m_scene->GetMaterial(y[i]), pdf, sampler);
+								
 				if(glm::dot(direction, y[i].normal) <= 0.f)
 				{
 					std::cout << "cos_theta <= 0.f" << std::endl;
@@ -154,7 +152,7 @@ void CPathTracingIntegrator::Integrate(uint numPaths)
 
 					p_A[i+1] = p_A[i] + temp;
 					
-					const glm::vec4 BRDF = Phong(y[i-1].position, y[i].position, y[i+1].position, y[i].normal, 
+					const glm::vec3 BRDF = Phong(y[i-1].position, y[i].position, y[i+1].position, y[i].normal, 
 						m_scene->GetMaterial(y[i]));
 
 					f_x = 1.f/(ProbPSA(y[i], y[i+1], pdf) * t_prob) * f_x * BRDF;
@@ -168,7 +166,7 @@ void CPathTracingIntegrator::Integrate(uint numPaths)
 
 		#pragma omp critical
 		{
-			m_imagePlane->AddSample(pixel, color);
+			m_imagePlane->AddSample(pixel, glm::vec4(color, 1.f));
 		}
 	}
 }

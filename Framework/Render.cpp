@@ -5,6 +5,7 @@
 #include "Utils/stream.h"
 
 #include "SceneProbe.h"
+#include "AvplShooter.h"
 
 #include "CudaGather.h"
 #include "bvh.h"
@@ -130,6 +131,8 @@ Renderer::Renderer(CCamera* m_camera, COGLContext* glContext, CConfigManager* co
 
 	m_scene.reset(new Scene(m_camera, m_confManager));
 	m_scene->LoadCornellBox();
+
+	m_avplShooter.reset(new AvplShooter(m_scene.get(), m_confManager));
 
 	m_imagePlane				.reset(new CImagePlane(m_scene->GetCamera()));
 	m_pathTracingIntegrator		.reset(new CPathTracingIntegrator(m_scene.get(), m_imagePlane.get()));
@@ -281,7 +284,10 @@ void Renderer::Render()
 
 	if(m_ProfileFrame) timer.Start();
 
-	GetAVPLs(avpls_shadowmap, avpls_antiradiance);
+	//GetAVPLs(avpls_shadowmap, avpls_antiradiance);
+
+	m_avplShooter->shoot(avpls_shadowmap, avpls_antiradiance, m_confManager->GetConfVars()->NumAVPLsPerFrame);
+	m_CurrentPathAntiradiance += m_confManager->GetConfVars()->NumAVPLsPerFrame;
 	
 	if(m_ProfileFrame) timer.Stop("get avpls");
 	if(m_ProfileFrame) timer.Start();

@@ -138,10 +138,10 @@ public:
 
 		for (int j = 0; j < resolution; ++j)
 		{
-			const float theta = M_PI * float(j) / resolution;
+			const float theta = PI * float(j) / resolution;
 			for (int i = 0; i < resolution; ++i)
 			{
-				const float phi = 2.f * M_PI * float(i) / resolution;
+				const float phi = 2.f * PI * float(i) / resolution;
 				positionData.push_back(glm::vec3(
 					std::sin(theta)*std::cos(phi),
 					std::cos(theta),

@@ -5,13 +5,10 @@
 
 struct MATERIAL
 {
-	glm::vec4 emissive;
-	glm::vec4 diffuse;
-	glm::vec4 specular;
+	glm::vec3 emissive;
+	glm::vec3 diffuse;
+	glm::vec3 specular;
 	float exponent;
-	float padd0;
-	float padd1;
-	float padd2;
 };
 
 #endif // _MATERIAL_H_
